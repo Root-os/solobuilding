@@ -1,0 +1,13 @@
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const Email = sequelize.define("Email", {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    senderId: { type: DataTypes.INTEGER, allowNull: false },
+    receiverId: { type: DataTypes.INTEGER, allowNull: false },
+    subject: { type: DataTypes.STRING, allowNull: false },
+    content: { type: DataTypes.TEXT, allowNull: false },
+    status: { type: DataTypes.ENUM("sent", "read"), defaultValue: "sent" }
+  });
+
+module.exports = Email;
