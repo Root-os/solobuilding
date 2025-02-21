@@ -6,10 +6,7 @@ const notificationTypeController = require("../controllers/notificationTypeContr
 router.post("/", notificationTypeController.createNotificationType);
 
 // Get all notification types
-router.get("/", notificationTypeController.getAllNotificationTypes);
-
-// Get notification type by ID
-router.get("/:id", notificationTypeController.getNotificationTypeById);
+router.get("/", notificationTypeController.getNotificationTypes);
 
 // Update notification type by ID
 router.put("/:id", notificationTypeController.updateNotificationType);

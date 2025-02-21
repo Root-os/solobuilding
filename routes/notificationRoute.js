@@ -6,17 +6,12 @@ const {
   
   createNotificationForUser,
  updateNotification,
- createNotificationForAllUsers,
-  getMyNotifications,
-  getMyUnreadNotifications,
+ createNotificationForGroup,
+ getMyNotifications,
   markAsRead,
   getAllNotifications,
   deleteNotification,
-  createNotificationType,
-  getNotificationTypes,
-  updateNotificationType,
-  deleteNotificationType,
-
+ 
   fetchNotificationById,
 } = require("../controllers/notificationController");
 
@@ -30,20 +25,13 @@ router.put(
 );
 
 // Create notification for all users
-router.post("/create-for-all",  createNotificationForAllUsers);
+router.post("/create-for-all",  createNotificationForGroup);
 
 // Get my notifications with pagination and filters
 router.get(
   "/my",
 
   getMyNotifications
-);
-
-// Get my unread notifications
-router.get(
-  "/my/unread",
-
-  getMyUnreadNotifications
 );
 
 // Mark notification as read
@@ -69,10 +57,6 @@ router.delete(
 );
 router.get("/by/:id",fetchNotificationById);
 
-router.post("/type", createNotificationType);
-router.get("/types", getNotificationTypes);
-router.put("/type/:id", updateNotificationType);
-router.delete("/type/:id", deleteNotificationType);
 
 module.exports = router;
 
