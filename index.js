@@ -20,6 +20,8 @@ const notificationTypeRoutes = require('./routes/notificationTypeRoutes');
 const parkingRoutes = require('./routes/parkingRoute');
 const expenseTypeRoutes = require('./routes/expenseTypeRoute');
 const expenseRoutes = require('./routes/expenseRoute');
+const  complaintRoutes  =require('./routes/complaintRoutes');
+
 // inventory
 const itemTypeRoutes = require('./routes/itemTyperoutes');
 const itemsRoutes = require('./routes/itemRoutes');
@@ -70,6 +72,8 @@ app.use('/api/notification-type', notificationTypeRoutes);
 app.use('/api/parking', parkingRoutes); 
 app.use('/api/expense-type', expenseTypeRoutes); 
 app.use('/api/expense', expenseRoutes); 
+app.use('/api/complaints', complaintRoutes);
+
 //inventory
 app.use('/api/item-types', itemTypeRoutes); 
 app.use('/api/items', itemsRoutes); 

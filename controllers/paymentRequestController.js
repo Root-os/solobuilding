@@ -6,12 +6,12 @@ const { Op } = require('sequelize');
 // Create a payment request
 exports.createPaymentRequest = async (req, res) => {
   try {
-    const { tenantId, message, billPaymentTypeId, level, amount, dueDate, repeatedFor } = req.body;
+    const { tenantId, message, PaymentTypeId, level, amount, dueDate, repeatedFor } = req.body;
 
     const newPaymentRequest = await PaymentRequest.create({
       tenantId,
       message,
-      billPaymentTypeId,
+      PaymentTypeId,
       level,
       amount,
       dueDate,

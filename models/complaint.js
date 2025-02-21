@@ -9,7 +9,8 @@ const Complaint = sequelize.define("Complaint", {
     urgency: { type: DataTypes.ENUM("low", "medium", "high"), defaultValue: "medium" },
     status: { type: DataTypes.ENUM("pending", "in_progress", "resolved"), defaultValue: "pending" },
     images: { type: DataTypes.JSON } ,
-    tenantFeedback: { type: DataTypes.ENUM("satisfied", "not_satisfied"), allowNull: true }},{
+    tenantFeedback: { type: DataTypes.ENUM("satisfied", "not_satisfied"), allowNull: true }},
+    {
     tableName: 'complaints',
     timestamps: true,
   });
