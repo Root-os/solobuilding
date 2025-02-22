@@ -2,6 +2,8 @@ const PaymentRequest = require('../models/paymentRequests');
 const Tenant = require('../models/tenant');
 const BillType = require('../models/billType');
 const { Op } = require('sequelize');
+const multer = require('multer');
+const path = require('path');
 
 // Create a payment request
 exports.createPaymentRequest = async (req, res) => {
@@ -123,3 +125,63 @@ exports.deletePaymentRequest = async (req, res) => {
     res.status(500).json({ message: 'Error deleting payment request', error: error.message });
   }
 };
+
+
+// Approve or Reject Payment
+exports.reviewPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status. Use approved or rejected.' });
+    }
+
+    const paymentRequest = await PaymentRequest.findByPk(id);
+    if (!paymentRequest) {
+      return res.status(404).json({ message: 'Payment request not found' });
+    }
+
+    paymentRequest.status = status;
+    await paymentRequest.save();
+
+    res.status(200).json({ message: `Payment ${status} successfully`, data: paymentRequest });
+  } catch (error) {
+    console.error("Error reviewing payment:", error);
+    res.status(500).json({ message: 'Error reviewing payment', error: error.message });
+  }
+};
+// Upload Payment Receipt
+exports.uploadReceipt = async (req, res) => {
+  upload.single('receipt')(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ message: 'File upload failed', error: err.message });
+    }
+
+    try {
+      const { id } = req.params;
+      const paymentRequest = await PaymentRequest.findByPk(id);
+
+      if (!paymentRequest) {
+        return res.status(404).json({ message: 'Payment request not found' });
+      }
+
+      // Update with receipt path
+      paymentRequest.receipt = `/uploads/receipts/${req.file.filename}`;
+      await paymentRequest.save();
+
+      res.status(200).json({ message: 'Receipt uploaded successfully', data: paymentRequest });
+    } catch (error) {
+      console.error("Error uploading receipt:", error);
+      res.status(500).json({ message: 'Error uploading receipt', error: error.message });
+    }
+  });
+};
+
+const storage = multer.diskStorage({
+  destination: './uploads/receipts',
+  filename: (req, file, cb) => {
+    cb(null, `receipt-${Date.now()}${path.extname(file.originalname)}`);
+  },
+});
+const upload = multer({ storage });

@@ -3,8 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const {
-  
-  createNotificationForUser,
+createNotificationForUser,
  updateNotification,
  createNotificationForGroup,
  getMyNotifications,
@@ -25,37 +24,21 @@ router.put(
 );
 
 // Create notification for all users
-router.post("/create-for-all",  createNotificationForGroup);
+router.post("/group",  createNotificationForGroup);
 
 // Get my notifications with pagination and filters
-router.get(
-  "/my",
-
-  getMyNotifications
-);
+router.get("/my-notification",getMyNotifications);
 
 // Mark notification as read
-router.put(
-  "/mark-as-read/:id",
-  markAsRead
-);
+router.put("/mark-as-read/:id", markAsRead);
 
 // Get all notifications (admin only)
-router.get(
-  "/all",
-   getAllNotifications
-);
+router.get("/all", getAllNotifications);
 
 // Delete notification
-router.delete(
-  "/delete/:id",
-
-  deleteNotification
-);
-router.delete(
-  "/delete-admin/:id",  deleteNotification
-);
-router.get("/by/:id",fetchNotificationById);
+router.delete("/delete/:id",deleteNotification);
+router.delete("/delete-admin/:id",  deleteNotification);
+router.get("/get-by-id/:id",fetchNotificationById);
 
 
 module.exports = router;

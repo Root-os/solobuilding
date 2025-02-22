@@ -1,7 +1,7 @@
-import Complaint from '../models/complaint.js';
+const Complaint =require ('../models/complaint.js');
 
 // Create a new complaint with multiple image uploads
-export const createComplaint = async (req, res) => {
+ const createComplaint = async (req, res) => {
   try {
     const { tenantId, description, urgency } = req.body;
     const imagePaths = req.files ? req.files.map(file => file.path) : [];
@@ -24,7 +24,7 @@ export const createComplaint = async (req, res) => {
 };
 
 // Get all complaints (admin view)
-export const getAllComplaints = async (req, res) => {
+ const getAllComplaints = async (req, res) => {
   try {
     const complaints = await Complaint.findAll();
     res.status(200).json(complaints);
@@ -34,7 +34,7 @@ export const getAllComplaints = async (req, res) => {
 };
 
 // Assign a complaint to an employee
-export const assignComplaint = async (req, res) => {
+ const assignComplaint = async (req, res) => {
   try {
     const { complaintId, employeeId } = req.body;
     const complaint = await Complaint.findByPk(complaintId);
@@ -53,8 +53,9 @@ export const assignComplaint = async (req, res) => {
   }
 };
 
+
 // Update complaint status
-export const updateComplaintStatus = async (req, res) => {
+ const updateComplaintStatus = async (req, res) => {
   try {
     const { complaintId, status } = req.body;
     const complaint = await Complaint.findByPk(complaintId);
@@ -76,8 +77,9 @@ export const updateComplaintStatus = async (req, res) => {
   }
 };
 
+
 // Confirm or reopen a complaint (tenant feedback)
-export const confirmComplaintResolution = async (req, res) => {
+ const confirmComplaintResolution = async (req, res) => {
   try {
     const { complaintId, feedback } = req.body;
     const complaint = await Complaint.findByPk(complaintId);
@@ -101,3 +103,11 @@ export const confirmComplaintResolution = async (req, res) => {
     res.status(500).json({ message: 'Error updating complaint feedback', error: error.message });
   }
 };
+
+module.exports={
+createComplaint,
+ getAllComplaints,
+ assignComplaint,
+ updateComplaintStatus,
+ confirmComplaintResolution,
+}

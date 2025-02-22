@@ -17,10 +17,13 @@ const PaymentRequestsRoutes = require('./routes/paymentRequestRoute');
 const rentCollectionRoutes = require('./routes/rentCollectionRoutes');
 const billPaymentsRoutes = require('./routes/billPaymentsRoute');
 const notificationTypeRoutes = require('./routes/notificationTypeRoutes');
+const notificationRoutes = require('./routes/notificationRoute');
 const parkingRoutes = require('./routes/parkingRoute');
 const expenseTypeRoutes = require('./routes/expenseTypeRoute');
 const expenseRoutes = require('./routes/expenseRoute');
 const  complaintRoutes  =require('./routes/complaintRoutes');
+const dashboardRoutes = require("./routes/dashboardRoutes");
+
 
 // inventory
 const itemTypeRoutes = require('./routes/itemTyperoutes');
@@ -68,11 +71,13 @@ app.use('/api/tenant-payments', tenantsPaymentRoutes);
 app.use('/api/payment-requests', PaymentRequestsRoutes); 
 app.use('/api/rent-collection', rentCollectionRoutes); 
 app.use('/api/bill-payments', billPaymentsRoutes); 
-app.use('/api/notification-type', notificationTypeRoutes); 
 app.use('/api/parking', parkingRoutes); 
+app.use('/api/notification', notificationRoutes); 
+app.use('/api/notification-type', notificationTypeRoutes); 
 app.use('/api/expense-type', expenseTypeRoutes); 
 app.use('/api/expense', expenseRoutes); 
 app.use('/api/complaints', complaintRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 //inventory
 app.use('/api/item-types', itemTypeRoutes); 

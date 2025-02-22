@@ -1,14 +1,14 @@
-import express from 'express';
-import upload from '../middlewares/complaintUpload';
-import {
+const express = require("express");
+const router = express.Router();
+const upload =require('../middleware/complaintUpload');
+const {
   createComplaint,
   getAllComplaints,
   assignComplaint,
   updateComplaintStatus,
   confirmComplaintResolution,
-} from '../controllers/complaintController.js';
+} =require( '../controllers/complaintController.js');
 
-const router = express.Router();
 
 // Tenant submits a complaint with images
 router.post('/submit', upload.array('images', 5), createComplaint);
@@ -25,4 +25,4 @@ router.put('/update-status', updateComplaintStatus);
 // Tenant confirms or reopens a complaint
 router.put('/confirm-resolution', confirmComplaintResolution);
 
-export default router;
+module.exports= router;

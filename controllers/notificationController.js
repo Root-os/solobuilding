@@ -1,8 +1,7 @@
-const Notification = require("../../models/notificationModel");
-const NotificationType = require("../../models/notificationTypeModel");
-const User = require("../../models/userModel");
-const Tenant = require("../../models/tenantModel");
-const { getPagination, getPagingData } = require("../../utils/pagination");
+const Notification = require("../models/notification");
+const NotificationType = require("../models/notificationType");
+const User = require("../models/user");
+const Tenant = require("../models/tenant");
 
 // Create notification for a specific user or tenant
 const createNotificationForUser = async (req, res) => {
@@ -116,8 +115,7 @@ const fetchNotificationById = async (req, res) => {
 // Get notifications for the logged-in user
 const getMyNotifications = async (req, res) => {
   try {
-    const { page, size, type, isRead } = req.query;
-    const { limit, offset } = getPagination(page, size);
+    const {type, isRead } = req.query;
     const whereClause = { receiver_id: req.user.id };
 
     if (type) whereClause.notificationTypeId = type;
@@ -125,13 +123,11 @@ const getMyNotifications = async (req, res) => {
 
     const notifications = await Notification.findAndCountAll({
       where: whereClause,
-      limit,
-      offset,
       order: [["createdAt", "DESC"]],
       include: [{ model: NotificationType, as: "type", attributes: ["id", "name"] }],
     });
 
-    return res.status(200).json(getPagingData(notifications, page, limit));
+    return res.status(200).json(notifications);
   } catch (error) {
     return res.status(500).json({ status: "error", message: "Failed to fetch notifications" });
   }
@@ -158,16 +154,13 @@ const getAllNotifications = async (req, res) => {
   try {
     if (req.user.role !== "ADMIN") return res.status(403).json({ message: "Access denied." });
 
-    const { page, size, type } = req.query;
-    const { limit, offset } = getPagination(page, size);
+    const {  type } = req.query;
     const whereClause = {};
 
     if (type) whereClause.notificationTypeId = type;
 
     const notifications = await Notification.findAndCountAll({
       where: whereClause,
-      limit,
-      offset,
       order: [["createdAt", "DESC"]],
       include: [
         { model: NotificationType, as: "type", attributes: ["id", "name"] },
@@ -177,7 +170,7 @@ const getAllNotifications = async (req, res) => {
       ],
     });
 
-    return res.status(200).json(getPagingData(notifications, page, limit));
+    return res.status(200).json(notifications);
   } catch (error) {
     return res.status(500).json({ status: "error", message: `Failed to fetch notifications: ${error.message}` });
   }

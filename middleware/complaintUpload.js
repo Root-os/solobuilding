@@ -1,6 +1,6 @@
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+const  multer = require('multer');
+const path =require ('path');
+const fs =require( 'fs');
 
 // Ensure the uploads directory exists
 const uploadDir = 'uploads/complaints';
@@ -33,4 +33,4 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024, files: 5 },
 });
 
-export default upload;
+module.exports = upload;

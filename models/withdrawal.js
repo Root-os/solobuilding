@@ -3,17 +3,24 @@ const sequelize = require('../config/database');
 
 const WithdrawalRequest = sequelize.define("WithdrawalRequest", {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-  tenantId: { type: DataTypes.INTEGER, allowNull: false },
-  terminationDate: { type: DataTypes.DATE, allowNull: false }, // Added
-  status: { type: DataTypes.ENUM("pending", "approved", "rejected"), defaultValue: "pending" },
-  adminResponse: { type: DataTypes.TEXT, allowNull: true }, // Reason for approval/rejection
-  tenantFeedback: { type: DataTypes.TEXT, allowNull: true }, // Tenant response
-  assignedEmployeeId: { type: DataTypes.INTEGER, allowNull: true },
-    reason: { type: DataTypes.TEXT, allowNull: false },// Reason for withdrawal
-  },
-  {
+    tenantId: { type: DataTypes.INTEGER, allowNull: false },
+    terminationDate: { type: DataTypes.DATE, allowNull: false },
+    reason: { type: DataTypes.TEXT, allowNull: false },
+    status: { 
+        type: DataTypes.ENUM("pending", "approved", "rejected", "processed"),
+        defaultValue: "pending"
+    },
+    adminResponse: { type: DataTypes.TEXT, allowNull: true }, // Admin's decision reason
+    tenantFeedback: { type: DataTypes.TEXT, allowNull: true }, // Tenant's feedback after approval/rejection
+    assignedEmployeeId: { type: DataTypes.INTEGER, allowNull: true }, // Employee handling the process
+    depositRefundStatus: { 
+        type: DataTypes.ENUM("not_processed", "partial", "full"), 
+        defaultValue: "not_processed" 
+    }, // Tracks security deposit refund
+    processedAt: { type: DataTypes.DATE, allowNull: true }, // When the process is completed
+}, {
     tableName: 'withdrawal_requests',
     timestamps: true,
-  });
-  
+});
+
 module.exports = WithdrawalRequest;

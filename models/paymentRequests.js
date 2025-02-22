@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const Tenant = require('./tenant');  // Assuming Tenant model is defined elsewhere
-const PaymentType = require('./paymentType');  // Assuming BillType model is defined elsewhere
+const Tenant = require('./tenant');
+const PaymentType = require('./paymentType');
 
 const PaymentRequest = sequelize.define('PaymentRequest', {
   id: {
@@ -9,60 +9,60 @@ const PaymentRequest = sequelize.define('PaymentRequest', {
     primaryKey: true,
     autoIncrement: true,
   },
-  // Tenant ID associated with the request (foreign key)
   tenantId: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: Tenant,   // Reference to Tenant model
-      key: 'id',       // The key in the Tenant model
+      model: Tenant,
+      key: 'id',
     },
   },
-  // A message or note related to the request
   message: {
     type: DataTypes.TEXT,
     allowNull: true,
   },
-  // ID referencing the bill type (foreign key to BillType model)
   PaymentTypeId: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: PaymentType,  // Reference to BillType model
-      key: 'id',        // The key in the BillType model
+      model: PaymentType,
+      key: 'id',
     },
   },
-  // The priority level of the payment request: 'low', 'medium', 'high'
   level: {
     type: DataTypes.STRING,
     allowNull: false,
-    defaultValue: 'medium', // Default level can be 'medium'
+    defaultValue: 'medium',
     validate: {
       isIn: [['low', 'medium', 'high']],
     },
   },
-  // The amount of money requested
   amount: {
     type: DataTypes.FLOAT,
     allowNull: false,
+    validate: {
+      min: 0.01, // Prevent negative payments
+    },
   },
-  // Payment due date
   dueDate: {
     type: DataTypes.DATE,
     allowNull: false,
+    validate: {
+      isAfter: new Date().toISOString(), // Ensure due date is in the future
+    },
   },
   repeatedFor: {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  // Status of the request: 'pending', 'approved', 'rejected'
+  receipt: {
+    type: DataTypes.STRING, // Store file path for payment proof
+    allowNull: true,
+  },
   status: {
     type: DataTypes.ENUM('pending', 'approved', 'rejected'),
     allowNull: false,
     defaultValue: 'pending',
-    validate: {
-      isIn: [['pending', 'approved', 'rejected']],
-    },
   },
 }, {
   timestamps: true,

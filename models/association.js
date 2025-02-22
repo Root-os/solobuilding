@@ -1,4 +1,4 @@
-const { 
+const {
     BillPayment, 
     BillType, 
     ElectricCarCharging, 
@@ -23,111 +23,71 @@ const {
     WithdrawalRequest,
 } = require('./index');
 
-
 const defineAssociations = () => {
-    // Define Relationship
+    // Define Relationships
+    BillPayment.belongsTo(BillType, { foreignKey: "billTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
+    BillType.hasMany(BillPayment, { foreignKey: "billTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
 
-BillPayment.belongsTo(BillType, { foreignKey: "billTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
-BillType.hasMany(BillPayment, { foreignKey: "billTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
+    ElectricCarCharging.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "CASCADE" });
+    Tenant.hasOne(ElectricCarCharging, { foreignKey: "tenantId", onDelete: "CASCADE" });
 
-ElectricCarCharging.belongsTo(Tenant, { foreignKey: "tenantId" });
-Tenant.hasOne(ElectricCarCharging, { foreignKey: "tenantId" });
+    Complaint.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "CASCADE" });
+    Tenant.hasMany(Complaint, { foreignKey: "tenantId", onDelete: "CASCADE" });
 
-Complaint.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "CASCADE" });
-Tenant.hasMany(Complaint, { foreignKey: "tenantId" });
+    Complaint.belongsTo(User, { as: "assignedEmployee", foreignKey: "assignedEmployeeId", onDelete: "SET NULL" });
+    User.hasMany(Complaint, { foreignKey: "assignedEmployeeId" });
 
-Complaint.belongsTo(User, { as: "assignedEmployee", foreignKey: "assignedEmployeeId", onDelete: "SET NULL" });
-User.hasMany(Complaint, { foreignKey: "assignedEmployeeId" });
-Email.belongsTo(User, { as: "sender", foreignKey: "senderId", onDelete: "CASCADE" });
-Email.belongsTo(User, { as: "receiver", foreignKey: "receiverId", onDelete: "CASCADE" });
-Expense.belongsTo(ExpenseType, { foreignKey: "expenseTypeId", as: "expenseType" });
-ExpenseType.hasMany(Expense, { foreignKey: "expenseTypeId", as: "expenses" });
-Floor.hasMany(Tenant, { foreignKey: 'floorId'});
-Tenant.belongsTo(Floor, { foreignKey: 'floorId' });
-Floor.hasMany(Unit, { foreignKey: 'floorId', onDelete: 'CASCADE' });
-Unit.belongsTo(Floor, { foreignKey: 'floorId' });
-Item.belongsTo(ItemType, { foreignKey: "itemTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
-ItemType.hasMany(Item, { foreignKey: "itemTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
-Notification.belongsTo(NotificationType, {foreignKey: "type_id",as: "type",});
-NotificationType.hasMany(Notification, {foreignKey: "type_id", as: "notifications", });
+    Email.belongsTo(User, { as: "sender", foreignKey: "senderId", onDelete: "CASCADE" });
+    Email.belongsTo(User, { as: "receiver", foreignKey: "receiverId", onDelete: "CASCADE" });
 
+    Expense.belongsTo(ExpenseType, { foreignKey: "expenseTypeId", as: "expenseType", onDelete: "CASCADE" });
+    ExpenseType.hasMany(Expense, { foreignKey: "expenseTypeId", as: "expenses", onDelete: "CASCADE" });
 
+    Floor.hasMany(Tenant, { foreignKey: 'floorId', onDelete: "CASCADE" });
+    Tenant.belongsTo(Floor, { foreignKey: 'floorId', onDelete: "CASCADE" });
 
+    Floor.hasMany(Unit, { foreignKey: 'floorId', onDelete: 'CASCADE' });
+    Unit.belongsTo(Floor, { foreignKey: 'floorId', onDelete: 'CASCADE' });
 
+    Item.belongsTo(ItemType, { foreignKey: "itemTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
+    ItemType.hasMany(Item, { foreignKey: "itemTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
 
+    Notification.belongsTo(NotificationType, { foreignKey: "notificationTypeId", as: "type", onDelete: "CASCADE" });
+    NotificationType.hasMany(Notification, { foreignKey: "notificationTypeId", as: "notifications", onDelete: "CASCADE" });
+    Notification.belongsTo(User, { as: "sender", foreignKey: "senderId", onDelete: "CASCADE" });
+    Notification.belongsTo(User, { as: "receiver", foreignKey: "receiver_id", onDelete: "CASCADE",scope: { receiver_type: "staff" } });
+    Notification.belongsTo(Tenant, { as: "receiver", foreignKey: "receiver_id", onDelete: "CASCADE" ,scope: { receiver_type: "tenant" }});
+    
+    Parking.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "CASCADE" });
+    Tenant.hasOne(Parking, { foreignKey: "tenantId", onDelete: "CASCADE" });
 
-Unit.hasMany(Tenant, { foreignKey: 'unitId', });
-Tenant.belongsTo(Unit, { foreignKey: 'unitId' });
+    PaymentRequest.belongsTo(Tenant, { foreignKey: 'tenantId', onDelete: "CASCADE" });
+    PaymentRequest.belongsTo(PaymentType, { foreignKey: 'paymentTypeId', onDelete: "CASCADE" });
 
+    PaymentType.hasMany(TenantPayment, { foreignKey: 'paymentTypeId', onDelete: "CASCADE" });
+    TenantPayment.belongsTo(PaymentType, { foreignKey: 'paymentTypeId', onDelete: "CASCADE" });
 
+    Tenant.hasMany(TenantPayment, { foreignKey: 'tenantId', onDelete: "CASCADE" });
+    TenantPayment.belongsTo(Tenant, { foreignKey: 'tenantId', onDelete: "CASCADE" });
 
-// Correct relationships
-Tenant.hasMany(TenantRentCollection, { foreignKey: 'tenantId' });
-TenantRentCollection.belongsTo(Tenant, { foreignKey: 'tenantId' });
+    Tenant.hasMany(TenantRentCollection, { foreignKey: 'tenantId', onDelete: "CASCADE" });
+    TenantRentCollection.belongsTo(Tenant, { foreignKey: 'tenantId', onDelete: "CASCADE" });
 
+    Unit.hasMany(Tenant, { foreignKey: 'unitId', onDelete: "CASCADE" });
+    Tenant.belongsTo(Unit, { foreignKey: 'unitId', onDelete: "CASCADE" });
 
-// Associations
-PaymentType.hasMany(TenantPayment, { foreignKey: 'billPaymentTypeId' });
-TenantPayment.belongsTo(PaymentType, { foreignKey: 'billPaymentTypeId' });
+    Tenant.belongsTo(User, { foreignKey: "userId", onDelete: "CASCADE" });
+    User.hasOne(Tenant, { foreignKey: "userId", onDelete: "CASCADE" });
 
-Tenant.hasMany(TenantPayment, { foreignKey: 'tenantId' });
-TenantPayment.belongsTo(Tenant, { foreignKey: 'tenantId' });
-// Associations
-Parking.belongsTo(Tenant, { foreignKey: "tenantId" });
-Tenant.hasOne(Parking, { foreignKey: "tenantId" });
-
-
-// Associations
-  PaymentRequest.belongsTo(Tenant, { foreignKey: 'tenantId' });
-  PaymentRequest.belongsTo(PaymentType, { foreignKey: 'PaymentTypeId' });
-// Define associations
-
-
-
+    Tenant.hasMany(TenantVehicle, { foreignKey: "tenantId", onDelete: "CASCADE" });
+    TenantVehicle.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "CASCADE" });
 
 
+    WithdrawalRequest.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "CASCADE" });
+    Tenant.hasMany(WithdrawalRequest, { foreignKey: "tenantId", onDelete: "CASCADE" });
 
-
-
-
-// Associations for User and Tenant (One-to-One)
-User.hasOne(Tenant, { foreignKey: "userId", onDelete: "CASCADE" });
-Tenant.belongsTo(User, { foreignKey: "userId" });
-
-// Associations for Tenant and Unit (Many-to-One)
-Tenant.belongsTo(Unit, { foreignKey: "unitId", onDelete: "SET NULL" });
-Unit.hasMany(Tenant, { foreignKey: "unitId" });
-
-// Associations for Tenant and TenantVehicle (One-to-Many)
-Tenant.hasMany(TenantVehicle, { foreignKey: "tenantId", onDelete: "CASCADE" });
-TenantVehicle.belongsTo(Tenant, { foreignKey: "tenantId" });
-
-// Associations for Notifications (Sender and Receiver)
-Notification.belongsTo(User, { as: "sender", foreignKey: "senderId", onDelete: "CASCADE" });
-Notification.belongsTo(User, { as: "receiver", foreignKey: "receiverId", onDelete: "CASCADE" });
-
-// Association for Notification and NotificationType (Many-to-One)
-Notification.belongsTo(NotificationType, { foreignKey: "typeId", onDelete: "CASCADE" });
-NotificationType.hasMany(Notification, { foreignKey: "typeId" });
-
-// Associations for Emails (Sender and Receiver)
-
-// Associations for PaymentRequest and Tenant (Many-to-One)
-PaymentRequest.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "CASCADE" });
-Tenant.hasMany(PaymentRequest, { foreignKey: "tenantId" });
-
-// Associations for PaymentRequest and PaymentType (Many-to-One)
-PaymentRequest.belongsTo(PaymentType, { foreignKey: "paymentTypeId", onDelete: "SET NULL" });
-PaymentType.hasMany(PaymentRequest, { foreignKey: "paymentTypeId" });
-
-
-// Associations for WithdrawalRequest (Tenant and Assigned Employee)
-WithdrawalRequest.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "CASCADE" });
-Tenant.hasMany(WithdrawalRequest, { foreignKey: "tenantId" });
-
-WithdrawalRequest.belongsTo(User, { as: "assignedEmployee", foreignKey: "assignedEmployeeId", onDelete: "SET NULL" });
-User.hasMany(WithdrawalRequest, { foreignKey: "assignedEmployeeId" });
-}
+    WithdrawalRequest.belongsTo(User, { as: "assignedEmployee", foreignKey: "assignedEmployeeId", onDelete: "SET NULL" });
+    User.hasMany(WithdrawalRequest, { foreignKey: "assignedEmployeeId", onDelete: "CASCADE" });
+};
 
 module.exports = defineAssociations;
-//defineAssociations();
