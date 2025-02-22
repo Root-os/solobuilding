@@ -22,6 +22,8 @@ const Floor = sequelize.define('Floor', {
 }, {
   tableName: 'floors',
   timestamps: true,
+  charset: 'utf8',
+  collate: 'utf8_general_ci',
 });
 
 module.exports = Floor;

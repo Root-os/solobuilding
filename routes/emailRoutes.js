@@ -8,7 +8,6 @@ const {
   deleteEmail,
 } = require("../controllers/emailController");
 const { adminAuth, tenantAuth } = require("../middlewares/authMiddleware");
-
 const router = express.Router();
 
 // Send an email to a specific tenant (Admin only)
@@ -27,6 +26,6 @@ router.get("/sent", adminAuth, getSentEmails);
 router.patch("/mark-read/:emailId", tenantAuth, markEmailAsRead);
 
 // Delete email (Tenant/Admin)
-router.delete("/:emailId", tenantAuth, deleteEmail);
+router.delete("/delete/:emailId", tenantAuth, deleteEmail);
 
 module.exports = router;

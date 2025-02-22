@@ -64,7 +64,11 @@ const Parking = sequelize.define("Parking", {
         allowNull: false
     }
 }, {
-    tableName: "parkings"
+    tableName: "parkings",
+    timestamps: true,
+    charset: "utf8",
+    collate: "utf8_general_ci"
+    
 });
 
 

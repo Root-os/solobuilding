@@ -28,6 +28,8 @@ const Expense = sequelize.define("Expense", {
 }, {
     timestamps: true,
     tableName: "expenses",
+    charset: 'utf8',
+    collate: 'utf8_general_ci',
 });
 
 

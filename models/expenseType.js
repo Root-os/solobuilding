@@ -14,6 +14,8 @@ const ExpenseType = sequelize.define("ExpenseType", {
 }, {
     timestamps: true,
     tableName: "expense_types",
+    charset: 'utf8',
+    collate: 'utf8_general_ci',
 });
 
 module.exports = ExpenseType;

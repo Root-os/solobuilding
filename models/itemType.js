@@ -19,6 +19,9 @@ const ItemType = sequelize.define('ItemType', {
  
 }, {
   timestamps: true,
+  tableName: 'item_types',
+  charset: 'utf8', 
+    collate: 'utf8_general_ci',
 });
 
 module.exports = ItemType;

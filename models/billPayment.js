@@ -44,7 +44,9 @@ const BillPayment = sequelize.define("BillPayment", {
     }
 }, {
     timestamps: true,
-    tableName: "bill_payments"
+    tableName: "bill_payments",
+    charset: 'utf8', 
+    collate: 'utf8_general_ci',
 });
 
 module.exports = BillPayment;

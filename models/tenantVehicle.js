@@ -13,5 +13,11 @@ const TenantVehicle = sequelize.define("TenantVehicle", {
         allowNull: true,
       },
       color: { type: DataTypes.STRING, allowNull: true }
+  },
+  {
+    tableName: 'tenant_vehicles',
+    timestamps: true,
+    charset: 'utf8',
+    collate: 'utf8_general_ci',
   });
 module.exports = TenantVehicle;

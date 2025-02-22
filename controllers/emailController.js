@@ -68,6 +68,7 @@ exports.sendBulkEmailToTenants = async (req, res) => {
   }
 };
 
+
 // Get received emails for a tenant
 exports.getReceivedEmails = async (req, res) => {
   try {

@@ -26,7 +26,9 @@ const Setting = sequelize.define("Setting", {
     }
 }, {
     tableName: "settings",
-    timestamps: false
+    timestamps: false,
+    charset: 'utf8', 
+    collate: 'utf8_general_ci',
 });
 
 module.exports = Setting;

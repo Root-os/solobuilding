@@ -24,6 +24,7 @@ const expenseRoutes = require('./routes/expenseRoute');
 const  complaintRoutes  =require('./routes/complaintRoutes');
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const withdrawalRequestRoutes = require("./routes/withdrawalRequestRoutes");
+const emailRoutes = require("./routes/emailRoutes");
 
 
 
@@ -81,6 +82,7 @@ app.use('/api/expense', expenseRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/withdrawal-request", withdrawalRequestRoutes);
+app.use("/api/email", emailRoutes);
 
 //inventory
 app.use('/api/item-types', itemTypeRoutes); 

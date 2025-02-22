@@ -21,6 +21,8 @@ const WithdrawalRequest = sequelize.define("WithdrawalRequest", {
 }, {
     tableName: 'withdrawal_requests',
     timestamps: true,
+    charset: 'utf8', 
+    collate: 'utf8_general_ci',
 });
 
 module.exports = WithdrawalRequest;

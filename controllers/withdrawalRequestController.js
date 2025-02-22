@@ -1,4 +1,4 @@
-const WithdrawalRequest = require('../models/withdrawalRequest');
+const WithdrawalRequest = require('../models/withdrawal');
 
 // Create a new withdrawal request
 const createWithdrawalRequest = async (req, res) => {

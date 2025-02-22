@@ -86,6 +86,8 @@ const Tenant = sequelize.define('Tenant', {
 }, {
   tableName: 'tenants', // Explicit table name
   timestamps: true,
+  charset: 'utf8', 
+    collate: 'utf8_general_ci',
 });
 
 

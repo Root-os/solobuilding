@@ -49,6 +49,8 @@ const Unit = sequelize.define('Unit', {
 }, {
   tableName: 'units', // Explicit table name
   timestamps: true,
+  charset: 'utf8', 
+  collate: 'utf8_general_ci',
 });
 
 module.exports = Unit;

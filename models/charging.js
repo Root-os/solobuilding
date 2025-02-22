@@ -56,6 +56,9 @@ const ElectricCarCharging = sequelize.define('ElectricCarCharging', {
     },
 }, {
     tableName: 'electric_car_chargings',
+    timestamps: true,
+    charset: 'utf8',
+    collate: 'utf8_general_ci',
 });
 
 module.exports = ElectricCarCharging;

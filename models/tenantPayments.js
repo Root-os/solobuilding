@@ -54,6 +54,8 @@ const TenantPayment = sequelize.define('TenantPayment', {
 }, {
   timestamps: true,
   tableName: 'tenant_payments',
+  charset: 'utf8', 
+  collate: 'utf8_general_ci',
 });
 
 module.exports = TenantPayment;

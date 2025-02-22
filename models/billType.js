@@ -20,6 +20,8 @@ const BillType = sequelize.define('BillType', {
 }, {
   timestamps: true,
   tableName: 'bill_types',
+  charset: 'utf8', 
+    collate: 'utf8_general_ci',
 });
 
 module.exports = BillType;

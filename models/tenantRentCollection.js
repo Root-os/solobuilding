@@ -50,6 +50,8 @@ const TenantRentCollection = sequelize.define('TenantRentCollection', {
 }, {
   timestamps: true,
   tableName: 'tenant_rent_collections',
+  charset: 'utf8', 
+  collate: 'utf8_general_ci',
 });
 
 module.exports = TenantRentCollection;

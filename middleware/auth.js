@@ -11,4 +11,11 @@ export const adminAuth = (req, res, next) => {
     }
     next();
   };
+
+  export const employeeAuth = (req, res, next) => {
+    if (!req.user || req.user.role !== "employee") {
+      return res.status(403).json({ message: "Access denied. employee only." });
+    }
+    next();
+  };
   

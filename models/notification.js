@@ -40,6 +40,8 @@ const Notification = sequelize.define(
   {
     tableName: "notifications",
     timestamps: true,
+    charset: "utf8",
+    collate: "utf8_general_ci",
   }
 );
 
