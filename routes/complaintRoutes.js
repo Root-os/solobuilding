@@ -7,6 +7,10 @@ const {
   assignComplaint,
   updateComplaintStatus,
   confirmComplaintResolution,
+  deleteComplaint,
+  getSingleComplaint,
+  getTenantComplaints,
+  getAssignedComplaints,
 } =require( '../controllers/complaintController.js');
 
 
@@ -24,5 +28,18 @@ router.put('/update-status', updateComplaintStatus);
 
 // Tenant confirms or reopens a complaint
 router.put('/confirm-resolution', confirmComplaintResolution);
+
+// Admin deletes a complaint
+router.delete('/delete/:complaintId', deleteComplaint);
+
+// Get a single complaint
+router.get('/get/:complaintId', getSingleComplaint);
+
+// Get all complaints for a tenant
+router.get('/tenant/:tenantId', getTenantComplaints);
+
+// Get all complaints assigned to a staff member
+router.get('/assigned/:employeeId', getAssignedComplaints);
+
 
 module.exports= router;

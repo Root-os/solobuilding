@@ -104,10 +104,63 @@ const Complaint =require ('../models/complaint.js');
   }
 };
 
+const deleteComplaint = async (req, res) => {
+  try {
+    const { complaintId } = req.params;
+    const complaint = await Complaint.findByPk(complaintId);
+
+    if (!complaint) {
+      return res.status(404).json({ message: 'Complaint not found' });
+    }
+
+    await complaint.destroy();
+    res.status(200).json({ message: 'Complaint deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting complaint', error: error.message });
+  }
+};
+const getSingleComplaint = async (req, res) => {
+  try {
+    const { complaintId } = req.params;
+    const complaint = await Complaint.findByPk(complaintId);
+
+    if (!complaint) {
+      return res.status(404).json({ message: 'Complaint not found' });
+    }
+
+    res.status(200).json(complaint);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching complaint', error: error.message });
+  }
+}
+const getTenantComplaints = async (req, res) => {
+  try {
+    const { tenantId } = req.params;
+    const complaints = await Complaint.findAll({ where: { tenantId } });
+
+    res.status(200).json(complaints);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching complaints', error: error.message });
+  }
+};
+const getAssignedComplaints = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const complaints = await Complaint.findAll({ where: { assignedEmployeeId: employeeId } });
+
+    res.status(200).json(complaints);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching complaints', error: error.message });
+  }
+};
 module.exports={
 createComplaint,
  getAllComplaints,
  assignComplaint,
  updateComplaintStatus,
  confirmComplaintResolution,
+ deleteComplaint,
+  getSingleComplaint,
+  getTenantComplaints,
+  getAssignedComplaints,
 }
