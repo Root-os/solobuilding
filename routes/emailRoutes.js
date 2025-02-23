@@ -7,7 +7,7 @@ const {
   markEmailAsRead,
   deleteEmail,
 } = require("../controllers/emailController");
-const { adminAuth, tenantAuth } = require("../middlewares/authMiddleware");
+const { adminAuth, tenantAuth } = require("../middleware/auth");
 const router = express.Router();
 
 // Send an email to a specific tenant (Admin only)

@@ -1,6 +1,5 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database"); // Import database instance
-const ItemType = require("./itemType"); // Import ItemType model
 
 const Item = sequelize.define(
   "Item",
@@ -22,16 +21,6 @@ const Item = sequelize.define(
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       defaultValue: 0, // Default value is 0
-    },
-    itemTypeId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: "ItemTypes",
-        key: "id",
-      },
-      onDelete: "CASCADE",
-      onUpdate: "CASCADE",
     },
     unit: {
       type: DataTypes.STRING,
