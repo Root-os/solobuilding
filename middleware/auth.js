@@ -88,5 +88,15 @@ const verifyToken = (req, res) => {
 
   next();
 };
+const EmployeeOrTenantAuth = (req, res, next) => {
+  const user = verifyToken(req, res);
+  if (!user) return; // Stop if token verification fails
 
-module.exports = { adminAuth, tenantAuth, employeeAuth, roleAuth, adminOrEmployeeAuth };
+  // Check if the user is either an admin or an employee
+  if (user.role !== "tenant" && user.role !== "employee") {
+    return res.status(403).json({ success: false, message: "Access denied. tenant or employee only." });
+  }
+
+  next();
+};
+module.exports = { adminAuth, tenantAuth, employeeAuth, roleAuth, EmployeeOrTenantAuth,adminOrEmployeeAuth };

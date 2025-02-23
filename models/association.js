@@ -80,7 +80,7 @@ const defineAssociations = () => {
     User.hasOne(Tenant, { foreignKey: "userId", onDelete: "CASCADE" });
 
     Tenant.hasMany(TenantVehicle, { foreignKey: "tenantId", onDelete: "CASCADE" });
-    TenantVehicle.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "CASCADE" });
+    TenantVehicle.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "SETNULL" });
 
 
     WithdrawalRequest.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "CASCADE" });

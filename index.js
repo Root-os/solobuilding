@@ -30,6 +30,7 @@ const withdrawalRequestRoutes = require("./routes/withdrawalRequestRoutes");
 const emailRoutes = require("./routes/emailRoutes");
 const authRoutes = require("./routes/authRoutes");
 const tenantAuthRoutes = require('./routes/tenantAuthRoute');
+const tenantVehicleRoutes = require('./routes/tenantVehicleRoutes');
 
 
 
@@ -78,6 +79,7 @@ app.use('/api/floor', floorRoutes);
 app.use('/api/unit', unitRoutes); 
 app.use('/api/tenant', tenantRoutes); 
 app.use('/api/tenant-auth', tenantAuthRoutes);
+app.use('/api/tenant-vehicle', tenantVehicleRoutes);
 
 app.use('/api/bill-type', billTypeRoutes); 
 app.use('/api/tenant-payments', tenantsPaymentRoutes); 

@@ -12,25 +12,26 @@ const {
   getTenantComplaints,
   getAssignedComplaints,
 } =require( '../controllers/complaintController.js');
+const { adminAuth, tenantAuth, } = require("../middleware/auth");
 
 
 // Tenant submits a complaint with images
-router.post('/submit', upload.array('images', 5), createComplaint);
+router.post('/submit', upload.array('images', 5), tenantAuth,createComplaint);
 
 // Admin views all complaints
-router.get('/all', getAllComplaints);
+router.get('/all', adminAuth,getAllComplaints);
 
 // Admin assigns a complaint to a staff member
-router.put('/assign', assignComplaint);
+router.put('/assign',adminAuth, assignComplaint);
 
 // Admin updates complaint status
-router.put('/update-status', updateComplaintStatus);
+router.put('/update-status', adminAuth, updateComplaintStatus);
 
 // Tenant confirms or reopens a complaint
-router.put('/confirm-resolution', confirmComplaintResolution);
+router.put('/confirm-resolution', tenantAuth,confirmComplaintResolution);
 
 // Admin deletes a complaint
-router.delete('/delete/:complaintId', deleteComplaint);
+router.delete('/delete/:complaintId',adminAuth, deleteComplaint);
 
 // Get a single complaint
 router.get('/get/:complaintId', getSingleComplaint);

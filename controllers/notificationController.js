@@ -6,13 +6,13 @@ const Tenant = require("../models/tenant");
 // Create notification for a specific user or tenant
 const createNotificationForUser = async (req, res) => {
   try {
-    const { receiver_id, receiver_type, senderId, title, body, type_id } = req.body;
+    const { receiverId, receiver_type, senderId, title, body, type_id } = req.body;
 
     let receiver;
     if (receiver_type === "staff") {
-      receiver = await User.findByPk(receiver_id);
+      receiver = await User.findByPk(receiverId);
     } else if (receiver_type === "tenant") {
-      receiver = await Tenant.findByPk(receiver_id);
+      receiver = await Tenant.findByPk(receiverId);
     } else {
       return res.status(400).json({ message: "Invalid receiver type." });
     }
@@ -21,7 +21,7 @@ const createNotificationForUser = async (req, res) => {
 
     const notification = await Notification.create({
       senderId,
-      receiver_id,
+      receiverId,
       receiver_type,
       title,
       body,
@@ -56,7 +56,7 @@ const createNotificationForGroup = async (req, res) => {
       try {
         await Notification.create({
           senderId,
-          receiver_id: receiver.id,
+          receiverId: receiver.id,
           receiver_type,
           title,
           body,
@@ -100,8 +100,8 @@ const fetchNotificationById = async (req, res) => {
       include: [
         { model: NotificationType, as: "type", attributes: ["id", "name"] },
         { model: User, as: "sender", attributes: ["id", "name", "email"] },
-        { model: User, as: "receiver", attributes: ["id", "name", "email"], required: false },
-        { model: Tenant, as: "receiver", attributes: ["id", "name", "email"], required: false },
+        { model: User, as: "receiverStaff", attributes: ["id", "name", "email"], required: false },
+        { model: Tenant, as: "receiverTenant", attributes: ["id", "name", "email"], required: false },
       ],
     });
 
@@ -116,7 +116,7 @@ const fetchNotificationById = async (req, res) => {
 const getMyNotifications = async (req, res) => {
   try {
     const {type, isRead } = req.query;
-    const whereClause = { receiver_id: req.user.id };
+    const whereClause = { receiverId: req.user.id };
 
     if (type) whereClause.notificationTypeId = type;
     if (typeof isRead === "boolean") whereClause.isRead = isRead;
@@ -136,11 +136,11 @@ const getMyNotifications = async (req, res) => {
 // Mark a notification as read
 const markAsRead = async (req, res) => {
   try {
-    const notification = await Notification.findOne({ where: { id: req.params.id, receiver_id: req.user.id } });
+    const notification = await Notification.findOne({ where: { id: req.params.id, receiverId: req.user.id } });
 
     if (!notification) return res.status(404).json({ status: "error", message: "Notification not found" });
 
-    notification.isRead = true;
+    notification.isRead = !notification.isRead;
     await notification.save();
 
     return res.status(200).json({ status: "success", message: "Notification marked as read" });
@@ -165,8 +165,8 @@ const getAllNotifications = async (req, res) => {
       include: [
         { model: NotificationType, as: "type", attributes: ["id", "name"] },
         { model: User, as: "sender", attributes: ["id", "name", "email"] },
-        { model: User, as: "receiver", attributes: ["id", "name", "email"], required: false },
-        { model: Tenant, as: "receiver", attributes: ["id", "name", "email"], required: false },
+        { model: User, as: "receiverStaff", attributes: ["id", "name", "email"], required: false },
+        { model: Tenant, as: "receiverTenant", attributes: ["id", "name", "email"], required: false },
       ],
     });
 
@@ -179,7 +179,7 @@ const getAllNotifications = async (req, res) => {
 // Delete notification
 const deleteNotification = async (req, res) => {
   try {
-    const notification = await Notification.findOne({ where: { id: req.params.id, receiver_id: req.user.id } });
+    const notification = await Notification.findOne({ where: { id: req.params.id, receiverId: req.user.id } });
     if (!notification) return res.status(404).json({ status: "error", message: "Notification not found" });
 
     await notification.destroy();
@@ -188,6 +188,17 @@ const deleteNotification = async (req, res) => {
     return res.status(500).json({ status: "error", message: "Failed to delete notification" });
   }
 };
+const deleteNotificationAdmin = async (req, res) => {
+  try {
+    const notification = await Notification.findByPk(req.params.id);
+    if (!notification) return res.status(404).json({ status: "error", message: "Notification not found" });
+
+    await notification.destroy();
+    return res.status(204).json({ status: "success", message: "Notification deleted successfully" });
+  } catch (error) {
+    return res.status(500).json({ status: "error", message: "Failed to delete notification" });
+  }
+}
 
 module.exports = {
   createNotificationForUser,
@@ -198,4 +209,5 @@ module.exports = {
   markAsRead,
   getAllNotifications,
   deleteNotification,
+  deleteNotificationAdmin,
 };

@@ -8,24 +8,24 @@ const {
     provideTenantFeedback,
     finalizeWithdrawalProcess
 } = require("../controllers/withdrawalRequestController");
+const { adminAuth, tenantAuth, } = require("../middleware/auth");
 
-const { adminAuth, tenantAuth, employeeAuth } = require("../middleware/auth");
 // Tenant submits withdrawal request
-router.post('/submit', createWithdrawalRequest);
+router.post('/submit',tenantAuth, createWithdrawalRequest);
 
 // Admin retrieves all withdrawal requests
-router.get('/all', getAllWithdrawalRequests);
+router.get('/all',adminAuth, getAllWithdrawalRequests);
 
 // Admin reviews and updates withdrawal status
-router.put('/review', reviewWithdrawalRequest);
+router.put('/review',adminAuth, reviewWithdrawalRequest);
 
 // Admin assigns an employee to handle withdrawal
-router.put('/assign-employee', assignEmployeeToRequest);
+router.put('/assign-employee', adminAuth,assignEmployeeToRequest);
 
 // Tenant provides feedback on rejection
-router.put('/feedback', provideTenantFeedback);
+router.put('/feedback',tenantAuth, provideTenantFeedback);
 
 // Admin finalizes withdrawal process
-router.put('/finalize', finalizeWithdrawalProcess);
+router.put('/finalize',adminAuth, finalizeWithdrawalProcess);
 
 module.exports = router;
