@@ -16,6 +16,7 @@ const Tenant = sequelize.define('Tenant', {
   phoneNumber: {
     type: DataTypes.STRING,
     allowNull: false,
+    unique:true,
     validate: {
       is: /^[0-9]{10}$/,
     },
@@ -30,6 +31,7 @@ const Tenant = sequelize.define('Tenant', {
   nationalId: {
     type: DataTypes.STRING,
     allowNull: false,
+    unique:true,
   },
   leaseStartDate: {
     type: DataTypes.DATE,
@@ -54,6 +56,7 @@ const Tenant = sequelize.define('Tenant', {
   tin: {
     type: DataTypes.STRING,
     allowNull: false,
+    unique:true,
   },
   password: {
     type: DataTypes.STRING,
@@ -87,7 +90,7 @@ const Tenant = sequelize.define('Tenant', {
   tableName: 'tenants', // Explicit table name
   timestamps: true,
   charset: 'utf8', 
-    collate: 'utf8_general_ci',
+  collate: 'utf8_general_ci',
 });
 
 

@@ -54,8 +54,8 @@ if (phone&&phone.length < 10) {
 exports.updateUser = async (req, res) => {
   try {
     const { fname, lname, role,phone } = req.body;
-    const { id } = req.params;
-    if (role !== "admin" && role !== "employee") {
+    const { id } = req.user;
+    if (role&&(role !== "admin" && role !== "employee")) {
       return res.status(400).json({ success: false, message: "Invalid role, only employee or admin is allowed" });
     }
 
@@ -138,8 +138,26 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+exports.deleteMyAccount = async (req, res) => {
+  try {
+    const { id } = req.user;
+    const user = await User.findOne({ where: { id } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    await user.destroy();
+    res.clearCookie("authToken");
+    res.status(200).json({ success: true, message: "Account deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to delete account", error: error.message });
+  }
+}
 exports.logout = async (req, res) => {
   try {
+    if (!req.cookies.authToken) {
+      return res.status(400).json({ success: false, message: "No active session" });
+    }
+
     res.clearCookie("authToken");
     res.status(200).json({ success: true, message: "Logout successful" });
   } catch (error) {
@@ -150,6 +168,11 @@ exports.logout = async (req, res) => {
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
     const user = await User.findOne({ where: { id: req.user.id } });
 
     if (!user || !(await bcrypt.compare(currentPassword, user.password))) {

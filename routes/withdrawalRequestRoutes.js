@@ -9,6 +9,7 @@ const {
     finalizeWithdrawalProcess
 } = require("../controllers/withdrawalRequestController");
 
+const { adminAuth, tenantAuth, employeeAuth } = require("../middleware/auth");
 // Tenant submits withdrawal request
 router.post('/submit', createWithdrawalRequest);
 

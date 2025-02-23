@@ -6,6 +6,9 @@ const rateLimit = require('express-rate-limit');
 const xss = require('xss-clean');
 const hpp = require('hpp');
 const morgan = require('morgan');
+const cookieParser =require('cookie-parser');
+
+
 const sequelize = require('./config/database');
 
 const floorRoutes = require('./routes/floorRoute');
@@ -26,6 +29,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const withdrawalRequestRoutes = require("./routes/withdrawalRequestRoutes");
 const emailRoutes = require("./routes/emailRoutes");
 const authRoutes = require("./routes/authRoutes");
+const tenantAuthRoutes = require('./routes/tenantAuthRoute');
 
 
 
@@ -40,6 +44,9 @@ const chargingRoutes = require('./routes/chargingRoute');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Use cookie-parser middleware
+app.use(cookieParser())
 
 // Set security HTTP headers
 app.use(helmet());
@@ -70,6 +77,8 @@ app.use(express.json()); // Ensure this comes before the routes
 app.use('/api/floor', floorRoutes); 
 app.use('/api/unit', unitRoutes); 
 app.use('/api/tenant', tenantRoutes); 
+app.use('/api/tenant-auth', tenantAuthRoutes);
+
 app.use('/api/bill-type', billTypeRoutes); 
 app.use('/api/tenant-payments', tenantsPaymentRoutes); 
 app.use('/api/payment-requests', PaymentRequestsRoutes); 

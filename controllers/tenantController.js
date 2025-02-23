@@ -1,11 +1,14 @@
 const Floor = require('../models/floor');
 const Unit = require('../models/unit');
 const Tenant = require('../models/tenant');
+const TenantVehicle = require('../models/tenantVehicle');
 const { Op } = require('sequelize');
 const multer = require('multer');
 const path = require('path');
 const moment = require('moment');
 const fs = require('fs');
+const sendEmail = require('../middleware/sendEmail');
+const bcrypt = require('bcryptjs');
 
 // Set up multer storage for file uploads
 const storage = multer.diskStorage({
@@ -23,7 +26,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Create a new tenant with file upload
+
 exports.createTenant = async (req, res) => {
   try {
     upload.single("document")(req, res, async (err) => {
@@ -31,43 +34,105 @@ exports.createTenant = async (req, res) => {
         return res.status(400).json({ error: err.message });
       }
 
-      // Check if a file was uploaded
       const filePath = req.file ? `/uploads/${req.file.filename}` : null;
+      const { unitId, leaseStartDate, carPlate, carName, color, email, fullName, nationalId, phoneNumber } = req.body;
 
-      // Extract unitId from request body
-      const { unitId,leaseStartDate} = req.body;
-
-      // Check if unitId exists
-      if (!unitId) {
-        return res.status(400).json({ error: "Unit ID is required" });
+      // Validate required fields
+      if (!unitId || !leaseStartDate || !email || !fullName || !nationalId || !phoneNumber) {
+        return res.status(400).json({ error: "Unit ID, lease start date, email, full name, national ID, and phone number are required" });
       }
 
       // Check if the unit exists and is available
       const unit = await Unit.findByPk(unitId);
-      if (!unit) {
-        return res.status(404).json({ error: "Unit not found" });
-      }
+      if (!unit) return res.status(404).json({ error: "Unit not found" });
 
       if (unit.status !== "available") {
         return res.status(400).json({ error: "Unit is already occupied or under maintenance" });
       }
 
+      // Check for existing tenant with the same email, nationalId, or phoneNumber
+      const existingTenant = await Tenant.findOne({
+        where: {
+          [Op.or]: [
+            { email },
+            { nationalId },
+            { phoneNumber },
+          ],
+        },
+      });
+
+      if (existingTenant) {
+        // Determine which field already exists
+        let errorMessage = '';
+        if (existingTenant.email === email) {
+          errorMessage = "A tenant with the same email already exists";
+        } else if (existingTenant.nationalId === nationalId) {
+          errorMessage = "A tenant with the same national ID already exists";
+        } else if (existingTenant.phoneNumber === phoneNumber) {
+          errorMessage = "A tenant with the same phone number already exists";
+        }
+
+        return res.status(400).json({ error: errorMessage });
+      }
+
+      // Generate a random password
+      const generatedPassword = Math.random().toString(36).slice(-8);
+      const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+
       // Prepare tenant data
       const tenantData = {
         ...req.body,
         document: filePath,
+        password: hashedPassword, // Store hashed password
       };
 
       // Create tenant record
       const tenant = await Tenant.create(tenantData);
 
-      // Update unit status to "occupied"
-      await Unit.update({ status: "occupied" }, { where: { id: unitId } });
-      await Unit.update({ rentedDate: leaseStartDate }, { where: { id: unitId } });
+      // Register tenant's vehicle if provided
+      if (carPlate || carName || color) {
+        await TenantVehicle.create({
+          tenantId: tenant.id,
+          carPlate,
+          carName,
+          color,
+        });
+      }
 
-      res.status(201).json(tenant);
+      // Update unit status to "occupied" and set rented date
+      await Unit.update({ status: "occupied", rentedDate: leaseStartDate }, { where: { id: unitId } });
+
+      // Send email with login credentials using existing sendEmail function
+      const emailSubject = "Your Tenant Portal Login Credentials";
+      const emailBody = `Hello ${fullName},\n\nWelcome! Here are your login credentials:\n\nEmail: ${email}\nPassword: ${generatedPassword}\n\nPlease log in and change your password immediately.\n\nThank you!`;
+
+      const emailResponse = await sendEmail(email, emailSubject, emailBody);
+      if (!emailResponse.success) {
+        console.error("Email sending failed:", emailResponse.error);
+      }
+
+      res.status(201).json({ message: "Tenant registered successfully", tenant });
     });
   } catch (error) {
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      // Handle database-level unique constraint errors
+      const field = error.errors[0].path; // Get the field that caused the error
+      let errorMessage = '';
+      switch (field) {
+        case 'email':
+          errorMessage = "A tenant with the same email already exists";
+          break;
+        case 'nationalId':
+          errorMessage = "A tenant with the same national ID already exists";
+          break;
+        case 'phoneNumber':
+          errorMessage = "A tenant with the same phone number already exists";
+          break;
+        default:
+          errorMessage = "A tenant with the same credentials already exists";
+      }
+      return res.status(400).json({ error: errorMessage });
+    }
     res.status(500).json({ error: error.message });
   }
 };
