@@ -102,6 +102,8 @@ const defineAssociations = () => {
     WithdrawalRequest.belongsTo(User, { as: "assignedEmployee", foreignKey: "assignedEmployeeId", onDelete: "SET NULL" });
     User.hasMany(WithdrawalRequest, { foreignKey: "assignedEmployeeId", onDelete: "SET NULL" });
 
+    //modification on fub 27 start
+// purchase
     Purchase.belongsTo(Item, { foreignKey: "itemId", onDelete: "CASCADE" });
     Item.hasMany(Purchase, { foreignKey: "itemId", onDelete: "CASCADE" });
 
@@ -129,6 +131,8 @@ const defineAssociations = () => {
 
     Maintenance.belongsTo(Unit, { foreignKey: 'unitId', as: 'maintenanceUnit', onDelete: 'CASCADE' });
     Unit.hasMany(Maintenance, { foreignKey: 'unitId', as: 'unitMaintenances', onDelete: 'CASCADE' });
+
+    // fub 27 end
 
     
 };

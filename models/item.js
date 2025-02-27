@@ -13,6 +13,7 @@ const Item = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    
     expirationDate: {
       type: DataTypes.DATE,
       allowNull: true, // Optional field
@@ -33,6 +34,16 @@ const Item = sequelize.define(
     itemDetails: {
       type: DataTypes.TEXT,
       allowNull: true,
+    },
+    itemType: {
+      type: DataTypes.ENUM,
+      values: ['Purchase', 'Existing'],
+      allowNull: false,
+    },
+    min_amount: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 10, 
     },
   },
   {
