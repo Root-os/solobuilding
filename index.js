@@ -31,6 +31,7 @@ const emailRoutes = require("./routes/emailRoutes");
 const authRoutes = require("./routes/authRoutes");
 const tenantAuthRoutes = require('./routes/tenantAuthRoute');
 const tenantVehicleRoutes = require('./routes/tenantVehicleRoutes');
+const purchaseRoutes = require('./routes/purchaseRoute');
 const defineAssociation = require('./models/association');
 
 
@@ -97,6 +98,10 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/withdrawal-request", withdrawalRequestRoutes);
 app.use("/api/email", emailRoutes);
 app.use("/api/auth", authRoutes);
+//purchases
+app.use('/api/purchases', purchaseRoutes);
+
+
 
 //inventory
 app.use('/api/item-types', itemTypeRoutes); 
