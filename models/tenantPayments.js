@@ -1,7 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const Tenant = require('./tenant'); // Assuming the Tenant model exists
-const PaymentType = require('./paymentType'); // The payment type model
+const Tenant = require('./tenant');
 
 const TenantPayment = sequelize.define('TenantPayment', {
   id: {
@@ -17,14 +16,6 @@ const TenantPayment = sequelize.define('TenantPayment', {
       key: 'id',
     },
     onDelete: 'CASCADE',
-  },
-  PaymentTypeId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: PaymentType,
-      key: 'id',
-    },
   },
   amountPaid: {
     type: DataTypes.FLOAT,
