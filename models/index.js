@@ -7,6 +7,7 @@ const Expense = require('./expense');
 const ExpenseType = require('./expenseType');
 const Floor = require('./floor');
 const Item = require('./item');
+const Purchase=require('./Purchase');
 const ItemType = require('./itemType');
 const Notification = require('./notification');
 const NotificationType = require('./notificationType');
@@ -44,4 +45,5 @@ module.exports = {
     Unit,
     User,
     WithdrawalRequest,
+    Purchase,
 };

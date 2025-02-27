@@ -21,6 +21,7 @@ const {
     Unit, 
     User, 
     WithdrawalRequest,
+    Purchase,
 } = require('./index');
 
 const defineAssociations = () => {
@@ -100,6 +101,12 @@ const defineAssociations = () => {
 
     WithdrawalRequest.belongsTo(User, { as: "assignedEmployee", foreignKey: "assignedEmployeeId", onDelete: "SET NULL" });
     User.hasMany(WithdrawalRequest, { foreignKey: "assignedEmployeeId", onDelete: "SET NULL" });
+
+    Purchase.belongsTo(Item, { foreignKey: "itemId", onDelete: "CASCADE" });
+    Item.hasMany(Purchase, { foreignKey: "itemId", onDelete: "CASCADE" });
+
+    Purchase.belongsTo(ItemType, { foreignKey: "itemTypeId", onDelete: "CASCADE" });
+    ItemType.hasMany(Purchase, { foreignKey: "itemTypeId", onDelete: "CASCADE" });
 };
 
 module.exports = defineAssociations;
