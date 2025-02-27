@@ -109,14 +109,15 @@ const defineAssociations = () => {
     ItemType.hasMany(Purchase, { foreignKey: "itemTypeId", onDelete: "CASCADE" });
 
 
-    purchaseRequest.belongsTo(Item, { foreignKey: "itemId", onDelete: "CASCADE" });
-    Item.hasMany(purchaseRequest, { foreignKey: "itemId", onDelete: "CASCADE" });
+    purchaseRequest.belongsTo(Item, { foreignKey: "itemId",as: 'item', onDelete: "CASCADE" });
+    Item.hasMany(purchaseRequest, { foreignKey: "itemId",as: 'item', onDelete: "CASCADE" });
     
-    purchaseRequest.belongsTo(User, { foreignKey: "requestedBy", as: "requester", onDelete: "CASCADE" });
+    purchaseRequest.belongsTo(User, { foreignKey: "requestedBy", as: "requestedby", onDelete: "CASCADE" });
     User.hasMany(purchaseRequest, { foreignKey: "requestedBy", as: "requests", onDelete: "CASCADE" });
     
-    purchaseRequest.belongsTo(User, { foreignKey: "approvedBy", as: "approver", onDelete: "SET NULL" });
-    User.hasMany(purchaseRequest, { foreignKey: "approvedBy", as: "approvals", onDelete: "SET NULL" });
+    purchaseRequest.belongsTo(User, { foreignKey: "approvedBy", as: "approvedby", onDelete: "CASCADE" });
+    User.hasMany(purchaseRequest, { foreignKey: "approvedBy", as: "approvals", onDelete: "CASCADE" });
+    
 };
 
 module.exports = defineAssociations;

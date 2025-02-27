@@ -30,9 +30,9 @@ exports.getAllPurchaseRequests = async (req, res) => {
   try {
     const purchaseRequests = await PurchaseRequest.findAll({
       include: [
-        { model: Item, as: 'item' }, 
-        { model: User, as: 'requestedByUser', attributes: ['id', 'name', 'email'] }, 
-        { model: User, as: 'approvedByUser', attributes: ['id', 'name', 'email'] }, 
+        { model: Item, as: 'item' },
+        { model: User, as: 'requestedby', attributes: ['id', 'fname', 'lname', 'email'] }, 
+        { model: User, as: 'approvedby', attributes: ['id', 'fname', 'lname', 'email'] }, 
       ],
     });
     res.status(200).json(purchaseRequests);
@@ -41,14 +41,15 @@ exports.getAllPurchaseRequests = async (req, res) => {
   }
 };
 
+
 // Get a single PurchaseRequest by ID with related Item and User (requestedBy and approvedBy)
 exports.getPurchaseRequestById = async (req, res) => {
   try {
     const purchaseRequest = await PurchaseRequest.findByPk(req.params.id, {
       include: [
         { model: Item, as: 'item' },
-        { model: User, as: 'requestedByUser', attributes: ['id', 'name', 'email'] },
-        { model: User, as: 'approvedByUser', attributes: ['id', 'name', 'email'] },
+        { model: User, as: 'requestedby', attributes: ['id', 'fname', 'lname', 'email'] }, 
+        { model: User, as: 'approvedby', attributes: ['id', 'fname', 'lname', 'email'] }, 
       ],
     });
 
@@ -131,8 +132,8 @@ exports.generatePurchaseRequestReport = async (req, res) => {
       where: whereConditions,
       include: [
         { model: Item, as: 'item' },  
-        { model: User, as: 'requestedByUser', attributes: ['id', 'name', 'email'] }, 
-        { model: User, as: 'approvedByUser', attributes: ['id', 'name', 'email'] }, 
+        { model: User, as: 'requestedby', attributes: ['id', 'fname','lname', 'email'] }, 
+        { model: User, as: 'approvedby', attributes: ['id', 'lname','lname', 'email'] }, 
       ],
       order: [['requestDate', 'ASC']],  
     });
