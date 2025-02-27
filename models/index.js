@@ -23,6 +23,7 @@ const User = require('./user');
 const purchaseRequest = require('./purchaseRequest');
 const WithdrawalRequest = require('./withdrawal');
 const itemAssignments = require('./itemAssignment');
+const Maintenance = require('./maintenance');
 
 module.exports = {
     BillPayment,
@@ -50,4 +51,5 @@ module.exports = {
     Purchase,
     purchaseRequest,
     itemAssignments,
+    Maintenance,
 };

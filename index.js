@@ -34,6 +34,7 @@ const tenantVehicleRoutes = require('./routes/tenantVehicleRoutes');
 const purchaseRoutes = require('./routes/purchaseRoute');
 const purcRequestRoutes = require('./routes/purcRequestRoute');
 const itemAssignmentRoutes = require('./routes/itemAssignRoute');
+const maintenanceRoutes = require('./routes/maintainanceRoute');
 const defineAssociation = require('./models/association');
 
 
@@ -104,6 +105,7 @@ app.use("/api/auth", authRoutes);
 app.use('/api/purchases', purchaseRoutes);
 app.use('/api/purchases-request', purcRequestRoutes);
 app.use('/api/item-assignments', itemAssignmentRoutes);
+app.use('/api/maintenance', maintenanceRoutes);
 
 
 
