@@ -21,14 +21,6 @@ const PaymentRequest = sequelize.define('PaymentRequest', {
     type: DataTypes.TEXT,
     allowNull: true,
   },
-  PaymentTypeId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: PaymentType,
-      key: 'id',
-    },
-  },
   level: {
     type: DataTypes.STRING,
     allowNull: false,
