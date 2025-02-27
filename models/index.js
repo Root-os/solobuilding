@@ -20,6 +20,7 @@ const TenantRentCollection = require('./tenantRentCollection');
 const TenantVehicle = require('./tenantVehicle');
 const Unit = require('./unit');
 const User = require('./user');
+const purchaseRequest = require('./purchaseRequest');
 const WithdrawalRequest = require('./withdrawal');
 
 module.exports = {
@@ -46,4 +47,5 @@ module.exports = {
     User,
     WithdrawalRequest,
     Purchase,
+    purchaseRequest,
 };
