@@ -22,6 +22,7 @@ const Unit = require('./unit');
 const User = require('./user');
 const purchaseRequest = require('./purchaseRequest');
 const WithdrawalRequest = require('./withdrawal');
+const itemAssignments = require('./itemAssignment');
 
 module.exports = {
     BillPayment,
@@ -48,4 +49,5 @@ module.exports = {
     WithdrawalRequest,
     Purchase,
     purchaseRequest,
+    itemAssignments,
 };
