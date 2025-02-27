@@ -1,6 +1,6 @@
 const {
     BillPayment, 
-    BillType, 
+    BillType,
     ElectricCarCharging, 
     Complaint, 
     Email, 
@@ -52,11 +52,23 @@ const defineAssociations = () => {
     Item.belongsTo(ItemType, { foreignKey: "itemTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
     ItemType.hasMany(Item, { foreignKey: "itemTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
 
-    Notification.belongsTo(NotificationType, { foreignKey: "notificationTypeId", as: "type", onDelete: "CASCADE" });
-    NotificationType.hasMany(Notification, { foreignKey: "notificationTypeId", as: "notifications", onDelete: "CASCADE" });
-    Notification.belongsTo(User, { as: "sender", foreignKey: "senderId", onDelete: "CASCADE" });
-    Notification.belongsTo(User, { as: "receiverStaff", foreignKey: "receiverId", onDelete: "CASCADE", scope: { receiver_type: "staff" } });
-    Notification.belongsTo(Tenant, { as: "receiverTenant", foreignKey: "receiverId", onDelete: "CASCADE", scope: { receiver_type: "tenant" } });
+    Notification.belongsTo(NotificationType, { foreignKey: "type_id", as: "type", onDelete: "CASCADE" });
+    NotificationType.hasMany(Notification, { foreignKey: "type_id", as: "notifications", onDelete: "CASCADE" });
+    // Notification.belongsTo(User, { as: "sender", foreignKey: "senderId", onDelete: "CASCADE" });
+    Notification.belongsTo(User, {
+        as: "receiverStaff",
+        foreignKey: "receiver_id",
+        onDelete: "CASCADE",
+        scope: { receiver_type: "staff" },
+      });
+      
+      Notification.belongsTo(Tenant, {
+        as: "receiverTenant",
+        foreignKey: "receiver_id",
+        onDelete: "CASCADE",
+        scope: { receiver_type: "tenant" },
+      });
+      
     
     Parking.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "CASCADE" });
     Tenant.hasMany(Parking, { foreignKey: "tenantId", onDelete: "CASCADE" });

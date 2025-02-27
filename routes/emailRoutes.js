@@ -27,5 +27,7 @@ router.patch("/mark-read/:emailId", tenantAuth, markEmailAsRead);
 
 // Delete email (Tenant/Admin)
 router.delete("/delete/:emailId", tenantAuth, deleteEmail);
+router.delete("/delete-admin/:emailId", adminAuth, deleteEmail);
+
 
 module.exports = router;

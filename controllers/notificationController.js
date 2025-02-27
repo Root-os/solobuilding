@@ -152,19 +152,19 @@ const markAsRead = async (req, res) => {
 // Get all notifications (Admin)
 const getAllNotifications = async (req, res) => {
   try {
-    if (req.user.role !== "ADMIN") return res.status(403).json({ message: "Access denied." });
+    if (req.user.role !== "admin") return res.status(403).json({ message: "Access denied." });
 
     const {  type } = req.query;
     const whereClause = {};
 
-    if (type) whereClause.notificationTypeId = type;
+    if (type) whereClause.type_id = type;
 
     const notifications = await Notification.findAndCountAll({
       where: whereClause,
       order: [["createdAt", "DESC"]],
       include: [
         { model: NotificationType, as: "type", attributes: ["id", "name"] },
-        { model: User, as: "sender", attributes: ["id", "name", "email"] },
+        // { model: User, as: "sender", attributes: ["id", "name", "email"] },
         { model: User, as: "receiverStaff", attributes: ["id", "name", "email"], required: false },
         { model: Tenant, as: "receiverTenant", attributes: ["id", "name", "email"], required: false },
       ],
