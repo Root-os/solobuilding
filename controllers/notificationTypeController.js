@@ -82,7 +82,7 @@ const deleteNotificationType = async (req, res) => {
     }
 
     await type.destroy();
-    return res.status(200).json({ message: "Notification type deleted successfully." });
+    return res.status(204).json({ message: "Notification type deleted successfully." });
   } catch (error) {
     console.error("Error deleting notification type:", error);
     return res.status(500).json({ message: "Failed to delete notification type." });
