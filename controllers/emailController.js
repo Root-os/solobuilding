@@ -130,7 +130,22 @@ exports.deleteEmail = async (req, res) => {
     if (!email || (email.senderId !== userId && email.receiverId !== userId)) {
       return res.status(404).json({ message: "Email not found" });
     }
+    await email.destroy(); // Soft delete (if using paranoid: true in Sequelize)
 
+    res.json({ message: "Email deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting email", error });
+  }
+};
+exports.deleteEmailAdmin = async (req, res) => {
+  try {
+    const { emailId } = req.params;
+    const userId = req.user.id; // Sender or receiver ID from JWT
+
+    const email = await Email.findByPk(emailId);
+    if (!email || (email.senderId !== userId && email.receiverId !== userId)) {
+      return res.status(404).json({ message: "Email not found" });
+    }
     await email.destroy(); // Soft delete (if using paranoid: true in Sequelize)
 
     res.json({ message: "Email deleted successfully" });

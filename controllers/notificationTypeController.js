@@ -5,7 +5,7 @@ const NotificationType = require("../models/notificationType");
 const createNotificationType = async (req, res) => {
   try {
     
-if (req.user.role!=="ADMIN") {
+if (req.user.role!=="admin") {
   return res.status(403).json({ message: "You are not authorized to perform this action" });
 }
     const { name } = req.body;
@@ -23,7 +23,7 @@ if (req.user.role!=="ADMIN") {
     return res.status(201).json({ message: "Notification type created successfully.", type });
   } catch (error) {
     console.error("Error creating notification type:", error);
-    return res.status(500).json({ message: "Failed to create notification type." });
+    return res.status(500).json({ message: "Failed to create notification type.",error });
   }
 };
 

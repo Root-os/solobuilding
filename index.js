@@ -31,6 +31,7 @@ const emailRoutes = require("./routes/emailRoutes");
 const authRoutes = require("./routes/authRoutes");
 const tenantAuthRoutes = require('./routes/tenantAuthRoute');
 const tenantVehicleRoutes = require('./routes/tenantVehicleRoutes');
+const defineAssociation = require('./models/association');
 
 
 
@@ -104,14 +105,20 @@ app.use('/api/setting', settingRoutes);
 app.use('/api/charging', chargingRoutes); 
 // Properly isolate Swagger documentation routes
 
+
 // Sync database and create tables if they don't exist
-sequelize.sync()
+// Sync database and create tables if they don't exist
+sequelize.sync({ force: true }) // Only creates missing tables and alters existing ones
   .then(() => {
-    console.log('Database & tables created!');
+    console.log('Database & tables are up to date!');
   })
   .catch(err => {
-    console.error('Unable to connect to the database:', err);
+    console.error('Error syncing database:', err);
   });
+
+
+// Define associations
+defineAssociation();
 
   
 // Define a simple route

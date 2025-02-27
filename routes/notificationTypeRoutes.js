@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const notificationTypeController = require("../controllers/notificationTypeController");
+const { adminAuth,EmployeeOrTenantAuth, } = require("../middleware/auth");
 
 // Create a new notification type
-router.post("/", notificationTypeController.createNotificationType);
+router.post("/",adminAuth, notificationTypeController.createNotificationType);
 
 // Get all notification types
 router.get("/", notificationTypeController.getNotificationTypes);
