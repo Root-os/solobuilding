@@ -24,4 +24,26 @@ const WithdrawalRequest= require('./withdrawal');
 
 
 module.exports = {
-}
+    BillPayment,
+    BillType,
+    ElectricCarCharging,
+    Complaint,
+    Email,
+    Expense,
+    ExpenseType,
+    Floor,
+    Item,
+    ItemType,
+    Notification,
+    NotificationType,
+    Parking,
+    PaymentRequest,
+    PaymentType,
+    Tenant,
+    TenantPayment,
+    TenantRentCollection,
+    TenantVehicle,
+    Unit,
+    User,
+    WithdrawalRequest
+  };

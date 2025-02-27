@@ -30,7 +30,8 @@ const withdrawalRequestRoutes = require("./routes/withdrawalRequestRoutes");
 const emailRoutes = require("./routes/emailRoutes");
 const authRoutes = require("./routes/authRoutes");
 const tenantAuthRoutes = require('./routes/tenantAuthRoute');
-const tenantVehicleRoutes = require('./routes/tenantVehicleRoutes');
+const tenantVehicleRoutes = require('./models/tenantVehicle');
+const association = require('./models/association');
 
 
 
@@ -105,14 +106,15 @@ app.use('/api/charging', chargingRoutes);
 // Properly isolate Swagger documentation routes
 
 // Sync database and create tables if they don't exist
-sequelize.sync()
+sequelize.sync({alter: false})
   .then(() => {
     console.log('Database & tables created!');
   })
   .catch(err => {
     console.error('Unable to connect to the database:', err);
   });
-
+//define association
+association();
   
 // Define a simple route
 app.get('/', (req, res) => {

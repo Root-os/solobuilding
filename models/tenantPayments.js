@@ -18,14 +18,7 @@ const TenantPayment = sequelize.define('TenantPayment', {
     },
     onDelete: 'CASCADE',
   },
-  PaymentTypeId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: PaymentType,
-      key: 'id',
-    },
-  },
+ 
   amountPaid: {
     type: DataTypes.FLOAT,
     allowNull: false,
