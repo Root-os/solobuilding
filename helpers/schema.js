@@ -125,7 +125,7 @@ const notificationSchema = Joi.object({
     receiver_type: Joi.string()
     .valid("staff", "tenant")
     .required(),
-    receiverId: Joi.number().integer().min(0).optional(),
+    receiver_id: Joi.number().integer().min(0).optional(),
     senderId: Joi.number().integer().min(0).optional(),
   title: Joi.string()
     .min(3)
@@ -347,6 +347,15 @@ module.exports = {
     groupEmailSchema,
     isActiveSchema,
     userRoleSchema,
+    paymentTypeSchema,
+    settingSchema,
+    tenatSchema,
+    tenantPaymentSchema,
+    tenantRentCollectionSchema,
+    tenantVehicleSchema,
+    unitSchema,
+    withdrawalRequestSchema,
+    getNotificationTypes,
     notificationTypeSchema,
     notificationSchema,
     billPaymentSchema,

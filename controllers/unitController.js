@@ -1,9 +1,19 @@
 const Unit = require('../models/unit');
 const Floor = require('../models/floor');
+const { unitSchema } = require('../helpers/schema');
 
 // Create a new unit
 exports.createUnit = async (req, res) => {
   try {
+    const { error } = unitSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+    const existingUnit = await Unit.findOne({ where: { unitNumber: req.body.unitNumber } });
+    if (existingUnit) {
+      return res.status(400).json({ error: "Unit number must be unique." });
+    }
+
     const unit = await Unit.create(req.body);
     res.status(201).json(unit);
   } catch (error) {
