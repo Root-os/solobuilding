@@ -1,6 +1,7 @@
 const WithdrawalRequest = require('../models/withdrawal');
 const Tenant=require('../models/tenant');
 const User = require('../models/user');
+const {refundStatusSchema} = require('../helpers/schema');
 
 // Create a new withdrawal request
 const createWithdrawalRequest = async (req, res) => {
@@ -31,7 +32,7 @@ const createWithdrawalRequest = async (req, res) => {
 const getAllWithdrawalRequests = async (req, res) => {
     try {
         const requests = await WithdrawalRequest.findAll(
-            { include: { model: Tenant, as: "tenant" } }
+            { include: { model: Tenant, } }
         );
         res.status(200).json(requests);
     } catch (error) {
@@ -44,7 +45,7 @@ const getMyWithdrawalRequests = async (req, res) => {
     try {
         const { id } = req.user;
         const tenant = await Tenant.findByPk(id
-            , { include: { model: Tenant, as: "tenant" } }
+            , { include: { model: Tenant, } }
         );
         if (!tenant) {
             return res.status(404).json({ message: "Tenant not found." });
@@ -65,7 +66,7 @@ const reviewWithdrawalRequest = async (req, res) => {
         const { requestId, status, adminResponse } = req.body;
 
         const request = await WithdrawalRequest.findByPk(requestId
-            , { include: { model: Tenant, as: "tenant" } }
+            , { include: { model: Tenant,} }
         );
         if (!request) {
             return res.status(404).json({ message: "Withdrawal request not found." });
@@ -90,6 +91,23 @@ const reviewWithdrawalRequest = async (req, res) => {
     }
 };
 
+const deleteWithdrawalRequest = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+
+        const request = await WithdrawalRequest.findByPk(requestId);
+        if (!request) 
+        {
+            return res.status(404).json({ message: "Withdrawal request not found." });
+        }
+        await request.destroy();
+        res.status(200).json({ message: "Withdrawal request deleted successfully." });
+    } 
+    catch (error) 
+    {
+        res.status(500).json({ message: "Error deleting withdrawal request.", error: error.message });
+    }
+}
 // Assign an employee to handle the exit process
 const assignEmployeeToRequest = async (req, res) => {
     try {
@@ -99,7 +117,14 @@ const assignEmployeeToRequest = async (req, res) => {
         if (!request) {
             return res.status(404).json({ message: "Withdrawal request not found." });
         }
-
+const employee = await User.findByPk(employeeId);
+if (!employee) {
+    return res.status(404).json({ message: "Employee not found." });
+}
+if (employee.role !== "employee") {
+    return res.status(400).json({ message: "Only employees can be assigned to requests." });
+}
+        request.status = "in_progress";
         request.assignedEmployeeId = employeeId;
         await request.save();
 
@@ -146,6 +171,11 @@ const provideTenantFeedback = async (req, res) => {
 // Admin finalizes exit process and refunds deposit
 const finalizeWithdrawalProcess = async (req, res) => {
     try {
+        const error = refundStatusSchema.validate(req.body).error;
+        if (error) {
+            return res.status(400).json({ message: error.details[0].message });
+        }
+
         const { requestId, depositRefundStatus } = req.body;
 
         const request = await WithdrawalRequest.findByPk(requestId);

@@ -111,8 +111,6 @@ app.use('/api/maintenance', maintenanceRoutes);
 app.use("/api/payment-types", paymentTypeRoutes);
 app.use("/api/salary-payments", salaryPaymentRoutes);
 
-
-
 //inventory
 app.use('/api/item-types', itemTypeRoutes); 
 app.use('/api/items', itemsRoutes); 
