@@ -5,11 +5,19 @@ const User = require('../models/user');
 // Create a new withdrawal request
 const createWithdrawalRequest = async (req, res) => {
     try {
-        const { tenantId, terminationDate, reason } = req.body;
+        const tenantId = req.user.id;
+
+        const {  terminationDate, reason } = req.body;
 
         if (!tenantId || !terminationDate || !reason) {
             return res.status(400).json({ message: "Tenant ID, termination date, and reason are required." });
         }
+
+        const tenant = await Tenant.findByPk(tenantId);
+        if (!tenant) {
+            return res.status(404).json({ message: "Tenant not found." });
+        }
+
 
         const request = await WithdrawalRequest.create({ tenantId, terminationDate, reason });
 
@@ -22,7 +30,9 @@ const createWithdrawalRequest = async (req, res) => {
 // Admin retrieves all withdrawal requests
 const getAllWithdrawalRequests = async (req, res) => {
     try {
-        const requests = await WithdrawalRequest.findAll();
+        const requests = await WithdrawalRequest.findAll(
+            { include: { model: Tenant, as: "tenant" } }
+        );
         res.status(200).json(requests);
     } catch (error) {
         res.status(500).json({ message: "Error fetching withdrawal requests.", error: error.message });
@@ -33,7 +43,9 @@ const getAllWithdrawalRequests = async (req, res) => {
 const getMyWithdrawalRequests = async (req, res) => {
     try {
         const { id } = req.user;
-        const tenant = await Tenant.findByPk(id);
+        const tenant = await Tenant.findByPk(id
+            , { include: { model: Tenant, as: "tenant" } }
+        );
         if (!tenant) {
             return res.status(404).json({ message: "Tenant not found." });
         }
@@ -52,7 +64,9 @@ const reviewWithdrawalRequest = async (req, res) => {
     try {
         const { requestId, status, adminResponse } = req.body;
 
-        const request = await WithdrawalRequest.findByPk(requestId);
+        const request = await WithdrawalRequest.findByPk(requestId
+            , { include: { model: Tenant, as: "tenant" } }
+        );
         if (!request) {
             return res.status(404).json({ message: "Withdrawal request not found." });
         }
@@ -97,7 +111,9 @@ const assignEmployeeToRequest = async (req, res) => {
 const myAssignedRequests=async(req,res)=>{
     try {
         const employeeId = req.user.id;
-const employee = await User.findByPk(employeeId);
+const employee = await User.findByPk(employeeId,
+    { include: { model: User, } }
+);
 if (!employee) {
     return res.status(404).json({ message: "Employee not found." });
 }

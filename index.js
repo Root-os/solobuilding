@@ -37,6 +37,7 @@ const itemAssignmentRoutes = require('./routes/itemAssignRoute');
 const maintenanceRoutes = require('./routes/maintainanceRoute');
 const defineAssociation = require('./models/association');
 const paymentTypeRoutes = require("./routes/paymentTypeRoutes");
+const salaryPaymentRoutes = require("./routes/salaryPaymentRoutes");
 
 
 
@@ -108,6 +109,7 @@ app.use('/api/purchases-request', purcRequestRoutes);
 app.use('/api/item-assignments', itemAssignmentRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use("/api/payment-types", paymentTypeRoutes);
+app.use("/api/salary-payments", salaryPaymentRoutes);
 
 
 
