@@ -334,7 +334,18 @@ const salaryPaymentSchema = Joi.object({
   status: Joi.string().valid("Paid", "Pending", "Failed").optional(),
   paymentDate: Joi.date().optional(),
 });
+const refundStatusSchema= Joi.object({
+  depositRefundStatus: Joi.string().valid("not_processed", "partial", "full").required(),
+  requestId: Joi.number().integer().min(0).required(),
+});
+const stockOutSchema = Joi.object({
+    itemId: Joi.number().integer().min(0).required(),
+    reason: Joi.string().min(10).max(500).required(),
+    requestedQuantity: Joi.number().min(0).required(),
+});
 module.exports = {
+  stockOutSchema,
+  refundStatusSchema,
   salaryPaymentSchema,
     paramsSchema,
     staffRegistrationSchema,
