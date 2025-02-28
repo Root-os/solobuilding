@@ -6,9 +6,11 @@ const {
     reviewWithdrawalRequest,
     assignEmployeeToRequest,
     provideTenantFeedback,
-    finalizeWithdrawalProcess
+    finalizeWithdrawalProcess,
+    getMyWithdrawalRequests,
+    myAssignedRequests,
 } = require("../controllers/withdrawalRequestController");
-const { adminAuth, tenantAuth, } = require("../middleware/auth");
+const { adminAuth,employeeAuth, tenantAuth, } = require("../middleware/auth");
 
 // Tenant submits withdrawal request
 router.post('/submit',tenantAuth, createWithdrawalRequest);
@@ -27,5 +29,9 @@ router.put('/feedback',tenantAuth, provideTenantFeedback);
 
 // Admin finalizes withdrawal process
 router.put('/finalize',adminAuth, finalizeWithdrawalProcess);
+router.get('/tenant/my-requests',tenantAuth,getMyWithdrawalRequests);
+router.get('/employee/my-requests',employeeAuth,myAssignedRequests);
+
+
 
 module.exports = router;

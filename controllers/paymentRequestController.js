@@ -1,19 +1,32 @@
 const PaymentRequest = require('../models/paymentRequests');
 const Tenant = require('../models/tenant');
-const BillType = require('../models/billType');
+const PaymentType=require('../models/paymentType');
 const { Op } = require('sequelize');
 const multer = require('multer');
 const path = require('path');
+const {paymentRequestSchema,paramsSchema,paymentRequestStatusSchema} = require('../helpers/schema')
 
 // Create a payment request
 exports.createPaymentRequest = async (req, res) => {
   try {
-    const { tenantId, message, PaymentTypeId, level, amount, dueDate, repeatedFor } = req.body;
+    const {error}=paymentRequestSchema.validate(req.body)
+    if(error){
+      return res.status(400).json({message:error.details[0].message})
+    }
+    const { tenantId, message, paymentTypeId , level, amount, dueDate, repeatedFor } = req.body;
+    const existingTenant = await Tenant.findByPk(tenantId);
+    if (!existingTenant) {
+      return res.status(404).json({ message: 'Tenant not found' });
+    }
+    const existingPaymentType = await PaymentType.findByPk(paymentTypeId);
+    if (!existingPaymentType) {
+      return res.status(404).json({ message: 'Payment Type not found' });
+    }
 
     const newPaymentRequest = await PaymentRequest.create({
       tenantId,
       message,
-      PaymentTypeId,
+      paymentTypeId,
       level,
       amount,
       dueDate,
@@ -47,8 +60,8 @@ exports.getAllPaymentRequests = async (req, res) => {
           attributes: ['fullName'],
         },
         {
-          model: BillType,
-          attributes: ['typeName'],
+          model: PaymentType,
+          attributes: ['name'],
         },
       ],
     });
@@ -71,8 +84,8 @@ exports.getPaymentRequestById = async (req, res) => {
           attributes: ['fullName'],
         },
         {
-          model: BillType,
-          attributes: ['typeName'],
+          model: PaymentType,
+          attributes: ['name'],
         },
       ],
     });
@@ -151,37 +164,58 @@ exports.reviewPayment = async (req, res) => {
     res.status(500).json({ message: 'Error reviewing payment', error: error.message });
   }
 };
-// Upload Payment Receipt
-exports.uploadReceipt = async (req, res) => {
-  upload.single('receipt')(req, res, async (err) => {
-    if (err) {
-      return res.status(400).json({ message: 'File upload failed', error: err.message });
+
+exports.getMyRequestFromAdmin = async (req, res) => {
+  try {
+    // Validate user ID
+    const { error } = paramsSchema.validate(req.user.id);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
     }
 
-    try {
-      const { id } = req.params;
-      const paymentRequest = await PaymentRequest.findByPk(id);
+    const { id } = req.user;
 
-      if (!paymentRequest) {
-        return res.status(404).json({ message: 'Payment request not found' });
-      }
+    // Fetch payment requests that belong to the user
+    const paymentRequests = await PaymentRequest.findAll({
+      where: { tenantId: id },
+      order: [['createdAt', 'DESC']],
+    });
 
-      // Update with receipt path
-      paymentRequest.receipt = `/uploads/receipts/${req.file.filename}`;
-      await paymentRequest.save();
-
-      res.status(200).json({ message: 'Receipt uploaded successfully', data: paymentRequest });
-    } catch (error) {
-      console.error("Error uploading receipt:", error);
-      res.status(500).json({ message: 'Error uploading receipt', error: error.message });
+    // Check if there are any payment requests
+    if (!paymentRequests || paymentRequests.length === 0) {
+      return res.status(404).json({ message: 'No payment requests found' });
     }
-  });
+
+    res.status(200).json({ message: 'Payment requests retrieved successfully', data: paymentRequests });
+
+  } catch (error) {
+    console.error('Error retrieving payment requests:', error);
+    res.status(500).json({ message: 'Error retrieving payment requests', error: error.message });
+  }
 };
 
-const storage = multer.diskStorage({
-  destination: './uploads/receipts',
-  filename: (req, file, cb) => {
-    cb(null, `receipt-${Date.now()}${path.extname(file.originalname)}`);
-  },
-});
-const upload = multer({ storage });
+
+// Upload Payment Receipt
+exports.uploadReceipt = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const { id } = req.params;
+    const paymentRequest = await PaymentRequest.findByPk(id);
+
+    if (!paymentRequest) {
+      return res.status(404).json({ message: 'Payment request not found' });
+    }
+
+    // Update with receipt path
+    paymentRequest.receipt = `/uploads/receipts/${req.file.filename}`;
+    await paymentRequest.save();
+
+    res.status(200).json({ message: 'Receipt uploaded successfully', data: paymentRequest });
+  } catch (error) {
+    console.error('Error uploading receipt:', error);
+    res.status(500).json({ message: 'Error uploading receipt', error: error.message });
+  }
+};
