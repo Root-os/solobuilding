@@ -1,27 +1,31 @@
 const SalaryPayment = require("../models/SalaryPayment");
 const User = require("../models/user");
-
+const {salaryPaymentSchema}=require('../helpers/schema')
 // ✅ Admin Pays Salary to Employee
 exports.paySalary = async (req, res) => {
   try {
-    const { userId, amount, paymentMethod } = req.body;
+const {error}=salaryPaymentSchema.validate(req.body)
+    if(error){
+      return res.status(400).json({message:error.details[0].message})
+    }
+    const { employeeId, amount, paymentMethod,paymentDate,status } = req.body;
 
-    if (!userId || !amount || !paymentMethod) {
+    if (!employeeId || !amount || !paymentMethod) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     // Ensure Employee Exists
-    const user = await User.findOne({ where: { id: userId, role: "employee" } });
+    const user = await User.findOne({ where: { id: employeeId, role: "employee" } });
     if (!user) {
       return res.status(404).json({ message: "Employee not found" });
     }
 
     // Create Salary Payment Record
     const salaryPayment = await SalaryPayment.create({
-      userId,
+      employeeId,
       amount,
       paymentMethod,
-      status: "Paid",
+      status: status?status:"pending",
     });
 
     res.status(201).json({ message: "Salary paid successfully", data: salaryPayment });
@@ -34,14 +38,14 @@ exports.paySalary = async (req, res) => {
 // 👨‍💼 Employee Views Salary Payment History
 exports.getEmployeeSalaryHistory = async (req, res) => {
   try {
-    const { id: userId, role } = req.user;
+    const { id: employeeId, role } = req.user;
 
     if (role !== "employee") {
       return res.status(403).json({ message: "Only employees can access this" });
     }
 
     const salaryPayments = await SalaryPayment.findAll({
-      where: { userId },
+      where: { employeeId },
       order: [["paymentDate", "DESC"]],
     });
 
