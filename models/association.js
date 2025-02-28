@@ -21,6 +21,7 @@ const {
     Unit, 
     User, 
     WithdrawalRequest,
+    Purchase,purchaseRequest,itemAssignments,Maintenance
 } = require('./index');
 
 const defineAssociations = () => {
@@ -100,6 +101,40 @@ const defineAssociations = () => {
 
     WithdrawalRequest.belongsTo(User, { as: "assignedEmployee", foreignKey: "assignedEmployeeId", onDelete: "SET NULL" });
     User.hasMany(WithdrawalRequest, { foreignKey: "assignedEmployeeId", onDelete: "SET NULL" });
+
+    //modification on fub 27 start
+// purchase
+    Purchase.belongsTo(Item, { foreignKey: "itemId", onDelete: "CASCADE" });
+    Item.hasMany(Purchase, { foreignKey: "itemId", onDelete: "CASCADE" });
+
+    Purchase.belongsTo(ItemType, { foreignKey: "itemTypeId", onDelete: "CASCADE" });
+    ItemType.hasMany(Purchase, { foreignKey: "itemTypeId", onDelete: "CASCADE" });
+
+
+    purchaseRequest.belongsTo(Item, { foreignKey: "itemId",as: 'item', onDelete: "CASCADE" });
+    Item.hasMany(purchaseRequest, { foreignKey: "itemId",as: 'item', onDelete: "CASCADE" });
+    
+    purchaseRequest.belongsTo(User, { foreignKey: "requestedBy", as: "requestedby", onDelete: "CASCADE" });
+    User.hasMany(purchaseRequest, { foreignKey: "requestedBy", as: "requests", onDelete: "CASCADE" });
+    
+    purchaseRequest.belongsTo(User, { foreignKey: "approvedBy", as: "approvedby", onDelete: "CASCADE" });
+    User.hasMany(purchaseRequest, { foreignKey: "approvedBy", as: "approvals", onDelete: "CASCADE" });
+
+    itemAssignments.belongsTo(Item, { foreignKey: 'itemId',as:'item' ,onDelete: 'CASCADE' });
+    Item.hasMany(itemAssignments, { foreignKey: 'itemId',as:'items', onDelete: 'CASCADE' });
+
+    itemAssignments.belongsTo(User, { foreignKey: 'assignedId',as:'assignto', onDelete: 'CASCADE' });
+    User.hasMany(itemAssignments, { foreignKey: 'assignedId',as:'assignto', onDelete: 'CASCADE' });
+
+    Maintenance.belongsTo(Item, { foreignKey: 'itemId', as: 'maintenanceItem', onDelete: 'CASCADE' });
+    Item.hasMany(Maintenance, { foreignKey: 'itemId', as: 'itemMaintenances', onDelete: 'CASCADE' });
+
+    Maintenance.belongsTo(Unit, { foreignKey: 'unitId', as: 'maintenanceUnit', onDelete: 'CASCADE' });
+    Unit.hasMany(Maintenance, { foreignKey: 'unitId', as: 'unitMaintenances', onDelete: 'CASCADE' });
+
+    // fub 27 end
+
+    
 };
 
 module.exports = defineAssociations;

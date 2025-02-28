@@ -99,4 +99,13 @@ const EmployeeOrTenantAuth = (req, res, next) => {
 
   next();
 };
-module.exports = { adminAuth, tenantAuth, employeeAuth, roleAuth, EmployeeOrTenantAuth,adminOrEmployeeAuth };
+const AdminOrTenantAuth = (req, res, next) => {
+  const user = verifyToken(req, res);
+  if (!user) return; // Stop if token verification fails
+  // Check if the user is either an admin or a tenant
+  if (user.role!== "admin" && user.role!== "tenant") {
+    return res.status(403).json({ success: false, message: "Access denied. Admins or tenants only." });
+  }
+  next();
+}
+module.exports = { adminAuth, tenantAuth, employeeAuth, roleAuth,AdminOrTenantAuth, EmployeeOrTenantAuth,adminOrEmployeeAuth };

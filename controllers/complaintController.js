@@ -4,6 +4,7 @@ const Complaint =require ('../models/complaint.js');
  const createComplaint = async (req, res) => {
   try {
     const { tenantId, description, urgency } = req.body;
+    
     const imagePaths = req.files ? req.files.map(file => file.path) : [];
 
     if (!tenantId || !description) {
