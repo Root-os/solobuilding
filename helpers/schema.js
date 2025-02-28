@@ -327,7 +327,15 @@ const withdrawalRequestSchema = Joi.object({
     processedAt: Joi.date().optional(),
 });
 
+const salaryPaymentSchema = Joi.object({
+  employeeId: Joi.number().integer().min(0).required(),
+  amount: Joi.number().min(0).required(),
+  paymentMethod: Joi.string().optional(),
+  status: Joi.string().valid("Paid", "Pending", "Failed").optional(),
+  paymentDate: Joi.date().optional(),
+});
 module.exports = {
+  salaryPaymentSchema,
     paramsSchema,
     staffRegistrationSchema,
     loginSchema,
