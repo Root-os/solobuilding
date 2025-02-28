@@ -1,47 +1,121 @@
+const { Op } = require("sequelize");
 const SalaryPayment = require("../models/SalaryPayment");
 const User = require("../models/user");
+const { salaryPaymentSchema } = require("../helpers/schema");
+const EmployeeDetails = require("../models/employeeDetail");
+const sequelize = require("../config/database");
 
-// ✅ Admin Pays Salary to Employee
+// 💵 Pay Salary
 exports.paySalary = async (req, res) => {
-  try {
-    const { userId, amount, paymentMethod } = req.body;
+    try {
+        const { error } = salaryPaymentSchema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ message: error.details[0].message });
+        }
 
-    if (!userId || !amount || !paymentMethod) {
-      return res.status(400).json({ message: "All fields are required" });
+        const { employeeId, paymentMethod, paymentDate, status } = req.body;
+
+        if (!employeeId || !paymentMethod) {
+            return res.status(400).json({ message: "Employee ID and payment method are required" });
+        }
+
+        // Ensure Employee Exists
+        const user = await User.findOne({ where: { id: employeeId, role: "employee" } });
+        if (!user) {
+            return res.status(404).json({ message: "Employee not found" });
+        }
+
+        // Fetch Employee Salary
+        const employeeDetails = await EmployeeDetails.findOne({ where: { userId: employeeId } });
+        if (!employeeDetails || employeeDetails.salary == null) {
+            return res.status(404).json({ message: "Employee salary details not found" });
+        }
+
+        // Create Salary Payment Record
+        const salaryPayment = await SalaryPayment.create({
+            employeeId,
+            amount: employeeDetails.salary, // Use salary from EmployeeDetails
+            paymentMethod,
+            paymentDate: paymentDate || new Date(),
+            status: status || "pending",
+        });
+
+        res.status(201).json({ message: "Salary payment recorded successfully", data: salaryPayment });
+    } catch (error) {
+        console.error("Error processing salary payment:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
     }
+};
 
-    // Ensure Employee Exists
-    const user = await User.findOne({ where: { id: userId, role: "employee" } });
-    if (!user) {
-      return res.status(404).json({ message: "Employee not found" });
+
+
+// ✅ Mass Salary Payment (Admin Only)
+exports.massPaySalaries = async (req, res) => {
+    try {
+        const { paymentMethod, paymentDate, status } = req.body;
+
+        if (!paymentMethod) {
+            return res.status(400).json({ message: "Payment method is required" });
+        }
+
+        // Fetch all employees with role 'employee' and their salary details
+        const employees = await User.findAll({
+            where: { role: "employee" },
+            include: [{ model: EmployeeDetails, attributes: ["salary"],required: true }],
+        });
+
+        if (employees.length === 0) {
+            return res.status(404).json({ message: "No employees found for salary payment" });
+        }
+
+        // Prepare salary payment records
+        const salaryPayments = [];
+        const skippedPayments = [];
+
+        for (const employee of employees) {
+            if (!employee.EmployeeDetail || employee.EmployeeDetail.salary == null) {
+                skippedPayments.push({
+                    employeeId: employee.id,
+                    reason: "Salary details missing",
+                });
+                continue;
+            }
+
+            salaryPayments.push({
+                employeeId: employee.id,
+                amount: employee.EmployeeDetail.salary,
+                paymentMethod,
+                paymentDate: paymentDate || new Date(),
+                status: status || "pending",
+            });
+        }
+
+        if (salaryPayments.length > 0) {
+            await SalaryPayment.bulkCreate(salaryPayments);
+        }
+
+        res.status(201).json({
+            message: "Mass salary payments processed",
+            successfulPayments: salaryPayments.length,
+            skippedPayments,
+        });
+    } catch (error) {
+        console.error("Error processing mass salary payments:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
     }
-
-    // Create Salary Payment Record
-    const salaryPayment = await SalaryPayment.create({
-      userId,
-      amount,
-      paymentMethod,
-      status: "Paid",
-    });
-
-    res.status(201).json({ message: "Salary paid successfully", data: salaryPayment });
-  } catch (error) {
-    console.error("Error processing salary payment:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
 };
 
 // 👨‍💼 Employee Views Salary Payment History
 exports.getEmployeeSalaryHistory = async (req, res) => {
   try {
-    const { id: userId, role } = req.user;
+    const { id: employeeId, role } = req.user;
 
     if (role !== "employee") {
       return res.status(403).json({ message: "Only employees can access this" });
     }
 
     const salaryPayments = await SalaryPayment.findAll({
-      where: { userId },
+      where: { employeeId },
       order: [["paymentDate", "DESC"]],
     });
 
@@ -60,17 +134,15 @@ exports.getEmployeeSalaryHistory = async (req, res) => {
 exports.updateSalaryPayment = async (req, res) => {
   try {
     const { id } = req.params;
-    const { amount, paymentMethod, status } = req.body;
+    const { paymentMethod, status } = req.body;
 
     const salaryPayment = await SalaryPayment.findByPk(id);
     if (!salaryPayment) {
       return res.status(404).json({ message: "Salary payment record not found" });
     }
 
-    // Update salary payment details
-    salaryPayment.amount = amount || salaryPayment.amount;
-    salaryPayment.paymentMethod = paymentMethod || salaryPayment.paymentMethod;
-    salaryPayment.status = status || salaryPayment.status;
+    salaryPayment.paymentMethod = paymentMethod?? salaryPayment.paymentMethod;
+    salaryPayment.status = status?? salaryPayment.status;
 
     await salaryPayment.save();
 
