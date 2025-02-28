@@ -1,6 +1,6 @@
 const Purchase=require('../models/Purchase');
 const Item=require('../models/item');
-const ItemType=require('../models/itemType');
+const ItemType=require('../models/itemCategory');
 const { Sequelize } = require('sequelize');
 
 exports.createPurchase = async (req, res) => {

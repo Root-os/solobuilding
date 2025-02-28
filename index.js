@@ -40,7 +40,7 @@ const defineAssociation = require('./models/association');
 
 
 // inventory
-const itemTypeRoutes = require('./routes/itemTyperoutes');
+const itemTypeRoutes = require('./routes/itemCategory');
 const itemsRoutes = require('./routes/itemRoutes');
 
 const settingRoutes = require('./routes/settingRoutes');
@@ -118,7 +118,7 @@ app.use('/api/charging', chargingRoutes);
 
 
 // Sync database and create tables if they don't exist
-sequelize.sync({alter: false})
+sequelize.sync({alter:false })
   .then(() => {
     console.log('Database & tables are up to date!');
   })

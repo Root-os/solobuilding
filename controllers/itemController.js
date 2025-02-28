@@ -1,5 +1,5 @@
 const Item = require("../models/item");
-const ItemType = require("../models/itemType");
+const ItemType = require("../models/itemCategory");
 const { Op } = require("sequelize");
 
 
@@ -11,7 +11,7 @@ const validItemTypes = ["Purchase", "Existing"];
 // Create Item
 exports.createItem = async (req, res) => {
   try {
-    const { itemName, expirationDate, itemAmount, itemType, unit, itemCategory, itemDetails } = req.body;
+    const { itemName, expirationDate, itemAmount, itemType, unit, itemDetails,itemCategoryId } = req.body;
 
     // Validate itemType
     if (!validItemTypes.includes(itemType)) {
@@ -31,11 +31,11 @@ exports.createItem = async (req, res) => {
     // Create item in the database
     const newItem = await Item.create({
       itemName,
+      itemCategoryId,
       expirationDate,
       itemAmount,
       itemType,  
       unit,
-      itemCategory,
       itemDetails,
     });
 
@@ -58,6 +58,19 @@ exports.getAllItems = async (req, res) => {
 
 // Get Item by ID
 exports.getItemById = async (req, res) => {
+  try {
+    const item = await Item.findByPk(req.params.id);
+
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    return res.status(200).json(item);
+  } catch (error) {
+    return res.status(500).json({ message: "Error fetching item", error: error.message });
+  }
+};
+exports.getItemByCategoryId = async (req, res) => {
   try {
     const item = await Item.findByPk(req.params.id);
 
@@ -93,7 +106,7 @@ exports.getExpiredItems = async (req, res) => {
 // Update Item
 exports.updateItem = async (req, res) => {
   try {
-    const { itemName, expirationDate, itemAmount, itemType, unit, itemCategory, itemDetails } = req.body;
+    const { itemName, expirationDate, itemAmount, itemType, unit, itemCategoryId, itemDetails } = req.body;
 
     // Validate itemType
     if (!validItemTypes.includes(itemType)) {
@@ -120,7 +133,7 @@ exports.updateItem = async (req, res) => {
       itemAmount,
       itemType,  
       unit,
-      itemCategory,
+      itemCategoryId,
       itemDetails,
     });
 
