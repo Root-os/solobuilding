@@ -19,7 +19,6 @@ const Vendor = sequelize.define('Vendor', {
     type: DataTypes.STRING,
     allowNull: false,
     unique: true,
-    
   },
   email: {
     type: DataTypes.STRING,
@@ -32,13 +31,13 @@ const Vendor = sequelize.define('Vendor', {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  paymentMethod: {
-    type: DataTypes.ENUM('cash', 'credit', 'bank transfer', 'other'),
-    allowNull: false,
+  contractTerms: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
-  balance: {
-    type: DataTypes.FLOAT,
-    defaultValue: 0,
+  serviceTypeId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
 }, {
   tableName: 'vendors',

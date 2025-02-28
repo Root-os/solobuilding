@@ -1,17 +1,16 @@
 const Purchase=require('../models/Purchase');
 const Item=require('../models/item');
-const ItemType=require('../models/itemCategory');
+const ItemType=require('../models/ItemCategory');
 const { Sequelize } = require('sequelize');
 
 exports.createPurchase = async (req, res) => {
   try {
-    const { vendourName, vendourPhone, amount, price, description, expirationDate, itemId, itemTypeId } = req.body;
+    const { vendorId, amount, price, description, expirationDate, itemId, itemTypeId } = req.body;
 
     const totalPrice = amount * price;
 
     const newPurchase = await Purchase.create({
-      vendourName,
-      vendourPhone,
+      vendorId,
       amount,
       price,
       totalPrice,  
@@ -32,7 +31,7 @@ exports.createPurchase = async (req, res) => {
   try {
     const purchases = await Purchase.findAll({
       include: [Item, ItemType], 
-      attributes: ['id', 'vendourName', 'vendourPhone', 'totalPrice', 'description', 'expirationDate', 'itemId', 'itemTypeId'], 
+      attributes: ['id','vendorId',  'totalPrice', 'description', 'expirationDate', 'itemId', 'ItemCategoryId'], 
     });
     res.status(200).json(purchases);
   } catch (error) {
@@ -45,7 +44,7 @@ exports.createPurchase = async (req, res) => {
   try {
     const purchase = await Purchase.findByPk(req.params.id, {
       include: [Item, ItemType],
-      attributes: ['id', 'vendourName', 'vendourPhone', 'totalPrice', 'description', 'expirationDate', 'itemId', 'itemTypeId'], 
+      attributes: ['id', 'vendorId', 'totalPrice', 'description', 'expirationDate', 'itemId', 'ItemCategoryId'], 
     });
 
     if (!purchase) {
@@ -61,7 +60,7 @@ exports.createPurchase = async (req, res) => {
 // Update a purchase by ID (Recalculate totalPrice if amount or price changes)
  exports.updatePurchase = async (req, res) => {
   try {
-    const { vendourName, vendourPhone, amount, price, description, expirationDate, itemId, itemTypeId } = req.body;
+    const { vendourName, vendourPhone, amount, price, description, expirationDate, itemId, ItemCategoryId } = req.body;
 
     const purchase = await Purchase.findByPk(req.params.id);
 
@@ -72,15 +71,15 @@ exports.createPurchase = async (req, res) => {
     // Recalculate totalPrice when updating the purchase
     const totalPrice = amount * price;
 
-    purchase.vendourName = vendourName || purchase.vendourName;
-    purchase.vendourPhone = vendourPhone || purchase.vendourPhone;
+   
+    purchase.vendorId = vendorId || purchase.vendorId;
     purchase.amount = amount || purchase.amount;
     purchase.price = price || purchase.price;
     purchase.totalPrice = totalPrice; // Update totalPrice
     purchase.description = description || purchase.description;
     purchase.expirationDate = expirationDate || purchase.expirationDate;
     purchase.itemId = itemId || purchase.itemId;
-    purchase.itemTypeId = itemTypeId || purchase.itemTypeId;
+    purchase.ItemCategoryId = ItemCategoryId || purchase.ItemCategoryId;
 
     await purchase.save();
 
@@ -108,13 +107,13 @@ exports.createPurchase = async (req, res) => {
 
 // Generate report based on vendourName, startDate, endDate, and itemTypeId
 exports.generatePurchaseReport = async (req, res) => {
-    const { vendourName, startDate, endDate, itemTypeId } = req.body;
+    const { vendorId, startDate, endDate, ItemCategoryId } = req.body;
   
     try {
       const whereConditions = {};
   
-      if (vendourName) {
-        whereConditions.vendourName = { [Sequelize.Op.like]: `%${vendourName}%` };
+      if (vendorId) {
+        whereConditions.vendorId = { [Sequelize.Op.like]: `%${vendorId}%` };
       }
   
       if (startDate && endDate) {
@@ -123,8 +122,8 @@ exports.generatePurchaseReport = async (req, res) => {
         };
       }
   
-      if (itemTypeId) {
-        whereConditions.itemTypeId = itemTypeId;
+      if (ItemCategoryId) {
+        whereConditions.ItemCategoryId = ItemCategoryId;
       }
   
       const report = await Purchase.findAll({
