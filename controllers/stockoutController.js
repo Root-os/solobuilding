@@ -2,6 +2,7 @@ const Stockout=require('../models/stockout');
 const Item=require('../models/item');
 const {stockOutSchema,paramsSchema} = require('../helpers/schema');
 const User = require("../models/user");
+const { Op, Sequelize } = require("sequelize");
 
 const sendNotificationHelper= require('../helpers/sendAlert');
 
@@ -103,7 +104,7 @@ exports.getStockoutRequests = async (req, res) => {
 
         const stockouts = await Stockout.findAll({
             where: whereCondition,
-            include: [{ model: Item, attributes: ["itemName"] }, { model: User, as: "requester", attributes: ["fullName"] }]
+            include: [{ model: Item, attributes: ["itemName"] }, { model: User, attributes: ["fullName"] }]
         });
 
         return res.status(200).json(stockouts);
@@ -216,49 +217,48 @@ exports.checkLowStock = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
-const { Parser } = require("json2csv"); // CSV Export Helper
 
-exports.exportStockoutReport = async (req, res) => {
-    try {
-        const { period } = req.query; // "daily" or "monthly"
-        let startDate, endDate;
+// exports.exportStockoutReport = async (req, res) => {
+//     try {
+//         const { period } = req.query; // "daily" or "monthly"
+//         let startDate, endDate;
 
-        if (period === "daily") {
-            startDate = new Date();
-            startDate.setHours(0, 0, 0, 0);
-            endDate = new Date();
-            endDate.setHours(23, 59, 59, 999);
-        } else if (period === "monthly") {
-            startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-            endDate = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
-        } else {
-            return res.status(400).json({ message: "Invalid period. Use 'daily' or 'monthly'" });
-        }
+//         if (period === "daily") {
+//             startDate = new Date();
+//             startDate.setHours(0, 0, 0, 0);
+//             endDate = new Date();
+//             endDate.setHours(23, 59, 59, 999);
+//         } else if (period === "monthly") {
+//             startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+//             endDate = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+//         } else {
+//             return res.status(400).json({ message: "Invalid period. Use 'daily' or 'monthly'" });
+//         }
 
-        const stockoutData = await Stockout.findAll({
-            where: { createdAt: { [Op.between]: [startDate, endDate] } },
-            include: [{ model: Item, attributes: ["itemName"] }, { model: User, as: "requester", attributes: ["fullName"] }]
-        });
+//         const stockoutData = await Stockout.findAll({
+//             where: { createdAt: { [Op.between]: [startDate, endDate] } },
+//             include: [{ model: Item, attributes: ["itemName"] }, { model: User, as: "requester", attributes: ["fullName"] }]
+//         });
 
-        const json2csvParser = new Parser();
-        const csvData = json2csvParser.parse(stockoutData.map(data => ({
-            ID: data.id,
-            Item: data.Item.itemName,
-            Quantity: data.requestedQuantity,
-            Source: data.source,
-            Reason: data.reason,
-            Status: data.status,
-            RequestedBy: data.requester.fullName,
-            CreatedAt: data.createdAt
-        })));
+//         const json2csvParser = new Parser();
+//         const csvData = json2csvParser.parse(stockoutData.map(data => ({
+//             ID: data.id,
+//             Item: data.Item.itemName,
+//             Quantity: data.requestedQuantity,
+//             Source: data.source,
+//             Reason: data.reason,
+//             Status: data.status,
+//             RequestedBy: data.requester.fullName,
+//             CreatedAt: data.createdAt
+//         })));
 
-        res.setHeader("Content-Disposition", `attachment; filename=stockout-${period}-report.csv`);
-        res.setHeader("Content-Type", "text/csv");
-        return res.status(200).end(csvData);
-    } catch (error) {
-        return res.status(500).json({ message: error.message });
-    }
-};
+//         res.setHeader("Content-Disposition", `attachment; filename=stockout-${period}-report.csv`);
+//         res.setHeader("Content-Type", "text/csv");
+//         return res.status(200).end(csvData);
+//     } catch (error) {
+//         return res.status(500).json({ message: error.message });
+//     }
+// };
 exports.getStockMovementOverview = async (req, res) => {
     try {
         const movements = await Stockout.findAll({
