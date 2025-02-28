@@ -36,11 +36,19 @@ const PaymentRequest = sequelize.define('PaymentRequest', {
       min: 0.01, // Prevent negative payments
     },
   },
+  paymentTypeId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
   dueDate: {
     type: DataTypes.DATE,
     allowNull: false,
     validate: {
-      isAfter: new Date().toISOString(), // Ensure due date is in the future
+      isFuture(value) {
+        if (new Date(value) <= new Date()) {
+          throw new Error('Due date must be in the future.');
+        }
+      }, // Ensure due date is in the future
     },
   },
   repeatedFor: {
