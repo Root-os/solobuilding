@@ -8,7 +8,7 @@ const ExpenseType = require('./expenseType');
 const Floor = require('./floor');
 const Item = require('./item');
 const Purchase=require('./Purchase');
-const ItemCategory = require('./itemCategory');
+const ItemCategory = require('./ItemCategory');
 const Notification = require('./notification');
 const NotificationType = require('./notificationType');
 const Parking = require('./parking');
@@ -24,6 +24,10 @@ const purchaseRequest = require('./purchaseRequest');
 const WithdrawalRequest = require('./withdrawal');
 const itemAssignments = require('./itemAssignment');
 const Maintenance = require('./maintenance');
+const Vendor = require('./Vendor');
+const ServiceType = require('./serviceType');
+const Return = require('./return');
+const payment=require('./payment');
 
 module.exports = {
     BillPayment,
@@ -51,5 +55,5 @@ module.exports = {
     Purchase,
     purchaseRequest,
     itemAssignments,
-    Maintenance,
+    Maintenance,Vendor, ServiceType, Return,payment
 };

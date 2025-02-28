@@ -36,6 +36,11 @@ const purcRequestRoutes = require('./routes/purcRequestRoute');
 const itemAssignmentRoutes = require('./routes/itemAssignRoute');
 const maintenanceRoutes = require('./routes/maintainanceRoute');
 const defineAssociation = require('./models/association');
+const paymentTypeRoutes = require("./routes/paymentTypeRoutes");
+const paymentRoutes = require("./routes/paymentRoute");
+const vendorRoutes = require("./routes/vendorRoute");
+const serviceTypeRoutes = require("./routes/serviceTypeRoue");
+const returnRoutes = require("./routes/returnRoute");
 
 
 
@@ -107,6 +112,13 @@ app.use('/api/purchases-request', purcRequestRoutes);
 app.use('/api/item-assignments', itemAssignmentRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 
+app.use("/api/payment-types", paymentTypeRoutes);
+
+app.use("/api/service-type", serviceTypeRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/vendors", vendorRoutes);
+app.use("/api/returns", returnRoutes);
+
 
 
 //inventory
@@ -118,7 +130,9 @@ app.use('/api/charging', chargingRoutes);
 
 
 // Sync database and create tables if they don't exist
-sequelize.sync({alter:false })
+sequelize.sync({alter: true})
+
+
   .then(() => {
     console.log('Database & tables are up to date!');
   })

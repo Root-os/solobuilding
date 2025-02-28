@@ -1,5 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
+const Vendor = require('./Vendor'); 
+const Item = require('./item'); 
 
 const Return = sequelize.define('Return', {
   id: {
@@ -10,10 +12,18 @@ const Return = sequelize.define('Return', {
   vendorId: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    references: {
+      model: Vendor,
+      key: 'id',
+    },
   },
   itemId: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    references: {
+      model: Item,
+      key: 'id',
+    },
   },
   quantity: {
     type: DataTypes.INTEGER,
