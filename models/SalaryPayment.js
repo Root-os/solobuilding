@@ -27,7 +27,7 @@ const SalaryPayment = sequelize.define("SalaryPayment", {
   },
   paymentMethod: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
   },
   status: {
     type: DataTypes.ENUM("Paid", "Pending", "Failed"),

@@ -7,7 +7,7 @@ const WithdrawalRequest = sequelize.define("WithdrawalRequest", {
     terminationDate: { type: DataTypes.DATE, allowNull: false },
     reason: { type: DataTypes.TEXT, allowNull: false },
     status: { 
-        type: DataTypes.ENUM("pending", "approved", "rejected", "processed"),
+        type: DataTypes.ENUM("pending",'in_progress', "approved", "rejected", "processed"),
         defaultValue: "pending"
     },
     adminResponse: { type: DataTypes.TEXT, allowNull: true }, // Admin's decision reason
