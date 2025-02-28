@@ -16,6 +16,10 @@ const Stockout = sequelize.define('Stockout', {
             key: 'id'
         }
     },
+    source:{ 
+        type: DataTypes.ENUM("store", "warehouse", "supplier"), 
+        allowNull: false 
+    },
     reason: { 
         type: DataTypes.STRING, 
         allowNull: false 
@@ -34,6 +38,10 @@ const Stockout = sequelize.define('Stockout', {
     },
     approvedBy: {
         type: DataTypes.INTEGER, 
+        allowNull: true 
+    },
+    approvalReason: { 
+        type: DataTypes.STRING, 
         allowNull: true 
     },
     approvedAt: {

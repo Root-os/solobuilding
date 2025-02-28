@@ -45,7 +45,7 @@ const getMyWithdrawalRequests = async (req, res) => {
     try {
         const { id } = req.user;
         const tenant = await Tenant.findByPk(id
-            , { include: { model: Tenant, } }
+            
         );
         if (!tenant) {
             return res.status(404).json({ message: "Tenant not found." });
@@ -80,7 +80,7 @@ const reviewWithdrawalRequest = async (req, res) => {
         request.adminResponse = adminResponse || null;
 
         if (status === "approved") {
-            request.processedAt = new Date(); // Mark approval date
+            request.processedAt = new Date();
         }
 
         await request.save();
@@ -93,7 +93,7 @@ const reviewWithdrawalRequest = async (req, res) => {
 
 const deleteWithdrawalRequest = async (req, res) => {
     try {
-        const { requestId } = req.params;
+        const requestId  = req.params.id;
 
         const request = await WithdrawalRequest.findByPk(requestId);
         if (!request) 
@@ -101,7 +101,7 @@ const deleteWithdrawalRequest = async (req, res) => {
             return res.status(404).json({ message: "Withdrawal request not found." });
         }
         await request.destroy();
-        res.status(200).json({ message: "Withdrawal request deleted successfully." });
+        res.status(204).json({ message: "Withdrawal request deleted successfully." });
     } 
     catch (error) 
     {
@@ -208,4 +208,5 @@ module.exports = {
     finalizeWithdrawalProcess,
     getMyWithdrawalRequests,
     myAssignedRequests,
+    deleteWithdrawalRequest,
 };

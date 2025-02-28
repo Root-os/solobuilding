@@ -38,7 +38,7 @@ const maintenanceRoutes = require('./routes/maintainanceRoute');
 const defineAssociation = require('./models/association');
 const paymentTypeRoutes = require("./routes/paymentTypeRoutes");
 const salaryPaymentRoutes = require("./routes/salaryPaymentRoutes");
-
+const stockoutRoutes = require("./routes/stockoutRoutes");
 
 
 // inventory
@@ -110,6 +110,7 @@ app.use('/api/item-assignments', itemAssignmentRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use("/api/payment-types", paymentTypeRoutes);
 app.use("/api/salary-payments", salaryPaymentRoutes);
+app.use("/api/stockout", stockoutRoutes);
 
 //inventory
 app.use('/api/item-types', itemTypeRoutes); 
