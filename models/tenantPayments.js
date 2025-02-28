@@ -38,8 +38,8 @@ const TenantPayment = sequelize.define('TenantPayment', {
     allowNull: false,
   },
   status: {
-    type: DataTypes.ENUM('Pending', 'Paid', 'Overdue'),
-    defaultValue: 'Pending',
+    type: DataTypes.ENUM('paid', 'due', 'overdue'),
+    defaultValue: 'due',
   },
   proofOfPayment: { type: DataTypes.STRING },
 }, {

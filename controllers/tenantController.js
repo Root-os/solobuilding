@@ -111,7 +111,7 @@ exports.createTenant = async (req, res) => {
         console.error("Email sending failed:", emailResponse.error);
       }
 
-      res.status(201).json({ message: "Tenant registered successfully", tenant });
+      res.status(201).json({success: true, message: "Tenant registered successfully", password: generatedPassword });
     });
   } catch (error) {
     if (error.name === 'SequelizeUniqueConstraintError') {

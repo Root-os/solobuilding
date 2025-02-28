@@ -32,6 +32,7 @@ const authRoutes = require("./routes/authRoutes");
 const tenantAuthRoutes = require('./routes/tenantAuthRoute');
 const tenantVehicleRoutes = require('./routes/tenantVehicleRoutes');
 const defineAssociation = require('./models/association');
+const paymentTypeRoutes = require("./routes/paymentTypeRoutes");
 
 
 
@@ -97,6 +98,8 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/withdrawal-request", withdrawalRequestRoutes);
 app.use("/api/email", emailRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/payment-types", paymentTypeRoutes);
+
 
 //inventory
 app.use('/api/item-types', itemTypeRoutes); 
@@ -109,7 +112,7 @@ app.use('/api/charging', chargingRoutes);
 // Sync database and create tables if they don't exist
 // Sync database and create tables if they don't exist
 sequelize.
-// sync({ force: true })
+// sync({ force: false })
 sync({ alter: false })
   .then(() => {
     console.log('Database & tables are up to date!');
