@@ -339,7 +339,7 @@ const refundStatusSchema= Joi.object({
   requestId: Joi.number().integer().min(0).required(),
 });
 const stockOutSchema = Joi.object({
-  source: Joi.string().validate("store", "warehouse", "supplier").required(),
+  source: Joi.string().valid("store", "warehouse", "supplier").required(),
     itemId: Joi.number().integer().min(0).required(),
     reason: Joi.string().min(10).max(500).required(),
     requestedQuantity: Joi.number().min(0).required(),
