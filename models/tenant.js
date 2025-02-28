@@ -24,6 +24,7 @@ const Tenant = sequelize.define('Tenant', {
   email: {
     type: DataTypes.STRING,
     allowNull: true,
+    unique: true,
     validate: {
       isEmail: true,
     },

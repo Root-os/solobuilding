@@ -2,17 +2,19 @@ const Notification = require("../models/notification");
 const NotificationType = require("../models/notificationType");
 const User = require("../models/user");
 const Tenant = require("../models/tenant");
-
+const {notificationSchema}=require('../helpers/schema')
 // Create notification for a specific user or tenant
 const createNotificationForUser = async (req, res) => {
   try {
-    const { receiverId, receiver_type, senderId, title, body, type_id } = req.body;
+    const { error } = await notificationSchema.validateAsync(req.body);
+    if (error) return res.status(400).json({ message: error.details[0].message });
+    const { receiver_id, receiver_type, senderId, title, body, type_id } = req.body;
 
     let receiver;
     if (receiver_type === "staff") {
-      receiver = await User.findByPk(receiverId);
+      receiver = await User.findByPk(receiver_id);
     } else if (receiver_type === "tenant") {
-      receiver = await Tenant.findByPk(receiverId);
+      receiver = await Tenant.findByPk(receiver_id);
     } else {
       return res.status(400).json({ message: "Invalid receiver type." });
     }
@@ -21,7 +23,7 @@ const createNotificationForUser = async (req, res) => {
 
     const notification = await Notification.create({
       senderId,
-      receiverId,
+      receiver_id,
       receiver_type,
       title,
       body,
@@ -56,7 +58,7 @@ const createNotificationForGroup = async (req, res) => {
       try {
         await Notification.create({
           senderId,
-          receiverId: receiver.id,
+          receiver_id: receiver.id,
           receiver_type,
           title,
           body,
@@ -116,7 +118,7 @@ const fetchNotificationById = async (req, res) => {
 const getMyNotifications = async (req, res) => {
   try {
     const {type, isRead } = req.query;
-    const whereClause = { receiverId: req.user.id };
+    const whereClause = { receiver_id: req.user.id };
 
     if (type) whereClause.notificationTypeId = type;
     if (typeof isRead === "boolean") whereClause.isRead = isRead;
@@ -136,7 +138,7 @@ const getMyNotifications = async (req, res) => {
 // Mark a notification as read
 const markAsRead = async (req, res) => {
   try {
-    const notification = await Notification.findOne({ where: { id: req.params.id, receiverId: req.user.id } });
+    const notification = await Notification.findOne({ where: { id: req.params.id, receiver_id: req.user.id } });
 
     if (!notification) return res.status(404).json({ status: "error", message: "Notification not found" });
 
@@ -179,7 +181,7 @@ const getAllNotifications = async (req, res) => {
 // Delete notification
 const deleteNotification = async (req, res) => {
   try {
-    const notification = await Notification.findOne({ where: { id: req.params.id, receiverId: req.user.id } });
+    const notification = await Notification.findOne({ where: { id: req.params.id, receiver_id: req.user.id } });
     if (!notification) return res.status(404).json({ status: "error", message: "Notification not found" });
 
     await notification.destroy();

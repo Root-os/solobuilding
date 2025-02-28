@@ -1,4 +1,6 @@
 const WithdrawalRequest = require('../models/withdrawal');
+const Tenant=require('../models/tenant');
+const User = require('../models/user');
 
 // Create a new withdrawal request
 const createWithdrawalRequest = async (req, res) => {
@@ -26,6 +28,24 @@ const getAllWithdrawalRequests = async (req, res) => {
         res.status(500).json({ message: "Error fetching withdrawal requests.", error: error.message });
     }
 };
+
+
+const getMyWithdrawalRequests = async (req, res) => {
+    try {
+        const { id } = req.user;
+        const tenant = await Tenant.findByPk(id);
+        if (!tenant) {
+            return res.status(404).json({ message: "Tenant not found." });
+        }
+        const requests = await WithdrawalRequest.findAll(
+            { where: { tenantId: tenant.id } }
+        );
+        res.status(200).json(requests);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching withdrawal requests.", error: error.message });
+    }
+};
+
 
 // Admin reviews and updates withdrawal request status
 const reviewWithdrawalRequest = async (req, res) => {
@@ -74,6 +94,19 @@ const assignEmployeeToRequest = async (req, res) => {
         res.status(500).json({ message: "Error assigning employee.", error: error.message });
     }
 };
+const myAssignedRequests=async(req,res)=>{
+    try {
+        const employeeId = req.user.id;
+const employee = await User.findByPk(employeeId);
+if (!employee) {
+    return res.status(404).json({ message: "Employee not found." });
+}
+const requests = await WithdrawalRequest.findAll({ where: { assignedEmployeeId: employeeId } });
+res.status(200).json(requests);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching assigned requests.", error: error.message });
+    }
+}
 
 // Tenant provides feedback on request rejection
 const provideTenantFeedback = async (req, res) => {
@@ -126,5 +159,7 @@ module.exports = {
     reviewWithdrawalRequest,
     assignEmployeeToRequest,
     provideTenantFeedback,
-    finalizeWithdrawalProcess
+    finalizeWithdrawalProcess,
+    getMyWithdrawalRequests,
+    myAssignedRequests,
 };
