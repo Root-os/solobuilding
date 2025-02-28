@@ -11,6 +11,7 @@ const Unit = sequelize.define('Unit', {
   unitNumber: {
     type: DataTypes.STRING,
     allowNull: false,
+    unique: true,
   },
   size: {
     type: DataTypes.FLOAT,
