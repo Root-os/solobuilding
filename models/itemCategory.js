@@ -2,13 +2,13 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const ItemType = sequelize.define('ItemType', {
+const ItemCategory = sequelize.define('ItemCategory', {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
     primaryKey: true,
   },
-  typeName: {
+  categoryName: {
     type: DataTypes.STRING,
     allowNull: false,
   },
@@ -24,4 +24,4 @@ const ItemType = sequelize.define('ItemType', {
     collate: 'utf8_general_ci',
 });
 
-module.exports = ItemType;
+module.exports = ItemCategory;

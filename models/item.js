@@ -27,8 +27,8 @@ const Item = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    itemCategory: {
-      type: DataTypes.STRING,
+    itemCategoryId: {
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     itemDetails: {
