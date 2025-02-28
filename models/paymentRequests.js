@@ -21,7 +21,6 @@ const PaymentRequest = sequelize.define('PaymentRequest', {
     type: DataTypes.TEXT,
     allowNull: true,
   },
- 
   level: {
     type: DataTypes.STRING,
     allowNull: false,
