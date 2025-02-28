@@ -211,7 +211,11 @@ exports.getTenantById = async (req, res) => {
 // Update tenant details
 exports.updateTenant = async (req, res) => {
   try {
-    const tenant = await Tenant.findOne({ where: { id: req.params.id } });
+    const id = Number(req.params.id);
+    if(NaN(id)) {
+      return res.status(400).json({ error: 'Invalid tenant ID' });
+    }
+    const tenant = await Tenant.findOne({ where: { id:id} });
 
     if (!tenant) {
       return res.status(404).json({ message: 'Tenant not found' });
@@ -363,8 +367,9 @@ exports.filterTenants = async (req, res) => {
 
 exports.getTenantsWithExpiringLease = async (req, res) => {
   try {
+    // daysLeft=req.body.daysLeft;
     const today = new Date();
-    const tenDaysLater = new Date();
+    let tenDaysLater;
     tenDaysLater.setDate(today.getDate() + 10);
 
     

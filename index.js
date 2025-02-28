@@ -31,6 +31,10 @@ const emailRoutes = require("./routes/emailRoutes");
 const authRoutes = require("./routes/authRoutes");
 const tenantAuthRoutes = require('./routes/tenantAuthRoute');
 const tenantVehicleRoutes = require('./routes/tenantVehicleRoutes');
+const purchaseRoutes = require('./routes/purchaseRoute');
+const purcRequestRoutes = require('./routes/purcRequestRoute');
+const itemAssignmentRoutes = require('./routes/itemAssignRoute');
+const maintenanceRoutes = require('./routes/maintainanceRoute');
 const defineAssociation = require('./models/association');
 const paymentTypeRoutes = require("./routes/paymentTypeRoutes");
 
@@ -98,7 +102,13 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/withdrawal-request", withdrawalRequestRoutes);
 app.use("/api/email", emailRoutes);
 app.use("/api/auth", authRoutes);
+//purchases
+app.use('/api/purchases', purchaseRoutes);
+app.use('/api/purchases-request', purcRequestRoutes);
+app.use('/api/item-assignments', itemAssignmentRoutes);
+app.use('/api/maintenance', maintenanceRoutes);
 app.use("/api/payment-types", paymentTypeRoutes);
+
 
 
 //inventory
@@ -110,10 +120,9 @@ app.use('/api/charging', chargingRoutes);
 
 
 // Sync database and create tables if they don't exist
-// Sync database and create tables if they don't exist
-sequelize.
-// sync({ force: false })
-sync({ alter: false })
+sequelize.sync({alter: false})
+
+
   .then(() => {
     console.log('Database & tables are up to date!');
   })

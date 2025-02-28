@@ -12,7 +12,6 @@ const Email = sequelize.define("Email", {
   {
     tableName: "emails",
     timestamps: true,
-    paranoid: true,
     charset: 'utf8', 
     collate: 'utf8_general_ci',
   });
