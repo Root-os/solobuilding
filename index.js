@@ -118,15 +118,7 @@ app.use('/api/charging', chargingRoutes);
 
 
 // Sync database and create tables if they don't exist
-<<<<<<< HEAD
-sequelize.sync({alter: true})
-
-=======
-// Sync database and create tables if they don't exist
-sequelize.
-// sync({ force: true })
-sync({ alter: false })
->>>>>>> origin/sami
+sequelize.sync({alter: false})
   .then(() => {
     console.log('Database & tables are up to date!');
   })
