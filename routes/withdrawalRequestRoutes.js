@@ -9,6 +9,7 @@ const {
     finalizeWithdrawalProcess,
     getMyWithdrawalRequests,
     myAssignedRequests,
+    deleteWithdrawalRequest,
 } = require("../controllers/withdrawalRequestController");
 const { adminAuth,employeeAuth, tenantAuth, } = require("../middleware/auth");
 
@@ -31,7 +32,7 @@ router.put('/feedback',tenantAuth, provideTenantFeedback);
 router.put('/finalize',adminAuth, finalizeWithdrawalProcess);
 router.get('/tenant/my-requests',tenantAuth,getMyWithdrawalRequests);
 router.get('/employee/my-requests',employeeAuth,myAssignedRequests);
-
+router.delete('/delete/:id',adminAuth,deleteWithdrawalRequest);
 
 
 module.exports = router;
