@@ -17,6 +17,7 @@ const Unit = sequelize.define('Unit', {
     type: DataTypes.FLOAT,
     allowNull: false,
   },
+  
   status: {
     type: DataTypes.ENUM('available', 'occupied', 'under_maintenance'),
     defaultValue: 'available',
