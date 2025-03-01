@@ -30,18 +30,18 @@ router.use('/setting', require('./settingRoutes'));
 router.use('/charging', require('./chargingRoute'));
 
 //purchases
-router.use('/api/purchases', require('./purchaseRoute'));
-router.use('/api/purchases-request', require('./purcRequestRoute'));
-router.use('/api/item-assignments', require('./itemAssignRoute'));
-router.use('/api/maintenance', require('./maintainanceRoute'));
-router.use("/api/tenant-inventory", require("./tenantInventoryRoutes"));
-router.use("/api/payment-types", require("./paymentTypeRoutes"));
-router.use("/api/service-type", require("./serviceTypeRoutes"));
-router.use("/api/payments", require("./paymentRoute"));
-router.use("/api/vendors", require("./vendorRoute"));
-router.use("/api/returns", require("./returnRoute"));
-router.use("/api/salary-payments", require("./salaryPaymentRoutes"));
-router.use("/api/stockout", require("./stockoutRoutes"));
+router.use('/purchases', require('./purchaseRoute'));
+router.use('/purchases-request', require('./purcRequestRoute'));
+router.use('/item-assignments', require('./itemAssignRoute'));
+router.use('/maintenance', require('./maintainanceRoute'));
+router.use("/tenant-inventory", require("./tenantInventoryRoutes"));
+router.use("/payment-types", require("./paymentTypeRoutes"));
+router.use("/service-type", require("./serviceTypeRoutes"));
+router.use("/payments", require("./paymentRoute"));
+router.use("/vendors", require("./vendorRoute"));
+router.use("/returns", require("./returnRoute"));
+router.use("/salary-payments", require("./salaryPaymentRoutes"));
+router.use("/stockout", require("./stockoutRoutes"));
 
 
 module.exports = router;

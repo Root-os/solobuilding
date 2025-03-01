@@ -1,12 +1,5 @@
 const ExcelJS = require("exceljs")
 
-/**
- * Generate an Excel workbook with dynamic tabular data
- * @param {Array} headers - Array of column headers for the table.
- * @param {Array} rows - Array of row data (each row is an array of cell values).
- * @param {String} title - The title of the report.
- * @returns {Stream.Writable} - A writable stream of the Excel workbook.
- */
 function generateExcel(headers, rows, title = "Report") {
   const workbook = new ExcelJS.Workbook()
   const worksheet = workbook.addWorksheet(title)
