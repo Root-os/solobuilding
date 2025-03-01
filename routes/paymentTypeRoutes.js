@@ -17,4 +17,8 @@ router.put("/:id", PaymentTypeController.updatePaymentType);
 // Delete a payment type
 router.delete("/:id", PaymentTypeController.deletePaymentType);
 
+<<<<<<< HEAD
 module.exports = router;
+=======
+module.exports = router;
+>>>>>>> 07a0727c51a9cadde04da4ce658b8ccf6fcc13e8

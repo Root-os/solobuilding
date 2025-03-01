@@ -74,5 +74,4 @@ exports.deletePaymentType = async (req, res) => {
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: error.message });
-  }
-};
+  }}

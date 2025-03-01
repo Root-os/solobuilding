@@ -1,27 +1,26 @@
-// models/BillPaymentType.js
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const ItemType = sequelize.define('ItemType', {
+const ServiceType = sequelize.define('ServiceType', {
   id: {
     type: DataTypes.INTEGER,
-    autoIncrement: true,
     primaryKey: true,
+    autoIncrement: true,
   },
-  typeName: {
+  name: {
     type: DataTypes.STRING,
     allowNull: false,
+    unique: true,
   },
   description: {
     type: DataTypes.TEXT,
     allowNull: true,
   },
- 
 }, {
+  tableName: 'service_types',
   timestamps: true,
-  tableName: 'item_types',
-  charset: 'utf8', 
-    collate: 'utf8_general_ci',
+  charset: 'utf8',
+  collate: 'utf8_general_ci',
 });
 
-module.exports = ItemType;
+module.exports = ServiceType;

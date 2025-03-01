@@ -7,7 +7,7 @@ const {
     Expense, 
     ExpenseType, 
     Floor, 
-    ItemType, 
+    ItemCategory, 
     Item, 
     NotificationType, 
     Notification, 
@@ -21,11 +21,14 @@ const {
     Unit, 
     User, 
     WithdrawalRequest,
-    Purchase,purchaseRequest,itemAssignments,Maintenance
+    Purchase,purchaseRequest,itemAssignments,Maintenance,Vendor,ServiceType,Return,payment
 } = require('./index');
 
 const defineAssociations = () => {
-    // Define Relationships
+  // Define Relationships
+    Item.belongsTo(ItemCategory, { foreignKey: "ItemCategoryId", onDelete: "CASCADE", onUpdate: "CASCADE" });
+    ItemCategory.hasMany(Item, { foreignKey: "ItemCategoryId", onDelete: "CASCADE", onUpdate: "CASCADE" });
+
     BillPayment.belongsTo(BillType, { foreignKey: "billTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
     BillType.hasMany(BillPayment, { foreignKey: "billTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
 
@@ -50,8 +53,6 @@ const defineAssociations = () => {
     Floor.hasMany(Unit, { foreignKey: 'floorId', onDelete: 'CASCADE' });
     Unit.belongsTo(Floor, { foreignKey: 'floorId', onDelete: 'CASCADE' });
 
-    Item.belongsTo(ItemType, { foreignKey: "itemTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
-    ItemType.hasMany(Item, { foreignKey: "itemTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
 
     Notification.belongsTo(NotificationType, { foreignKey: "type_id", as: "type", onDelete: "CASCADE" });
     NotificationType.hasMany(Notification, { foreignKey: "type_id", as: "notifications", onDelete: "CASCADE" });
@@ -107,8 +108,8 @@ const defineAssociations = () => {
     Purchase.belongsTo(Item, { foreignKey: "itemId", onDelete: "CASCADE" });
     Item.hasMany(Purchase, { foreignKey: "itemId", onDelete: "CASCADE" });
 
-    Purchase.belongsTo(ItemType, { foreignKey: "itemTypeId", onDelete: "CASCADE" });
-    ItemType.hasMany(Purchase, { foreignKey: "itemTypeId", onDelete: "CASCADE" });
+    Purchase.belongsTo(ItemCategory, { foreignKey: "ItemCategoryId", onDelete: "CASCADE" });
+    ItemCategory.hasMany(Purchase, { foreignKey: "ItemCategoryId", onDelete: "CASCADE" });
 
 
     purchaseRequest.belongsTo(Item, { foreignKey: "itemId",as: 'item', onDelete: "CASCADE" });
@@ -133,6 +134,31 @@ const defineAssociations = () => {
     Unit.hasMany(Maintenance, { foreignKey: 'unitId', as: 'unitMaintenances', onDelete: 'CASCADE' });
 
     // fub 27 end
+
+
+    // Vendor to ServiceType
+   Vendor.belongsTo(ServiceType, { foreignKey: 'serviceTypeId', onDelete: "CASCADE" });
+   ServiceType.hasMany(Vendor, { foreignKey: 'serviceTypeId', onDelete: "CASCADE" });
+
+   // Vendor to payment
+   payment.belongsTo(Vendor, { foreignKey: 'vendorId', onDelete: "CASCADE" });
+   Vendor.hasMany(payment, { foreignKey: 'vendorId', onDelete: "CASCADE" });
+
+   // Vendor to Return
+   Return.belongsTo(Vendor, { foreignKey: 'vendorId', onDelete: "CASCADE" });
+   Vendor.hasMany(Return, { foreignKey: 'vendorId', onDelete: "CASCADE" });
+
+   // Vendor to Purchase
+   Purchase.belongsTo(Vendor, { foreignKey: 'vendorId', onDelete: "CASCADE" });
+   Vendor.hasMany(Purchase, { foreignKey: 'vendorId', onDelete: "CASCADE" });
+
+   // Return to Item
+   Return.belongsTo(Item, { foreignKey: 'itemId', onDelete: "CASCADE" });
+   Item.hasMany(Return, { foreignKey: 'itemId', onDelete: "CASCADE" });
+
+   // Purchase to Item
+   Purchase.belongsTo(Item, { foreignKey: 'itemId', onDelete: "CASCADE" });
+   Item.hasMany(Purchase, { foreignKey: "itemId", onDelete: "CASCADE" });
 
     
 };
