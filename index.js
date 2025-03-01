@@ -37,10 +37,15 @@ const itemAssignmentRoutes = require('./routes/itemAssignRoute');
 const maintenanceRoutes = require('./routes/maintainanceRoute');
 const defineAssociation = require('./models/association');
 const paymentTypeRoutes = require("./routes/paymentTypeRoutes");
+
 const paymentRoutes = require("./routes/paymentRoute");
 const vendorRoutes = require("./routes/vendorRoute");
 const serviceTypeRoutes = require("./routes/serviceTypeRoue");
 const returnRoutes = require("./routes/returnRoute");
+
+
+const salaryPaymentRoutes = require("./routes/salaryPaymentRoutes");
+const stockoutRoutes = require("./routes/stockoutRoutes");
 
 
 
@@ -121,6 +126,11 @@ app.use("/api/returns", returnRoutes);
 
 
 
+app.use("/api/payment-types", paymentTypeRoutes);
+app.use("/api/salary-payments", salaryPaymentRoutes);
+app.use("/api/stockout", stockoutRoutes);
+
+
 //inventory
 app.use('/api/item-types', itemTypeRoutes); 
 app.use('/api/items', itemsRoutes); 
@@ -129,10 +139,8 @@ app.use('/api/charging', chargingRoutes);
 // Properly isolate Swagger documentation routes
 
 
-// Sync database and create tables if they don't exist
-sequelize.sync({alter: true})
 
-
+sequelize.sync({alter: false})
   .then(() => {
     console.log('Database & tables are up to date!');
   })
