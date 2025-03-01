@@ -156,3 +156,45 @@ exports.deleteReturn = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Generate Return Report by Close Match Item ID and Vendor ID
+exports.generateReturnReport = async (req, res) => {
+  try {
+    const { vendorId, itemId } = req.body; 
+
+    let whereConditions = {};
+
+    if (vendorId) {
+      whereConditions.vendorId = vendorId;  
+    }
+
+    if (itemId) {
+      whereConditions.itemId = itemId;    
+    }
+
+    const returns = await Return.findAll({
+      where: whereConditions,  
+      include: [
+        {
+          model: Vendor,
+          required: true,  
+        },
+        {
+          model: Item,
+          required: true,  
+        }
+      ],
+    });
+
+    if (!returns || returns.length === 0) {
+      return res.status(404).json({ message: "No returns found for the given Vendor and Item." });
+    }
+
+    // Return the matched data
+    res.status(200).json(returns);
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
