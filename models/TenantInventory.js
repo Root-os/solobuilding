@@ -37,7 +37,7 @@ const TenantInventory = sequelize.define("TenantInventory", {
 });
 
 // Define association
-Tenant.hasMany(TenantInventory, { foreignKey: "tenantId",});
-TenantInventory.belongsTo(Tenant, { foreignKey: "tenantId", });
+Tenant.hasMany(TenantInventory, { foreignKey: "tenantId", onDelete: "CASCADE" });
+TenantInventory.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "SET NULL" });
 
 module.exports = TenantInventory;

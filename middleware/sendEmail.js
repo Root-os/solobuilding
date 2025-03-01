@@ -1,18 +1,19 @@
 const nodemailer = require('nodemailer');
+const { EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM } = require('../config/config'); // Import centralized config
 
 const sendEmail = async (to, subject, text) => {
     const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_HOST,
-        secure: process.env.EMAIL_SECURE, 
-        port:  process.env.EMAIL_PORT,
+        host: EMAIL_HOST,
+        port: EMAIL_PORT,
+        secure: EMAIL_PORT == 465, // Secure if using port 465 (true/false)
         auth: {
-          user: process.env.EMAIL_USER,  
-          pass: process.env.EMAIL_PASS
+          user: EMAIL_USER,  
+          pass: EMAIL_PASS
         },
     });
 
     const mailOptions = {
-        from: `"${process.env.EMAIL_SENDER_NAME}" <${process.env.EMAIL_USER}>`,
+        from: EMAIL_FROM, 
         to,
         subject,
         text,
@@ -28,3 +29,4 @@ const sendEmail = async (to, subject, text) => {
 };
 
 module.exports = sendEmail;
+
