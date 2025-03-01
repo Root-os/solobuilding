@@ -202,15 +202,15 @@ exports.generateReturnReport = async (req, res) => {
 // Get Return by Item ID
 exports.getReturnsByItemId = async (req, res) => {
   try {
-    const { error } = paramsSchema.validate(req.params);
-    if (error) {
-      return res.status(400).json({ message: error.details[0].message });
-    }
-    const { itemId } = req.params;
+    // const { error } = paramsSchema.validate(req.params);
+    // if (error) {
+    //   return res.status(400).json({ message: error.details[0].message });
+    // }
+   
 
     const returns = await Return.findAll({
-      where: { itemId },
-      include: [Vendor, Item],
+      where: { itemId: req.params.itemId },
+      include: [ Item,Vendor],
     });
 
     if (!returns || returns.length === 0) {
@@ -228,20 +228,16 @@ exports.getReturnsByItemId = async (req, res) => {
 // Get Returns by Vendor ID
 exports.getReturnsByVendorId = async (req, res) => {
   try {
-    const { error } = paramsSchema.validate(req.params);
-    if (error) {
-      return res.status(400).json({ message: error.details[0].message });
-    }
-    const { vendorId } = req.params; // Fetch vendorId from request body
+    // const { error } = paramsSchema.validate(req.params);
+    // if (error) {
+    //   return res.status(400).json({ message: error.details[0].message });
+    // }
 
-    // Check if vendorId is provided
-    if (!vendorId) {
-      return res.status(400).json({ message: "Vendor ID is required." });
-    }
+    // const { vendorId } = req.params; // Fetch vendorId from request params
 
     // Fetch returns based on the provided vendorId
     const returns = await Return.findAll({
-      where: { vendorId },
+      where: { vendorId: req.params.vendorId },
       include: [
         {
           model: Vendor,
@@ -267,3 +263,4 @@ exports.getReturnsByVendorId = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
