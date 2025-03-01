@@ -18,6 +18,7 @@ tmp/
 dist/
 build/
 coverage/
+uploads/
 .nyc_output/
 .DS_Store
 .vscode/
