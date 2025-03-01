@@ -37,15 +37,13 @@ const itemAssignmentRoutes = require('./routes/itemAssignRoute');
 const maintenanceRoutes = require('./routes/maintainanceRoute');
 const defineAssociation = require('./models/association');
 const paymentTypeRoutes = require("./routes/paymentTypeRoutes");
-
 const paymentRoutes = require("./routes/paymentRoute");
 const vendorRoutes = require("./routes/vendorRoute");
 const serviceTypeRoutes = require("./routes/serviceTypeRoue");
 const returnRoutes = require("./routes/returnRoute");
-
-
 const salaryPaymentRoutes = require("./routes/salaryPaymentRoutes");
 const stockoutRoutes = require("./routes/stockoutRoutes");
+const tenantInventoryRoutes = require("./routes/tenantInventoryRoutes");
 
 
 
@@ -116,6 +114,7 @@ app.use('/api/purchases', purchaseRoutes);
 app.use('/api/purchases-request', purcRequestRoutes);
 app.use('/api/item-assignments', itemAssignmentRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
+app.use("/api/tenant-inventory", tenantInventoryRoutes);
 
 app.use("/api/payment-types", paymentTypeRoutes);
 
