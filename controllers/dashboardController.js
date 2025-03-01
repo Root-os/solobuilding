@@ -17,132 +17,233 @@ const Salary= require("../models/salaryPayment");
 const Stockout= require("../models/stockout");
 const TenantPayment= require("../models/tenantPayments");
 const BillPayment= require("../models/billPayment");
+
+
 exports.getDashboardStats = async (req, res) => {
   try {
-    // Notifications
-    const totalNotifications = await Notification.count();
-    const sentNotifications = await Notification.count({ where: { isRead: false } });
-    const readNotifications = await Notification.count({ where: { isRead: true } });
+    const [
+      // Notifications
+      totalNotifications,
+      sentNotifications,
+      readNotifications,
 
-    // Payments
-    const totalPaymentsRequest = await PaymentRequest.count();
-    const pendingPaymentsRequest = await PaymentRequest.count({ where: { status: "pending" } });
-    const completedPaymentsRequest = await PaymentRequest.count({ where: { status: "approved" } });
+      // Payments
+      totalPaymentsRequest,
+      pendingPaymentsRequest,
+      completedPaymentsRequest,
 
-    // Complaints
-    const totalComplaints = await Complaint.count();
-    const inProgressComplaints = await Complaint.count({ where: { status: "in_progress" } });
-    const resolvedComplaints = await Complaint.count({ where: { status: "resolved" } });
-    const notResolvedComplaints = await Complaint.count({ where: { status: "pending" } });
+      // Complaints
+      totalComplaints,
+      inProgressComplaints,
+      resolvedComplaints,
+      notResolvedComplaints,
 
-    // units
-    const totalUnits = await Unit.count();
-    const availableUnits = await Unit.count({ where: { status: "available" } });
-    const occupiedUnits = await Unit.count({ where: { status: "occupied" } });
-    const underMaintenanceUnits = await Unit.count({ where: { status: "under_maintenance" } });
+      // Units
+      totalUnits,
+      availableUnits,
+      occupiedUnits,
+      underMaintenanceUnits,
 
-    //floors
-    const totalFloors = await Floor.count();
-    const availableFloors = await Floor.count({ where: { status: "available" } });
-    const underMaintenanceFloors = await Floor.count({ where: { status: "under_maintenance" } });
+      // Floors
+      totalFloors,
+      availableFloors,
+      underMaintenanceFloors,
 
-    //tenants
-    const totalTenants = await Tenant.count();
-    const activeTenants = await Tenant.count({ where: { status: "active" } });
-    const inactiveTenants = await Tenant.count({ where: { status: "inactive" } });
-    const terminatedTenants = await Tenant.count({ where: { status: "terminated" } });
+      // Tenants
+      totalTenants,
+      activeTenants,
+      inactiveTenants,
+      terminatedTenants,
 
-    //tenant vehicles
-    const totalVehicles = await TenantVehicle.count();
-    //tenant inventories
-    const totalInventory = await TenantInventory.count();
-    const moveInInventories = await TenantInventory.count({ where: { type: "move-in" } });
-    const moveOutInventories = await TenantInventory.count({ where: { type: "move-out" } });
+      // Tenant Vehicles
+      totalVehicles,
 
-    //parking
-    const totalParking = await Parking.count();
-    const onParking= await Parking.count({ where: { status: "onparking" } });
-    const readyToOut= await Parking.count({ where: { status: "ready to out" } });
-    const completed= await Parking.count({ where: { status: "completed" } });
+      // Tenant Inventories
+      totalInventory,
+      moveInInventories,
+      moveOutInventories,
 
-    //expenses
-    const totalExpenses = await Expense.count();
+      // Parking
+      totalParking,
+      onParking,
+      readyToOut,
+      completed,
 
-    //inventory
-    const totalItems = await Inventory.count();
-    const totalPurchasedItems = await Inventory.count({ where: { itemType: "Purchase" } });
-    const totalExistedItems = await Inventory.count({ where: { itemType: "Existing" } });
+      // Expenses
+      totalExpenses,
 
-    //withdrawal requests
-    const totalWithdrawals = await WithdrawalRequest.count();
-    const pendingWithdrawals = await WithdrawalRequest.count({ where: { status: "pending" } });
-    const approvedWithdrawals = await WithdrawalRequest.count({ where: { status: "approved" } });
-const rejectedWithdrawals = await WithdrawalRequest.count({ where: { status: "rejected" } });
-const processedWithdrawals = await WithdrawalRequest.count({ where: { status: "in_progress" } });
+      // Inventory
+      totalItems,
+      totalPurchasedItems,
+      totalExistedItems,
 
-    //emails
-    const totalEmails = await Email.count();
-    const sentEmails = await Email.count({ where: { status: "sent", } });
-    const readEmails = await Email.count({ where: { status: "read", } });
+      // Withdrawal Requests
+      totalWithdrawals,
+      pendingWithdrawals,
+      approvedWithdrawals,
+      rejectedWithdrawals,
+      processedWithdrawals,
 
+      // Emails
+      totalEmails,
+      sentEmails,
+      readEmails,
 
-    //employees
-    const totalEmployees = await Employee.count({ where: { role: "employee" } });
-    const adminEmployees = await Employee.count({ where: { role: "admin" } });
+      // Employees
+      totalEmployees,
+      adminEmployees,
 
-    //salaries
-    const totalSalaries = await Salary.count();
-    const pendingSalaries = await Salary.count({ where: { status: "pending" } });
-    const paidSalaries = await Salary.count({ where: { status: "paid" } });
+      // Salaries
+      totalSalaries,
+      pendingSalaries,
+      paidSalaries,
 
+      // Stockouts
+      totalStockouts,
+      pendingStockouts,
+      completedStockouts,
+      rejectedStockouts,
 
-    //stockouts
-    const totalStockouts = await Stockout.count();
-    const pendingStockouts = await Stockout.count({ where: { status: "pending" } });
-    const completedStockouts = await Stockout.count({ where: { status: "approved" } });
-    const rejectedStockouts = await Stockout.count({ where: { status: "rejected" } });
+      // Tenant Payments
+      totalTenantPayments,
+      pendingTenantPayments,
+      paidTenantPayments,
+      overdueTenantPayments,
 
+      // Bill Payments
+      totalBillPayments,
+      pendingBillPayments,
+      paidBillPayments,
+      overdueBillPayments,
 
-    //payments
-    const totalTenantPayments = await TenantPayment.count();
-    const pendingTenantPayments = await TenantPayment.count({ where: { status: "due" } });
-    const paidTenantPayments = await TenantPayment.count({ where: { status: "paid" } });
-    const overdueTenantPayments = await TenantPayment.count({ where: { status: "overdue" } });
+      // Rent Collections
+      totalRentCollections,
+      paidRentCollections,
+      pendingRentCollections,
+      overdueRentCollections,
+    ] = await Promise.all([
+      // Notifications
+      Notification.count(),
+      Notification.count({ where: { isRead: false } }),
+      Notification.count({ where: { isRead: true } }),
 
-    //bills
-    const totalBillPayments = await BillPayment.count();
-    const pendingBillPayments = await BillPayment.count({ where: { status: "pending" } });
-    const paidBillPayments = await BillPayment.count({ where: { status: "paid" } });
-    const overdueBillPayments = await BillPayment.count({ where: { status: "overdue" } });
+      // Payments
+      PaymentRequest.count(),
+      PaymentRequest.count({ where: { status: "pending" } }),
+      PaymentRequest.count({ where: { status: "approved" } }),
 
+      // Complaints
+      Complaint.count(),
+      Complaint.count({ where: { status: "in_progress" } }),
+      Complaint.count({ where: { status: "resolved" } }),
+      Complaint.count({ where: { status: "pending" } }),
 
-    //rent collections
-    const totalRentCollections = await TenantRentCollection.count();
-    const paidRentCollections = await TenantRentCollection.count({ where: { status: "Paid" } });
-    const pendingRentCollections = await TenantRentCollection.count({ where: { status: "Pending" } });
-    const overdueRentCollections = await TenantRentCollection.count({ where: { status: "Overdue" } });
+      // Units
+      Unit.count(),
+      Unit.count({ where: { status: "available" } }),
+      Unit.count({ where: { status: "occupied" } }),
+      Unit.count({ where: { status: "under_maintenance" } }),
+
+      // Floors
+      Floor.count(),
+      Floor.count({ where: { status: "available" } }),
+      Floor.count({ where: { status: "under_maintenance" } }),
+
+      // Tenants
+      Tenant.count(),
+      Tenant.count({ where: { status: "active" } }),
+      Tenant.count({ where: { status: "inactive" } }),
+      Tenant.count({ where: { status: "terminated" } }),
+
+      // Tenant Vehicles
+      TenantVehicle.count(),
+
+      // Tenant Inventories
+      TenantInventory.count(),
+      TenantInventory.count({ where: { type: "move-in" } }),
+      TenantInventory.count({ where: { type: "move-out" } }),
+
+      // Parking
+      Parking.count(),
+      Parking.count({ where: { status: "onparking" } }),
+      Parking.count({ where: { status: "ready to out" } }),
+      Parking.count({ where: { status: "completed" } }),
+
+      // Expenses
+      Expense.count(),
+
+      // Inventory
+      Inventory.count(),
+      Inventory.count({ where: { itemType: "Purchase" } }),
+      Inventory.count({ where: { itemType: "Existing" } }),
+
+      // Withdrawal Requests
+      WithdrawalRequest.count(),
+      WithdrawalRequest.count({ where: { status: "pending" } }),
+      WithdrawalRequest.count({ where: { status: "approved" } }),
+      WithdrawalRequest.count({ where: { status: "rejected" } }),
+      WithdrawalRequest.count({ where: { status: "in_progress" } }),
+
+      // Emails
+      Email.count(),
+      Email.count({ where: { status: "sent" } }),
+      Email.count({ where: { status: "read" } }),
+
+      // Employees
+      Employee.count({ where: { role: "employee" } }),
+      Employee.count({ where: { role: "admin" } }),
+
+      // Salaries
+      Salary.count(),
+      Salary.count({ where: { status: "pending" } }),
+      Salary.count({ where: { status: "paid" } }),
+
+      // Stockouts
+      Stockout.count(),
+      Stockout.count({ where: { status: "pending" } }),
+      Stockout.count({ where: { status: "approved" } }),
+      Stockout.count({ where: { status: "rejected" } }),
+
+      // Tenant Payments
+      TenantPayment.count(),
+      TenantPayment.count({ where: { status: "due" } }),
+      TenantPayment.count({ where: { status: "paid" } }),
+      TenantPayment.count({ where: { status: "overdue" } }),
+
+      // Bill Payments
+      BillPayment.count(),
+      BillPayment.count({ where: { status: "pending" } }),
+      BillPayment.count({ where: { status: "paid" } }),
+      BillPayment.count({ where: { status: "overdue" } }),
+
+      // Rent Collections
+      TenantRentCollection.count(),
+      TenantRentCollection.count({ where: { status: "Paid" } }),
+      TenantRentCollection.count({ where: { status: "Pending" } }),
+      TenantRentCollection.count({ where: { status: "Overdue" } }),
+    ]);
 
     // Send response
     res.json({
       notifications: { totalNotifications, sentNotifications, readNotifications },
       paymentsRequest: { totalPaymentsRequest, pendingPaymentsRequest, completedPaymentsRequest },
-      complaints: { totalComplaints, inProgressComplaints, resolvedComplaints, notResolvedComplaints }
-      , units: { totalUnits, availableUnits, occupiedUnits, underMaintenanceUnits }
-      , floors: { totalFloors, availableFloors, underMaintenanceFloors }
-      , tenants: { totalTenants, activeTenants, inactiveTenants, terminatedTenants }
-      , tenantVehicles: { totalVehicles }
-      , TenantInventories: { totalInventory, moveInInventories, moveOutInventories }
-      , parking: { totalParking, onParking, readyToOut, completed }
-      , expenses: { totalExpenses }
-      , items: { totalItems, totalPurchasedItems, totalExistedItems }
-      , TenantWithdrawalRequests: { totalWithdrawals, pendingWithdrawals, approvedWithdrawals, rejectedWithdrawals, processedWithdrawals }
-      , emails: { totalEmails, sentEmails, readEmails }
-      , employees: { totalEmployees, adminEmployees }
-      , EmployeeSalaries: { totalSalaries, pendingSalaries, paidSalaries }
-      , stockouts: { totalStockouts, pendingStockouts, completedStockouts, rejectedStockouts }
-      , tenantPayments: { totalTenantPayments, pendingTenantPayments, paidTenantPayments, overdueTenantPayments }
-      , billPayments: { totalBillPayments, pendingBillPayments, paidBillPayments, overdueBillPayments }
-      , rentCollections: { totalRentCollections, paidRentCollections, pendingRentCollections, overdueRentCollections }
+      complaints: { totalComplaints, inProgressComplaints, resolvedComplaints, notResolvedComplaints },
+      units: { totalUnits, availableUnits, occupiedUnits, underMaintenanceUnits },
+      floors: { totalFloors, availableFloors, underMaintenanceFloors },
+      tenants: { totalTenants, activeTenants, inactiveTenants, terminatedTenants },
+      tenantVehicles: { totalVehicles },
+      TenantInventories: { totalInventory, moveInInventories, moveOutInventories },
+      parking: { totalParking, onParking, readyToOut, completed },
+      expenses: { totalExpenses },
+      items: { totalItems, totalPurchasedItems, totalExistedItems },
+      TenantWithdrawalRequests: { totalWithdrawals, pendingWithdrawals, approvedWithdrawals, rejectedWithdrawals, processedWithdrawals },
+      emails: { totalEmails, sentEmails, readEmails },
+      employees: { totalEmployees, adminEmployees },
+      EmployeeSalaries: { totalSalaries, pendingSalaries, paidSalaries },
+      stockouts: { totalStockouts, pendingStockouts, completedStockouts, rejectedStockouts },
+      tenantPayments: { totalTenantPayments, pendingTenantPayments, paidTenantPayments, overdueTenantPayments },
+      billPayments: { totalBillPayments, pendingBillPayments, paidBillPayments, overdueBillPayments },
+      rentCollections: { totalRentCollections, paidRentCollections, pendingRentCollections, overdueRentCollections },
     });
 
   } catch (error) {
