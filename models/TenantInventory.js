@@ -34,6 +34,11 @@ const TenantInventory = sequelize.define("TenantInventory", {
     type: DataTypes.TEXT,
     allowNull: true,
   },
+},{
+  tableName: "tenant_inventory",
+    timestamps: false,
+    charset: 'utf8', 
+    collate: 'utf8_general_ci',
 });
 
 // Define association

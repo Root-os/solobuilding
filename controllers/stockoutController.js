@@ -3,7 +3,10 @@ const Item=require('../models/item');
 const {stockOutSchema,paramsSchema} = require('../helpers/schema');
 const User = require("../models/user");
 const { Op, Sequelize } = require("sequelize");
-
+const fs = require("fs");
+const { format } = require("fast-csv");
+const generatePDF = require("../helpers/createPdf");
+const generateExcel = require("../helpers/createExcel");
 const sendNotificationHelper= require('../helpers/sendAlert');
 
 exports.createStockoutRequest = async (req, res) => {
@@ -218,47 +221,85 @@ exports.checkLowStock = async (req, res) => {
     }
 };
 
-// exports.exportStockoutReport = async (req, res) => {
-//     try {
-//         const { period } = req.query; // "daily" or "monthly"
-//         let startDate, endDate;
 
-//         if (period === "daily") {
-//             startDate = new Date();
-//             startDate.setHours(0, 0, 0, 0);
-//             endDate = new Date();
-//             endDate.setHours(23, 59, 59, 999);
-//         } else if (period === "monthly") {
-//             startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-//             endDate = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
-//         } else {
-//             return res.status(400).json({ message: "Invalid period. Use 'daily' or 'monthly'" });
-//         }
+exports.exportStockoutReport = async (req, res) => {
+    try {
+        const { period, formatType } = req.query; 
+        let startDate, endDate;
 
-//         const stockoutData = await Stockout.findAll({
-//             where: { createdAt: { [Op.between]: [startDate, endDate] } },
-//             include: [{ model: Item, attributes: ["itemName"] }, { model: User, as: "requester", attributes: ["fullName"] }]
-//         });
+        if (period === "daily") {
+            startDate = new Date();
+            startDate.setHours(0, 0, 0, 0);
+            endDate = new Date();
+            endDate.setHours(23, 59, 59, 999);
+        } else if (period === "monthly") {
+            startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+            endDate = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+        } else {
+            return res.status(400).json({ message: "Invalid period. Use 'daily' or 'monthly'" });
+        }
 
-//         const json2csvParser = new Parser();
-//         const csvData = json2csvParser.parse(stockoutData.map(data => ({
-//             ID: data.id,
-//             Item: data.Item.itemName,
-//             Quantity: data.requestedQuantity,
-//             Source: data.source,
-//             Reason: data.reason,
-//             Status: data.status,
-//             RequestedBy: data.requester.fullName,
-//             CreatedAt: data.createdAt
-//         })));
+        // Fetch stockout data
+        const stockoutData = await Stockout.findAll({
+            where: { createdAt: { [Op.between]: [startDate, endDate] } },
+            include: [
+                { model: Item, attributes: ["itemName"] },
+                { model: User, as: "requester", attributes: ["fullName"] }
+            ]
+        });
 
-//         res.setHeader("Content-Disposition", `attachment; filename=stockout-${period}-report.csv`);
-//         res.setHeader("Content-Type", "text/csv");
-//         return res.status(200).end(csvData);
-//     } catch (error) {
-//         return res.status(500).json({ message: error.message });
-//     }
-// };
+        // Transform data for export
+        const reportData = stockoutData.map(data => ([
+            data.id.toString(),
+            data.Item.itemName,
+            data.requestedQuantity.toString(),
+            data.source,
+            data.reason,
+            data.status,
+            data.requester.fullName,
+            data.createdAt.toISOString()
+        ]));
+
+        const headers = ["ID", "Item", "Quantity", "Source", "Reason", "Status", "Requested By", "Created At"];
+
+        if (formatType === "pdf") {
+            const pdfDoc = generatePDF(headers, reportData, `Stockout ${period} Report`);
+            res.setHeader("Content-Disposition", `attachment; filename=stockout-${period}-report.pdf`);
+            res.setHeader("Content-Type", "application/pdf");
+            pdfDoc.pipe(res);
+        } else if (formatType === "excel") {
+            const excelStream = generateExcel(headers, reportData, `Stockout ${period} Report`);
+            res.setHeader("Content-Disposition", `attachment; filename=stockout-${period}-report.xlsx`);
+            res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            excelStream.pipe(res);
+        } else {
+            // Default to CSV using fast-csv
+            res.setHeader("Content-Disposition", `attachment; filename=stockout-${period}-report.csv`);
+            res.setHeader("Content-Type", "text/csv");
+
+            const csvStream = format({ headers: true });
+            csvStream.pipe(res);
+
+            stockoutData.forEach(data => {
+                csvStream.write({
+                    ID: data.id,
+                    Item: data.Item.itemName,
+                    Quantity: data.requestedQuantity,
+                    Source: data.source,
+                    Reason: data.reason,
+                    Status: data.status,
+                    RequestedBy: data.requester.fullName,
+                    CreatedAt: data.createdAt.toISOString()
+                });
+            });
+
+            csvStream.end();
+        }
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
 exports.getStockMovementOverview = async (req, res) => {
     try {
         const movements = await Stockout.findAll({
