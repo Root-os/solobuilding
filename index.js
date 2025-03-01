@@ -1,4 +1,3 @@
-require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -8,23 +7,24 @@ const hpp = require('hpp');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 
+const config = require('./config/config');
 const sequelize = require('./config/database');
 const defineAssociation = require('./models/association');
 const routes = require('./routes/index');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = config.PORT?? 3000;
 
 // Security & Performance Middlewares
 app.use(helmet());
-app.use(rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: "Too many requests from this IP, please try again later.",
-}));
+// app.use(rateLimit({
+//   windowMs: 15 * 60 * 1000,
+//   max: 100,
+//   message: "Too many requests from this IP, please try again later.",
+// }));
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || "http://localhost:3000", 
+  origin:"*", //config.CORS_ORIGIN?? "http://localhost:3000", 
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
 }));
