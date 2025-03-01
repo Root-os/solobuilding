@@ -9,8 +9,9 @@ router.get("/:id", returnController.getReturnById); // Get return by ID
 router.put("/:id", returnController.updateReturn); // Update return
 router.delete("/:id", returnController.deleteReturn); // Delete return
 router.post("/report", returnController.generateReturnReport); // Get return report
-router.get("/byItemId/:id", returnController.getReturnsByItemId); // Get returns by Item ID
-router.get("/byVendorId/:id", returnController.getReturnsByVendorId);
+router.get("/item/:itemId", returnController.getReturnsByItemId); // Get returns by Item ID
+router.get("/vendor/:vendorId", returnController.getReturnsByVendorId);
+
 
 
 
