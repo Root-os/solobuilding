@@ -24,4 +24,4 @@ uploads/
 .vscode/
 .idea/
 .next/
-public/uploads/  # If you store user uploads, consider excluding
+*.zip
