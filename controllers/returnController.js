@@ -160,41 +160,110 @@ exports.deleteReturn = async (req, res) => {
 // Generate Return Report by Close Match Item ID and Vendor ID
 exports.generateReturnReport = async (req, res) => {
   try {
-    const { vendorId, itemId } = req.body; 
+    const { vendorId, itemId } = req.body;
 
     let whereConditions = {};
 
     if (vendorId) {
-      whereConditions.vendorId = vendorId;  
+      whereConditions.vendorId = vendorId;
     }
 
     if (itemId) {
-      whereConditions.itemId = itemId;    
+      whereConditions.itemId = itemId;
     }
 
     const returns = await Return.findAll({
-      where: whereConditions,  
+      where: whereConditions,
       include: [
         {
           model: Vendor,
-          required: true,  
+          required: true,
         },
         {
           model: Item,
-          required: true,  
-        }
+          required: true,
+        },
       ],
     });
 
     if (!returns || returns.length === 0) {
-      return res.status(404).json({ message: "No returns found for the given Vendor and Item." });
+      return res
+        .status(404)
+        .json({ message: "No returns found for the given Vendor and Item." });
     }
 
     // Return the matched data
     res.status(200).json(returns);
-
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
+// Get Return by Item ID
+exports.getReturnsByItemId = async (req, res) => {
+  try {
+    const { error } = paramsSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
+    const { itemId } = req.params;
+
+    const returns = await Return.findAll({
+      where: { itemId },
+      include: [Vendor, Item],
+    });
+
+    if (!returns || returns.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No returns found for this item" });
+    }
+
+    res.status(200).json(returns);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get Returns by Vendor ID
+exports.getReturnsByVendorId = async (req, res) => {
+  try {
+    const { error } = paramsSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
+    const { vendorId } = req.params; // Fetch vendorId from request body
+
+    // Check if vendorId is provided
+    if (!vendorId) {
+      return res.status(400).json({ message: "Vendor ID is required." });
+    }
+
+    // Fetch returns based on the provided vendorId
+    const returns = await Return.findAll({
+      where: { vendorId },
+      include: [
+        {
+          model: Vendor,
+          required: true,
+        },
+        {
+          model: Item,
+          required: true,
+        },
+      ],
+    });
+
+    // Check if any returns were found
+    if (!returns || returns.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No returns found for the given Vendor ID." });
+    }
+
+    // Return the matched data
+    res.status(200).json(returns);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
