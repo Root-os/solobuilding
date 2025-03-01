@@ -1,7 +1,6 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database"); 
-const Item = require("./item"); 
-const ItemType = require("./itemType"); 
+ 
 
 const Purchase = sequelize.define(
   "Purchase",
@@ -11,13 +10,8 @@ const Purchase = sequelize.define(
       autoIncrement: true,
       primaryKey: true,
     },
-   
-    vendourName: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    vendourPhone: {
-      type: DataTypes.STRING,
+    vendorId: {
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     amount: {

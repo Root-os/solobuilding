@@ -27,10 +27,10 @@ const Item = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    itemCategory: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
+    // itemCategoryId: {
+    //   type: DataTypes.INTEGER,
+    //   allowNull: false,
+    // },
     itemDetails: {
       type: DataTypes.TEXT,
       allowNull: true,
@@ -43,7 +43,6 @@ const Item = sequelize.define(
     min_amount: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      defaultValue: 10, 
     },
   },
   {

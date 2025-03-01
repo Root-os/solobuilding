@@ -16,7 +16,7 @@ const User = sequelize.define(
   {
     tableName: "users",
     timestamps: true,
-    paranoid: true, // Enables soft delete
+    paranoid: true, 
     charset: "utf8",
     collate: "utf8_general_ci",
   }
