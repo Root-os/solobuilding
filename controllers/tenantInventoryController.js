@@ -1,4 +1,4 @@
-const TenantInventory = require("../models/TenantInventory");
+const TenantInventory = require("../models/tenantInventory");
 const Tenant = require("../models/tenant");
 const {inventorySchema,paramsSchema,UpdateinventorySchema}=require('../helpers/schema');
 // Create inventory record (Admins & Employees Only)
