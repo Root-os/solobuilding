@@ -244,6 +244,8 @@ const paymentRequestSchema = Joi.object({
     amount: Joi.number().min(0.01).required(),
     dueDate: Joi.date().required(),
     repeatedFor: Joi.string().optional(),
+    paymentTypeId: Joi.number().integer().min(0).required(),
+    receipt: Joi.string().optional(),
 });
 const paymentTypeSchema = Joi.object({
     name: Joi.string().min(3).max(50).required(),
@@ -325,7 +327,27 @@ const withdrawalRequestSchema = Joi.object({
     processedAt: Joi.date().optional(),
 });
 
+const salaryPaymentSchema = Joi.object({
+  employeeId: Joi.number().integer().min(0).required(),
+  amount: Joi.number().min(0).required(),
+  paymentMethod: Joi.string().optional(),
+  status: Joi.string().valid("Paid", "Pending", "Failed").optional(),
+  paymentDate: Joi.date().optional(),
+});
+const refundStatusSchema= Joi.object({
+  depositRefundStatus: Joi.string().valid("not_processed", "partial", "full").required(),
+  requestId: Joi.number().integer().min(0).required(),
+});
+const stockOutSchema = Joi.object({
+  source: Joi.string().valid("store", "warehouse", "supplier").required(),
+    itemId: Joi.number().integer().min(0).required(),
+    reason: Joi.string().min(10).max(500).required(),
+    requestedQuantity: Joi.number().min(0).required(),
+});
 module.exports = {
+  stockOutSchema,
+  refundStatusSchema,
+  salaryPaymentSchema,
     paramsSchema,
     staffRegistrationSchema,
     loginSchema,

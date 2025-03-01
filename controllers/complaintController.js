@@ -1,10 +1,15 @@
 const Complaint =require ('../models/complaint.js');
+const Tenant=require('../models/tenant.js');
 
 // Create a new complaint with multiple image uploads
  const createComplaint = async (req, res) => {
   try {
-    const { tenantId, description, urgency } = req.body;
-    
+    const  tenantId  = req.user.id;
+    const {  description, urgency } = req.body;
+    const tenant = await Tenant.findByPk(tenantId);
+    if (!tenant) {
+      return res.status(404).json({ message: 'Tenant not found' });
+    }
     const imagePaths = req.files ? req.files.map(file => file.path) : [];
 
     if (!tenantId || !description) {
@@ -27,7 +32,9 @@ const Complaint =require ('../models/complaint.js');
 // Get all complaints (admin view)
  const getAllComplaints = async (req, res) => {
   try {
-    const complaints = await Complaint.findAll();
+    const complaints = await Complaint.findAll(
+      { include: { model: Tenant, as: 'tenant' } }
+    );
     res.status(200).json(complaints);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching complaints', error: error.message });
@@ -123,7 +130,9 @@ const deleteComplaint = async (req, res) => {
 const getSingleComplaint = async (req, res) => {
   try {
     const { complaintId } = req.params;
-    const complaint = await Complaint.findByPk(complaintId);
+    const complaint = await Complaint.findByPk(complaintId
+      , { include: { model: Tenant, as: 'tenant' } }
+    );
 
     if (!complaint) {
       return res.status(404).json({ message: 'Complaint not found' });
@@ -137,7 +146,10 @@ const getSingleComplaint = async (req, res) => {
 const getTenantComplaints = async (req, res) => {
   try {
     const { tenantId } = req.params;
-    const complaints = await Complaint.findAll({ where: { tenantId } });
+    const complaints = await Complaint.findAll({ where: { tenantId } }
+      , { include: { model: Tenant, as
+        : 'tenant' } }
+    );
 
     res.status(200).json(complaints);
   } catch (error) {
