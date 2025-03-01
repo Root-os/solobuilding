@@ -10,7 +10,7 @@ const cookieParser = require('cookie-parser');
 const config = require('./config/config');
 const sequelize = require('./config/database');
 const defineAssociation = require('./models/association');
-const routes = require('./routes/index');
+const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -57,7 +57,7 @@ sequelize.sync({alter: false})
   });
 
 // Routes
-app.use(routes);
+app.use('/api', routes);
 app.get('/', (req, res) => res.send('Server is running happy coding!'));
 
 // Handle 404 - Route Not Found
