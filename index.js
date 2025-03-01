@@ -60,6 +60,14 @@ sequelize.sync({alter: false})
 app.use(routes);
 app.get('/', (req, res) => res.send('Server is running happy coding!'));
 
+// Handle 404 - Route Not Found
+app.use((req, res, next) => {
+  const error = new Error(`Route ${req.originalUrl} not found`);
+  error.status = 404;
+  next(error);
+});
+
+
 // Error Handling Middleware (MUST be last)
 app.use(errorHandler);
 
