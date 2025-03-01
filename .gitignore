@@ -23,4 +23,5 @@ coverage/
 .vscode/
 .idea/
 .next/
-public/uploads/  # If you store user uploads, consider excluding
+uploads/  # If you store user uploads, consider excluding
+*.vite

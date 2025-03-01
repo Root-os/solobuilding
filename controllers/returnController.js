@@ -1,10 +1,16 @@
-const Return = require('../models/return');
-const Vendor = require('../models/Vendor');
-const Item = require('../models/item');
+const Return = require("../models/return");
+const Vendor = require("../models/Vendor");
+const Item = require("../models/item");
+const { returnValidationSchema } = require("../helpers/schema");
+const { paramsSchema } = require("../helpers/schema");
 
 // Create Return
 exports.createReturn = async (req, res) => {
   try {
+    const { error } = returnValidationSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
     const { vendorId, itemId, quantity, reason } = req.body;
 
     // Fetch the item to check its current amount
@@ -17,7 +23,7 @@ exports.createReturn = async (req, res) => {
     // Validate the return quantity
     if (quantity > item.itemAmount) {
       return res.status(400).json({
-        message: `Return quantity (${quantity}) exceeds available item amount (${item.itemAmount}). Please adjust the quantity.`
+        message: `Return quantity (${quantity}) exceeds available item amount (${item.itemAmount}). Please adjust the quantity.`,
       });
     }
 
@@ -26,7 +32,7 @@ exports.createReturn = async (req, res) => {
       vendorId,
       itemId,
       quantity,
-      reason
+      reason,
     });
 
     // Update the item amount in the Item table
@@ -43,7 +49,7 @@ exports.createReturn = async (req, res) => {
 exports.getAllReturns = async (req, res) => {
   try {
     const returns = await Return.findAll({
-      include: [Vendor, Item]
+      include: [Vendor, Item],
     });
     res.status(200).json(returns);
   } catch (error) {
@@ -54,8 +60,12 @@ exports.getAllReturns = async (req, res) => {
 // Get Return by ID
 exports.getReturnById = async (req, res) => {
   try {
+    const { error } = paramsSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
     const returnedItem = await Return.findByPk(req.params.id, {
-      include: [Vendor, Item]
+      include: [Vendor, Item],
     });
 
     if (!returnedItem) {
@@ -71,8 +81,15 @@ exports.getReturnById = async (req, res) => {
 // Update Return
 exports.updateReturn = async (req, res) => {
   try {
+    const { error } = returnValidationSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
     const { vendorId, itemId, quantity, reason } = req.body;
-
+    const { errorId } = paramsSchema.validate(req.params);
+    if (errorId) {
+      return res.status(400).json({ message: errorId.details[0].message });
+    }
     const returnedItem = await Return.findByPk(req.params.id);
 
     if (!returnedItem) {
@@ -89,7 +106,7 @@ exports.updateReturn = async (req, res) => {
     // Validate the return quantity
     if (quantity > item.itemAmount) {
       return res.status(400).json({
-        message: `Return quantity (${quantity}) exceeds available item amount (${item.itemAmount}). Please adjust the quantity.`
+        message: `Return quantity (${quantity}) exceeds available item amount (${item.itemAmount}). Please adjust the quantity.`,
       });
     }
 
@@ -113,6 +130,10 @@ exports.updateReturn = async (req, res) => {
 // Delete Return
 exports.deleteReturn = async (req, res) => {
   try {
+    const { error } = paramsSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
     const returnedItem = await Return.findByPk(req.params.id);
 
     if (!returnedItem) {
