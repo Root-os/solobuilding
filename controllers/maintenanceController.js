@@ -144,10 +144,10 @@ exports.deleteMaintenance = async (req, res) => {
 exports.getMaintenanceReport = async (req, res) => {
   try {
 
-    const { error } = maintenanceValidationSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ message: error.error.details[0].message });
-    }
+    // const { error } = maintenanceValidationSchema.validate(req.body);
+    // if (error) {
+    //   return res.status(400).json({ message: error.error.details[0].message });
+    // }
     const { startDate, itemId, unitId } = req.body;
 
     const report = await Maintenance.findAll({

@@ -208,13 +208,13 @@ exports.createItemAssignment = async (req, res) => {
 exports.generateReport = async (req, res) => {
     try {
 
-      const { error } = itemAssignmentSchema.validate(req.body);
-      if (error) {
-        return res.status(400).json({
-          message: "Validation error",
-          error: error.details[0].message,
-        });
-      }
+      // const { error } = itemAssignmentSchema.validate(req.body);
+      // if (error) {
+      //   return res.status(400).json({
+      //     message: "Validation error",
+      //     error: error.details[0].message,
+      //   });
+      // }
       
       const { itemId, assignDate, assignType } = req.body;
   
