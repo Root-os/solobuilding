@@ -329,10 +329,11 @@ const withdrawalRequestSchema = Joi.object({
 
 const salaryPaymentSchema = Joi.object({
   employeeId: Joi.number().integer().min(0).required(),
-  amount: Joi.number().min(0).required(),
+  amount: Joi.number().min(0).optional(),
   paymentMethod: Joi.string().optional(),
   status: Joi.string().valid("Paid", "Pending", "Failed").optional(),
   paymentDate: Joi.date().optional(),
+  allowance:Joi.number().min(0).optional(),
 });
 const refundStatusSchema= Joi.object({
   depositRefundStatus: Joi.string().valid("not_processed", "partial", "full").required(),

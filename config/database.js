@@ -7,5 +7,6 @@ const sequelize = new Sequelize(DB_CONFIG.database, DB_CONFIG.user, DB_CONFIG.pa
   dialect: DB_CONFIG.dialect,
   logging: false, // Disable logging; default: console.log
 });
-
+console.log('DB User:', DB_CONFIG.user); // Should print 'root'
+console.log('DB Password:', DB_CONFIG.password); 
 module.exports = sequelize;

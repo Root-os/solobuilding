@@ -1,5 +1,5 @@
 const { Op } = require("sequelize");
-const SalaryPayment = require("../models/SalaryPayment");
+const SalaryPayment = require("../models/salaryPayment");
 const User = require("../models/user");
 const { salaryPaymentSchema } = require("../helpers/schema");
 const EmployeeDetails = require("../models/employeeDetail");
@@ -7,103 +7,127 @@ const sequelize = require("../config/database");
 
 // 💵 Pay Salary
 exports.paySalary = async (req, res) => {
-    try {
-        const { error } = salaryPaymentSchema.validate(req.body);
-        if (error) {
-            return res.status(400).json({ message: error.details[0].message });
-        }
+  try {
+      const { error } = salaryPaymentSchema.validate(req.body);
+      if (error) {
+          return res.status(400).json({ message: error.details[0].message });
+      }
 
-        const { employeeId, paymentMethod, paymentDate, status } = req.body;
+      const { employeeId, paymentMethod, paymentDate, status, allowance } = req.body;
 
-        if (!employeeId || !paymentMethod) {
-            return res.status(400).json({ message: "Employee ID and payment method are required" });
-        }
+      // Validate required fields
+      if (!employeeId || !paymentMethod) {
+          return res.status(400).json({ message: "Employee ID and payment method are required" });
+      }
 
-        // Ensure Employee Exists
-        const user = await User.findOne({ where: { id: employeeId, role: "employee" } });
-        if (!user) {
-            return res.status(404).json({ message: "Employee not found" });
-        }
+      // Ensure Employee Exists
+      const user = await User.findOne({ where: { id: employeeId, role: "employee" } });
+      if (!user) {
+          return res.status(404).json({ message: "Employee not found" });
+      }
 
-        // Fetch Employee Salary
-        const employeeDetails = await EmployeeDetails.findOne({ where: { userId: employeeId } });
-        if (!employeeDetails || employeeDetails.salary == null) {
-            return res.status(404).json({ message: "Employee salary details not found" });
-        }
+      // Fetch Employee Salary
+      const employeeDetails = await EmployeeDetails.findOne({ where: { userId: employeeId } });
+      if (!employeeDetails || employeeDetails.salary == null) {
+          return res.status(404).json({ message: "Employee salary details not found" });
+      }
 
-        // Create Salary Payment Record
-        const salaryPayment = await SalaryPayment.create({
-            employeeId,
-            amount: employeeDetails.salary, // Use salary from EmployeeDetails
-            paymentMethod,
-            paymentDate: paymentDate || new Date(),
-            status: status || "pending",
-        });
+      // Ensure allowance is a valid number (if provided)
+      const validAllowance = allowance && !isNaN(allowance) ? parseFloat(allowance) : 0;
 
-        res.status(201).json({ message: "Salary payment recorded successfully", data: salaryPayment });
-    } catch (error) {
-        console.error("Error processing salary payment:", error);
-        res.status(500).json({ message: "Server error", error: error.message });
-    }
+      // Calculate pension, tax, and net salary using the salary calculation method
+      const { pensionContribution, incomeTax, netSalary } = SalaryPayment.calculateDeductions(employeeDetails.salary, validAllowance);
+
+      // Create Salary Payment Record
+      const salaryPayment = await SalaryPayment.create({
+          employeeId,
+          amount: employeeDetails.salary,  // Gross salary from EmployeeDetails
+          paymentMethod,
+          paymentDate: paymentDate || new Date(),
+          status: status|| "pending", 
+          pensionContribution,          // Calculated pension contribution
+          incomeTax,                    // Calculated income tax
+          netSalary,                   
+          allowance: validAllowance, 
+      });
+
+      res.status(201).json({ message: "Salary payment recorded successfully", data: salaryPayment });
+  } catch (error) {
+      console.error("Error processing salary payment:", error);
+      res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
 
 
 
 // ✅ Mass Salary Payment (Admin Only)
 exports.massPaySalaries = async (req, res) => {
-    try {
-        const { paymentMethod, paymentDate, status } = req.body;
+  try {
+      const { paymentMethod, paymentDate, status, allowance } = req.body;
 
-        if (!paymentMethod) {
-            return res.status(400).json({ message: "Payment method is required" });
-        }
+      if (!paymentMethod) {
+          return res.status(400).json({ message: "Payment method is required" });
+      }
 
-        // Fetch all employees with role 'employee' and their salary details
-        const employees = await User.findAll({
-            where: { role: "employee" },
-            include: [{ model: EmployeeDetails, attributes: ["salary"],required: true }],
-        });
+      // Fetch all employees with role 'employee' and their salary details
+      const employees = await User.findAll({
+          where: { role: "employee" },
+          include: [{ model: EmployeeDetails, attributes: ["salary"], required: true }],
+      });
 
-        if (employees.length === 0) {
-            return res.status(404).json({ message: "No employees found for salary payment" });
-        }
+      if (employees.length === 0) {
+          return res.status(404).json({ message: "No employees found for salary payment" });
+      }
 
-        // Prepare salary payment records
-        const salaryPayments = [];
-        const skippedPayments = [];
+      // Prepare salary payment records
+      const salaryPayments = [];
+      const skippedPayments = [];
 
-        for (const employee of employees) {
-            if (!employee.EmployeeDetail || employee.EmployeeDetail.salary == null) {
-                skippedPayments.push({
-                    employeeId: employee.id,
-                    reason: "Salary details missing",
-                });
-                continue;
-            }
+      // Loop through each employee to calculate their salary details
+      for (const employee of employees) {
+          if (!employee.EmployeeDetail || employee.EmployeeDetail.salary == null) {
+              skippedPayments.push({
+                  employeeId: employee.id,
+                  reason: "Salary details missing",
+              });
+              continue;
+          }
 
-            salaryPayments.push({
-                employeeId: employee.id,
-                amount: employee.EmployeeDetail.salary,
-                paymentMethod,
-                paymentDate: paymentDate || new Date(),
-                status: status || "pending",
-            });
-        }
+          // Ensure allowance is a valid number (if provided)
+          const validAllowance = allowance && !isNaN(allowance) ? parseFloat(allowance) : 0;
+          // Calculate pension, income tax, and net salary using the salary calculation method
+          const { pensionContribution, incomeTax, netSalary } = SalaryPayment.calculateDeductions(employee.EmployeeDetail.salary, validAllowance);
 
-        if (salaryPayments.length > 0) {
-            await SalaryPayment.bulkCreate(salaryPayments);
-        }
+          // Add the calculated details to the salary payment record
+          salaryPayments.push({
+              employeeId: employee.id,
+              amount: employee.EmployeeDetail.salary,  // Gross salary from EmployeeDetails
+              paymentMethod,
+              paymentDate: paymentDate || new Date(),
+              status: status || "pending",  // Default status to "pending"
+              pensionContribution,          // Calculated pension contribution
+              incomeTax,                    // Calculated income tax
+              netSalary,                    // Calculated net salary after all deductions and allowance
+              allowance: validAllowance,    // Transport allowance or bonuses
+          });
+      }
 
-        res.status(201).json({
-            message: "Mass salary payments processed",
-            successfulPayments: salaryPayments.length,
-            skippedPayments,
-        });
-    } catch (error) {
-        console.error("Error processing mass salary payments:", error);
-        res.status(500).json({ message: "Server error", error: error.message });
-    }
+      // Bulk create salary payments
+      if (salaryPayments.length > 0) {
+          await SalaryPayment.bulkCreate(salaryPayments);
+      }
+
+      res.status(201).json({
+          message: "Mass salary payments processed",
+          successfulPayments: salaryPayments.length,
+          skippedPayments,
+      });
+  } catch (error) {
+      console.error("Error processing mass salary payments:", error);
+      res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
+
 
 // 👨‍💼 Employee Views Salary Payment History
 exports.getEmployeeSalaryHistory = async (req, res) => {
@@ -141,8 +165,8 @@ exports.updateSalaryPayment = async (req, res) => {
       return res.status(404).json({ message: "Salary payment record not found" });
     }
 
-    salaryPayment.paymentMethod = paymentMethod?? salaryPayment.paymentMethod;
-    salaryPayment.status = status?? salaryPayment.status;
+    salaryPayment.paymentMethod = paymentMethod|| salaryPayment.paymentMethod;
+    salaryPayment.status = status||salaryPayment.status;
 
     await salaryPayment.save();
 

@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/user");
 const { sendEmail } = require("../middleware/sendEmail");
+const EmployeeDetail =require('../models/employeeDetail')
 /**
  * Helper function to generate JWT token
  */
@@ -50,6 +51,65 @@ if (phone&&phone.length < 10) {
     res.status(500).json({ success: false, message: "Registration failed", error: error.message });
   }
 };
+
+
+exports.registerUserEmployee = async (req, res) => {
+  try {
+    const { fname, lname, email, password, phone, salary, position, hireDate, shift, department, employmentType, emergencyContact, address, bankAccount } = req.body;
+
+    // Check if the required fields are provided
+    if (!fname || !lname || !email || !password || !salary || !position || !hireDate || !department) {
+      return res.status(400).json({ success: false, message: "All fields are required: fname, lname, email, password, salary, position, hireDate, department" });
+    }
+
+    // Check if the user already exists
+    let user = await User.findOne({ where: { email } });
+    if (user) {
+      return res.status(400).json({ success: false, message: "User with this email already exists." });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create the user
+    user = await User.create({
+      fname,
+      lname,
+      email,
+      password: hashedPassword,
+      role: 'employee',
+      phone,
+    });
+
+    // Create the employee details after the user is created
+    if (user) {
+      await EmployeeDetail.create({
+        userId: user.id,
+        salary,
+        position,
+        hireDate,
+        shift: shift || 'flexible',  // default value if shift is not provided
+        department,
+        employeementType: employmentType || 'full-time',  // default value if employmentType is not provided
+        emergencyContact,
+        address,
+        bankAccount,
+      });
+    }
+
+    // Generate a token for the user
+    const token = generateToken(user);
+
+    // Set the token in the cookie
+    res.cookie("authToken", token, { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
+
+    // Return the success response
+    res.status(201).json({ success: true, message: "User registered successfully", token });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Registration failed", error: error.message });
+  }
+};
+
 
 exports.updateUser = async (req, res) => {
   try {
@@ -107,6 +167,15 @@ exports.login = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({ attributes: { exclude: ["password"] } });
+    res.status(200).json({ success: true, users });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to fetch users", error: error.message });
+  }
+};
+
+exports.getAllEmployeeUsers = async (req, res) => {
+  try {
+    const users = await User.findAll({where: { role: 'employee' }, attributes: { exclude: ["password"] } });
     res.status(200).json({ success: true, users });
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to fetch users", error: error.message });
