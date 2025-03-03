@@ -344,6 +344,78 @@ const stockOutSchema = Joi.object({
     reason: Joi.string().min(10).max(500).required(),
     requestedQuantity: Joi.number().min(0).required(),
 });
+const itemAssignmentSchema = Joi.object({
+  assignType: Joi.string().valid("Unit", "User").required(),
+  assignDate: Joi.date().required(),
+  amount: Joi.number().precision(2).min(0).required(),
+  description: Joi.string().optional(),
+  itemId: Joi.number().integer().min(1).required(), // itemId must exist and be a positive integer
+  assignedId: Joi.number().integer().min(1).required(), // assignedId must exist and be a positive integer
+}).xor("unitId", "userId");
+
+// Define the Joi schema for Maintenance validation
+const maintenanceValidationSchema = Joi.object({
+  date: Joi.date().required(),
+  description: Joi.string().max(255).optional().allow(null),
+  cost: Joi.number().positive().precision(2).required(),
+  itemId: Joi.number().integer().required(),
+  unitId: Joi.number().integer().required(),
+});
+// Define the Joi schema for Purchase validation
+const purchaseValidationSchema = Joi.object({
+  vendorId: Joi.number().integer().required(),
+  amount: Joi.number().positive().precision(2).required(),
+  date: Joi.date().required(),
+  price: Joi.number().positive().precision(2).required(),
+  totalPrice: Joi.number().positive().precision(2).required(),
+  description: Joi.string().optional().allow(null),
+  expirationDate: Joi.date().optional().allow(null),
+  itemId: Joi.number().integer().required(),
+  ItemCategoryId: Joi.number().integer().required(),
+});
+// Define the Joi schema for PurchaseRequest validation
+const purchaseRequestValidationSchema = Joi.object({
+  itemId: Joi.number().integer().required(),
+  requestedBy: Joi.number().integer().required(),
+  status: Joi.string().valid("pending", "approved", "rejected").required(),
+  amount: Joi.number().positive().precision(2).required(),
+  requestDate: Joi.date().required(),
+  reason: Joi.string().optional().allow(null),
+  approvedBy: Joi.number().integer().optional().allow(null),
+  vendorName: Joi.string().optional().allow(null),
+  vendorPhone: Joi.string().optional().allow(null),
+});
+// Define the Joi schema for Payment validation
+const paymentValidationSchema = Joi.object({
+  vendorId: Joi.number().integer().required(),
+  price: Joi.number().positive().required(),
+  paymentMethod: Joi.string().valid('cash', 'credit', 'bank transfer', 'other').required(),
+  paymentDate: Joi.date().optional(),
+  status: Joi.string().valid('complete', 'partial', 'pending').required(),
+  leftMoney: Joi.number().positive().required(),
+});
+const serviceTypeValidationSchema = Joi.object({
+  name: Joi.string().max(255).required(),
+  description: Joi.string().optional().allow(''),
+});
+// Define the Joi schema for Return validation
+const returnValidationSchema = Joi.object({
+  vendorId: Joi.number().integer().required(),
+  itemId: Joi.number().integer().required(),
+  quantity: Joi.number().integer().positive().required(),
+  reason: Joi.string().optional().allow(''),
+  returnDate: Joi.date().optional(),
+});
+// Define the Joi schema for Vendor validation
+const vendorValidationSchema = Joi.object({
+  fname: Joi.string().min(1).required(),
+  lname: Joi.string().min(1).required(),
+  phone: Joi.string().min(1).required(),
+  email: Joi.string().email().optional(),
+  address: Joi.string().optional(),
+  contractTerms: Joi.string().optional(),
+  serviceTypeId: Joi.number().integer().required(),
+});
 const inventorySchema = Joi.object({
   tenantId: Joi.number().integer().required(),
   type: Joi.string().valid("move-in", "move-out").required(),
@@ -417,6 +489,14 @@ module.exports = {
     itemTypeSchema,
     itemSchema,
     parkingSchema,
-    paymentRequestSchema
+    paymentRequestSchema,
+    itemAssignmentSchema,
+    maintenanceValidationSchema,
+    purchaseValidationSchema,
+    purchaseRequestValidationSchema,
+    paymentValidationSchema,
+    serviceTypeValidationSchema,
+    returnValidationSchema,
+    vendorValidationSchema
   };
   

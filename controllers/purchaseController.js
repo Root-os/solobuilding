@@ -1,11 +1,26 @@
-const Purchase=require('../models/Purchase');
-const Item=require('../models/item');
-const ItemType=require('../models/ItemCategory');
-const { Sequelize } = require('sequelize');
+const Purchase = require("../models/Purchase");
+const Item = require("../models/item");
+const ItemType = require("../models/ItemCategory");
+const { Sequelize } = require("sequelize");
+const { purchaseValidationSchema } = require("../helpers/schema");
+const { paramsSchema } = require("../helpers/schema");
 
 exports.createPurchase = async (req, res) => {
   try {
-    const { vendorId, amount, price, description, expirationDate, itemId, itemTypeId } = req.body;
+    const { error } = purchaseValidationSchema.validate(req.body);
+    if (error)
+      return res
+        .status(400)
+        .json({ message: "Validation error", error: error.details[0].message });
+    const {
+      vendorId,
+      amount,
+      price,
+      description,
+      expirationDate,
+      itemId,
+      itemTypeId,
+    } = req.body;
 
     const totalPrice = amount * price;
 
@@ -13,7 +28,7 @@ exports.createPurchase = async (req, res) => {
       vendorId,
       amount,
       price,
-      totalPrice,  
+      totalPrice,
       description,
       expirationDate,
       itemId,
@@ -27,11 +42,19 @@ exports.createPurchase = async (req, res) => {
 };
 
 // Get all purchases (Only display totalPrice)
- exports.getAllPurchases = async (req, res) => {
+exports.getAllPurchases = async (req, res) => {
   try {
     const purchases = await Purchase.findAll({
-      include: [Item, ItemType], 
-      attributes: ['id','vendorId',  'totalPrice', 'description', 'expirationDate', 'itemId', 'ItemCategoryId'], 
+      include: [Item, ItemType],
+      attributes: [
+        "id",
+        "vendorId",
+        "totalPrice",
+        "description",
+        "expirationDate",
+        "itemId",
+        "ItemCategoryId",
+      ],
     });
     res.status(200).json(purchases);
   } catch (error) {
@@ -40,11 +63,25 @@ exports.createPurchase = async (req, res) => {
 };
 
 // Get a purchase by ID (Only display totalPrice)
- exports.getPurchaseById = async (req, res) => {
+exports.getPurchaseById = async (req, res) => {
   try {
+    const { error } = paramsSchema.validate(req.params);
+    if (error) {
+      return res
+        .status(400)
+        .json({ message: "Validation error", error: error.details[0].message });
+    }
     const purchase = await Purchase.findByPk(req.params.id, {
       include: [Item, ItemType],
-      attributes: ['id', 'vendorId', 'totalPrice', 'description', 'expirationDate', 'itemId', 'ItemCategoryId'], 
+      attributes: [
+        "id",
+        "vendorId",
+        "totalPrice",
+        "description",
+        "expirationDate",
+        "itemId",
+        "ItemCategoryId",
+      ],
     });
 
     if (!purchase) {
@@ -58,10 +95,32 @@ exports.createPurchase = async (req, res) => {
 };
 
 // Update a purchase by ID (Recalculate totalPrice if amount or price changes)
- exports.updatePurchase = async (req, res) => {
+exports.updatePurchase = async (req, res) => {
   try {
-    const { vendourName, vendourPhone, amount, price, description, expirationDate, itemId, ItemCategoryId } = req.body;
-
+    const { error } = purchaseValidationSchema.validate(req.body);
+    if (error) {
+      return res
+        .status(400)
+        .json({ message: "Validation error", error: error.details[0].message });
+    }
+    const {
+      vendorId,
+      amount,
+      price,
+      description,
+      expirationDate,
+      itemId,
+      ItemCategoryId,
+    } = req.body;
+    const { error: paramsError } = paramsSchema.validate(req.params);
+    if (paramsError) {
+      return res
+        .status(400)
+        .json({
+          message: "Validation error",
+          error: paramsError.details[0].message,
+        });
+    }
     const purchase = await Purchase.findByPk(req.params.id);
 
     if (!purchase) {
@@ -71,7 +130,6 @@ exports.createPurchase = async (req, res) => {
     // Recalculate totalPrice when updating the purchase
     const totalPrice = amount * price;
 
-   
     purchase.vendorId = vendorId || purchase.vendorId;
     purchase.amount = amount || purchase.amount;
     purchase.price = price || purchase.price;
@@ -90,8 +148,14 @@ exports.createPurchase = async (req, res) => {
 };
 
 // Delete a purchase by ID
- exports.deletePurchase = async (req, res) => {
+exports.deletePurchase = async (req, res) => {
   try {
+    const { error } = paramsSchema.validate(req.params);
+    if (error) {
+      return res
+        .status(400)
+        .json({ message: "Validation error", error: error.details[0].message });
+    }
     const purchase = await Purchase.findByPk(req.params.id);
 
     if (!purchase) {
@@ -107,36 +171,38 @@ exports.createPurchase = async (req, res) => {
 
 // Generate report based on vendourName, startDate, endDate, and itemTypeId
 exports.generatePurchaseReport = async (req, res) => {
-    const { vendorId, startDate, endDate, ItemCategoryId } = req.body;
-  
-    try {
-      const whereConditions = {};
-  
-      if (vendorId) {
-        whereConditions.vendorId = { [Sequelize.Op.like]: `%${vendorId}%` };
-      }
-  
-      if (startDate && endDate) {
-        whereConditions.date = {
-          [Sequelize.Op.between]: [new Date(startDate), new Date(endDate)],
-        };
-      }
-  
-      if (ItemCategoryId) {
-        whereConditions.ItemCategoryId = ItemCategoryId;
-      }
-  
-      const report = await Purchase.findAll({
-        where: whereConditions,
-        include: [Item, ItemType], 
-        order: [["date", "ASC"]], 
-      });
-  
-      res.status(200).json(report);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+  const error = purchaseValidationSchema.validate(req.body);
+  if (error)
+    return res
+      .status(400)
+      .json({ message: "Validation error", error: error.details[0].message });
+  const { vendorId, startDate, endDate, ItemCategoryId } = req.body;
+
+  try {
+    const whereConditions = {};
+
+    if (vendorId) {
+      whereConditions.vendorId = { [Sequelize.Op.like]: `%${vendorId}%` };
     }
-  };
-  
 
+    if (startDate && endDate) {
+      whereConditions.date = {
+        [Sequelize.Op.between]: [new Date(startDate), new Date(endDate)],
+      };
+    }
 
+    if (ItemCategoryId) {
+      whereConditions.ItemCategoryId = ItemCategoryId;
+    }
+
+    const report = await Purchase.findAll({
+      where: whereConditions,
+      include: [Item, ItemType],
+      order: [["date", "ASC"]],
+    });
+
+    res.status(200).json(report);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

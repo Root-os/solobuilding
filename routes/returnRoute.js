@@ -8,6 +8,10 @@ router.get("/", returnController.getAllReturns); // Get all returns
 router.get("/:id", returnController.getReturnById); // Get return by ID
 router.put("/:id", returnController.updateReturn); // Update return
 router.delete("/:id", returnController.deleteReturn); // Delete return
+router.post("/report", returnController.generateReturnReport); // Get return report
+router.get("/item/:itemId", returnController.getReturnsByItemId); // Get returns by Item ID
+router.get("/vendor/:vendorId", returnController.getReturnsByVendorId);
+
 
 
 
