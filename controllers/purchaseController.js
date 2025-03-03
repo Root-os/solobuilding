@@ -1,6 +1,6 @@
 const Purchase = require("../models/Purchase");
 const Item = require("../models/item");
-const ItemType = require("../models/ItemCategory");
+const ItemType = require("../models/itemCategory");
 const { Sequelize } = require("sequelize");
 const { purchaseValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
