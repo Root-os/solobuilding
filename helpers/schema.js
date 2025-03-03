@@ -351,7 +351,7 @@ const itemAssignmentSchema = Joi.object({
   description: Joi.string().optional(),
   itemId: Joi.number().integer().min(1).required(), // itemId must exist and be a positive integer
   assignedId: Joi.number().integer().min(1).required(), // assignedId must exist and be a positive integer
-}).xor("unitId", "userId");
+})
 
 // Define the Joi schema for Maintenance validation
 const maintenanceValidationSchema = Joi.object({
