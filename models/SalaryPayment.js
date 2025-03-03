@@ -21,9 +21,15 @@ const SalaryPayment = sequelize.define("SalaryPayment", {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
   },//gross salary
-  paymentDate: {
+  paymentFromDate: {
     type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+    allowNull: false,
+    defaultValue:DataTypes.NOW,
+  },
+  paymentToDate: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue:DataTypes.NOW,
   },
   paymentMethod: {
     type: DataTypes.STRING,
@@ -56,6 +62,7 @@ const SalaryPayment = sequelize.define("SalaryPayment", {
   charset: 'utf8',
   collate: 'utf8_general_ci',
 });
+
 
 // Method to calculate deductions and net salary based on the Ethiopian guidelines
 SalaryPayment.calculateDeductions = function(grossSalary, allowance) {
