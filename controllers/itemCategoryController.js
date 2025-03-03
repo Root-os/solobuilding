@@ -1,5 +1,5 @@
 // controllers/ItemCategoryController.js
-const ItemCategory  = require('../models/ItemCategory');
+const ItemCategory  = require('../models/itemCategory');
 
 exports.createItemCategory = async (req, res) => {
   try {

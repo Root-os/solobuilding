@@ -1,5 +1,5 @@
 const Payment = require("../models/payment");
-const Vendor = require("../models/Vendor");
+const Vendor = require("../models/vendor");
 const Purchase = require("../models/Purchase");
 const { paymentValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");

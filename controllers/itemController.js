@@ -1,5 +1,5 @@
 const Item = require("../models/item");
-const ItemType = require("../models/ItemCategory");
+const ItemType = require("../models/itemCategory");
 const { Op } = require("sequelize");
 
 

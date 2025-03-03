@@ -1,4 +1,4 @@
-const Vendor = require("../models/Vendor");
+const Vendor = require("../models/vendor");
 const ServiceType = require("../models/serviceType");
 const { vendorValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
