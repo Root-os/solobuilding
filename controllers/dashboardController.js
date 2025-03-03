@@ -17,7 +17,7 @@ const Salary= require("../models/salaryPayment");
 const Stockout= require("../models/stockout");
 const TenantPayment= require("../models/tenantPayments");
 const BillPayment= require("../models/billPayment");
-const { Op } = require('sequelize');
+const { Op,Sequelize } = require('sequelize');
 
 
 
@@ -78,7 +78,7 @@ exports.getDashboardStats = async (req, res) => {
       totalItems,
       totalPurchasedItems,
       totalExistedItems,
-      totalLowNumberOfItems,
+      alertNumberOfItems,
 
       // Withdrawal Requests
       totalWithdrawals,
@@ -180,7 +180,7 @@ exports.getDashboardStats = async (req, res) => {
       Inventory.count({ where: { itemType: "Purchase" } }),
       Inventory.count({ where: { itemType: "Existing" } }),
       Inventory.count({where:{itemAmount: {
-        [Op.lte]: min_amount  // Op.lte stands for "less than or equal to"
+        [Op.lte]: Sequelize.col('min_amount')  // Op.lte stands for "less than or equal to"
       }}}),
 
       // Withdrawal Requests
@@ -241,7 +241,7 @@ exports.getDashboardStats = async (req, res) => {
       TenantInventories: { totalInventory, moveInInventories, moveOutInventories },
       parking: { totalParking, onParking, readyToOut, completed },
       expenses: { totalExpenses },
-      items: { totalItems, totalPurchasedItems, totalExistedItems,totalLowNumberOfItems },
+      items: { totalItems, totalPurchasedItems, totalExistedItems,alertNumberOfItems },
       TenantWithdrawalRequests: { totalWithdrawals, pendingWithdrawals, approvedWithdrawals, rejectedWithdrawals, processedWithdrawals },
       emails: { totalEmails, sentEmails, readEmails },
       employees: { totalEmployees, adminEmployees },
