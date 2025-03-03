@@ -148,12 +148,7 @@ exports.deletePayment = async (req, res) => {
 // Get Payments Report by Vendor and Status (Using req.body)
 exports.getPaymentsReport = async (req, res) => {
   try {
-    const { error } = paymentValidationSchema.validate(req.body);
-    if (error) {
-      return res
-        .status(400)
-        .json({ message: "Validation Error", error: error.details[0].message });
-    }
+   
     const { vendorId, status } = req.body; // Get parameters from the request body
 
     // Define query conditions
