@@ -332,7 +332,8 @@ const salaryPaymentSchema = Joi.object({
   amount: Joi.number().min(0).optional(),
   paymentMethod: Joi.string().optional(),
   status: Joi.string().valid("Paid", "Pending", "Failed").optional(),
-  paymentDate: Joi.date().optional(),
+  paymentFromDate: Joi.date().required(),
+  paymentToDate: Joi.date().required(),
   allowance:Joi.number().min(0).optional(),
 });
 const refundStatusSchema= Joi.object({
@@ -393,7 +394,6 @@ const paymentValidationSchema = Joi.object({
   paymentMethod: Joi.string().valid('cash', 'credit', 'bank transfer', 'other').required(),
   paymentDate: Joi.date().optional(),
   status: Joi.string().valid('complete', 'partial', 'pending').required(),
-  leftMoney: Joi.number().positive().required(),
 });
 const serviceTypeValidationSchema = Joi.object({
   name: Joi.string().max(255).required(),
