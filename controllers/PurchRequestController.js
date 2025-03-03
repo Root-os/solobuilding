@@ -175,11 +175,11 @@ exports.deletePurchaseRequest = async (req, res) => {
 
 exports.generatePurchaseRequestReport = async (req, res) => {
   const { error } = purchaseRequestValidationSchema.validate(req.body);
-  if (error) {
-    return res
-      .status(400)
-      .json({ message: "Validation Error", error: error.details[0].message });
-  }
+  // if (error) {
+  //   return res
+  //     .status(400)
+  //     .json({ message: "Validation Error", error: error.details[0].message });
+  // }
   const { vendorName, startDate, endDate, itemId } = req.body;
 
   try {

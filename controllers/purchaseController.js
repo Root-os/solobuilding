@@ -172,10 +172,10 @@ exports.deletePurchase = async (req, res) => {
 // Generate report based on vendourName, startDate, endDate, and itemTypeId
 exports.generatePurchaseReport = async (req, res) => {
   const error = purchaseValidationSchema.validate(req.body);
-  if (error)
-    return res
-      .status(400)
-      .json({ message: "Validation error", error: error.details[0].message });
+  // if (error)
+  //   return res
+  //     .status(400)
+  //     .json({ message: "Validation error", error: error.details[0].message });
   const { vendorId, startDate, endDate, ItemCategoryId } = req.body;
 
   try {
