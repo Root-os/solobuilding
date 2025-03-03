@@ -1,13 +1,19 @@
-const ServiceType = require('../models/serviceType');
+const ServiceType = require("../models/serviceType");
+const { serviceTypeValidationSchema } = require("../helpers/schema");
+const { paramsSchema } = require("../helpers/schema");
 
 // Create ServiceType
 exports.createServiceType = async (req, res) => {
   try {
+    const { error } = serviceTypeValidationSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
     const { name, description } = req.body;
 
     const serviceType = await ServiceType.create({
       name,
-      description
+      description,
     });
 
     res.status(201).json(serviceType);
@@ -29,6 +35,10 @@ exports.getAllServiceTypes = async (req, res) => {
 // Get ServiceType by ID
 exports.getServiceTypeById = async (req, res) => {
   try {
+    const { error } = paramsSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
     const serviceType = await ServiceType.findByPk(req.params.id);
 
     if (!serviceType) {
@@ -44,7 +54,17 @@ exports.getServiceTypeById = async (req, res) => {
 // Update ServiceType
 exports.updateServiceType = async (req, res) => {
   try {
+    const { error } = serviceTypeValidationSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
+
     const { name, description } = req.body;
+
+    const { errorId } = paramsSchema.validate(req.params);
+    if (errorId) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
 
     const serviceType = await ServiceType.findByPk(req.params.id);
 
@@ -66,6 +86,10 @@ exports.updateServiceType = async (req, res) => {
 // Delete ServiceType
 exports.deleteServiceType = async (req, res) => {
   try {
+    const { error } = paramsSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
     const serviceType = await ServiceType.findByPk(req.params.id);
 
     if (!serviceType) {
