@@ -1,12 +1,5 @@
 const PDFDocument = require("pdfkit")
 
-/**
- * Generate a PDF with dynamic tabular data
- * @param {Array} headers - Array of column headers for the table.
- * @param {Array} rows - Array of row data (each row is an array of cell values).
- * @param {String} title - The title of the report.
- * @returns {PDFDocument} - A PDFDocument stream.
- */
 function generatePDF(headers, rows, title = "Report") {
   const doc = new PDFDocument()
 

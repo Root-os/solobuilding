@@ -416,7 +416,34 @@ const vendorValidationSchema = Joi.object({
   contractTerms: Joi.string().optional(),
   serviceTypeId: Joi.number().integer().required(),
 });
+const inventorySchema = Joi.object({
+  tenantId: Joi.number().integer().required(),
+  type: Joi.string().valid("move-in", "move-out").required(),
+  items: Joi.array().items(
+    Joi.object({
+      name: Joi.string().required(),
+      quantity: Joi.number().integer().min(1).required(),
+      condition: Joi.string().optional().allow("")
+    })
+  ).min(1).required(),
+  notes: Joi.string().optional().allow("")
+});
+const UpdateinventorySchema = Joi.object({
+  tenantId: Joi.number().integer().optional(),
+  type: Joi.string().valid("move-in", "move-out").optional(),
+  items: Joi.array().items(
+    Joi.object({
+      name: Joi.string().required(),
+      quantity: Joi.number().integer().min(1).required(),
+      condition: Joi.string().optional().allow("")
+    })
+  ).min(1).optional(),
+  notes: Joi.string().optional().allow("")
+});
+
 module.exports = {
+  UpdateinventorySchema,
+  inventorySchema,
   stockOutSchema,
   refundStatusSchema,
   salaryPaymentSchema,

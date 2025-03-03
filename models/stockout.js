@@ -53,6 +53,11 @@ const Stockout = sequelize.define('Stockout', {
         allowNull: false,
         defaultValue: 'pending'
     }
-}, { timestamps: true });
+}, { 
+    tableName: "stockouts",
+    timestamps: false,
+    charset: 'utf8', 
+    collate: 'utf8_general_ci',
+});
 
 module.exports = Stockout;
