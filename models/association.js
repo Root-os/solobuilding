@@ -21,7 +21,16 @@ const {
     Unit, 
     User, 
     WithdrawalRequest,
-    Purchase,purchaseRequest,itemAssignments,Maintenance,Vendor,ServiceType,Return,payment
+    Purchase,
+    purchaseRequest,
+    itemAssignments,
+    Maintenance,
+    Vendor,
+    ServiceType,
+    Return,
+    payment,
+    LetterType,
+    Letter
 } = require('./index');
 
 const defineAssociations = () => {
@@ -159,6 +168,15 @@ const defineAssociations = () => {
    // Purchase to Item
    Purchase.belongsTo(Item, { foreignKey: 'itemId', onDelete: "CASCADE" });
    Item.hasMany(Purchase, { foreignKey: "itemId", onDelete: "CASCADE" });
+
+
+   //letter with lettor type
+    Letter.belongsTo(LetterType, { foreignKey: 'letterTypeId', onDelete: "CASCADE" });
+    LetterType.hasMany(Letter, { foreignKey: 'letterTypeId', onDelete: "CASCADE" });
+
+    //letter with tenant
+    Letter.belongsTo(Tenant, { foreignKey: 'tenantId', onDelete: "CASCADE" });
+    Tenant.hasMany(Letter, { foreignKey: 'tenantId', onDelete: "CASCADE" });
 
     
 };
