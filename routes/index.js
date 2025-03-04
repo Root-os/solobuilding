@@ -43,5 +43,8 @@ router.use("/returns", require("./returnRoute"));
 router.use("/salary-payments", require("./salaryPaymentRoutes"));
 router.use("/stockout", require("./stockoutRoutes"));
 
+//letter 
+router.use('/letter-type', require('./letterTypeRoute'));
+
 
 module.exports = router;
