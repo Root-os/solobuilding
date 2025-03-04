@@ -449,6 +449,13 @@ const letterTypeValidationSchema = Joi.object({
   name: Joi.string().max(255).required(),
   description: Joi.string().optional().allow(''),
 });
+// Define the Joi schema for Letter validation
+const letterValidationSchema = Joi.object({
+  letterTypeId: Joi.number().integer().required(), 
+  tenantId: Joi.number().integer().required(), 
+  Date: Joi.date().required(), 
+  description: Joi.string().required(),   
+});
 
 module.exports = {
   UpdateinventorySchema,
@@ -507,6 +514,7 @@ module.exports = {
     serviceTypeValidationSchema,
     returnValidationSchema,
     vendorValidationSchema,
-    letterTypeValidationSchema
+    letterTypeValidationSchema,
+    letterValidationSchema
   };
   
