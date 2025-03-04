@@ -27,10 +27,7 @@ const Item = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    // itemCategoryId: {
-    //   type: DataTypes.INTEGER,
-    //   allowNull: false,
-    // },
+   
     itemDetails: {
       type: DataTypes.TEXT,
       allowNull: true,

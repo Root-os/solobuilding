@@ -1,26 +1,14 @@
 const Item = require("../models/item");
-const ItemType = require("../models/ItemCategory");
+const ItemCategory = require("../models/itemCategory");
 const { Op } = require("sequelize");
 
-
-
-// Valid item types
-const validItemTypes = ["Purchase", "Existing"];
-
 // Create Item
-
 exports.createItem = async (req, res) => {
   try {
-    const { itemName, expirationDate, itemAmount, itemType, unit, itemDetails,itemCategoryId,min_amount } = req.body;
+    const { itemName, expirationDate, itemAmount, itemType, unit, itemDetails, itemCategoryId, min_amount } = req.body;
 
-    // Validate itemType
-    if (!validItemTypes.includes(itemType)) {
-      return res.status(400).json({ message: "Invalid item type. Valid types are 'Purchase' or 'Existing'" });
-    }
-
-
-
-   
+    // Default itemType to 'Existing' if not provided
+    const itemTypeToUse = itemType || "Existing";
 
     // Create item in the database
     const newItem = await Item.create({
@@ -28,7 +16,7 @@ exports.createItem = async (req, res) => {
       itemCategoryId,
       expirationDate,
       itemAmount,
-      itemType,  
+      itemType: itemTypeToUse,
       unit,
       itemDetails,
       min_amount,
@@ -40,11 +28,14 @@ exports.createItem = async (req, res) => {
   }
 };
 
-
 // Get All Items
 exports.getAllItems = async (req, res) => {
   try {
-    const items = await Item.findAll();
+    const items = await Item.findAll(
+      {
+        include: [ItemCategory]
+      }
+    );
     return res.status(200).json(items);
   } catch (error) {
     return res.status(500).json({ message: "Error fetching items", error: error.message });
@@ -54,7 +45,9 @@ exports.getAllItems = async (req, res) => {
 // Get Item by ID
 exports.getItemById = async (req, res) => {
   try {
-    const item = await Item.findByPk(req.params.id);
+    const item = await Item.findByPk(req.params.id,
+     { include: [ItemCategory] ,}
+    );
 
     if (!item) {
       return res.status(404).json({ message: "Item not found" });
@@ -65,17 +58,21 @@ exports.getItemById = async (req, res) => {
     return res.status(500).json({ message: "Error fetching item", error: error.message });
   }
 };
+
 exports.getItemByCategoryId = async (req, res) => {
   try {
-    const item = await Item.findByPk(req.params.id);
+    const items = await Item.findAll({
+      where: { itemCategoryId: req.params.itemCategoryId },
+      include: [ItemCategory],
+    });
 
-    if (!item) {
-      return res.status(404).json({ message: "Item not found" });
+    if (!items || items.length === 0) {
+      return res.status(404).json({ message: "No items found for this category" });
     }
 
-    return res.status(200).json(item);
+    return res.status(200).json(items);
   } catch (error) {
-    return res.status(500).json({ message: "Error fetching item", error: error.message });
+    return res.status(500).json({ message: "Error fetching items", error: error.message });
   }
 };
 
@@ -90,6 +87,7 @@ exports.getExpiredItems = async (req, res) => {
           [Op.lt]: today, // Less than today's date
         },
       },
+      include: [ItemCategory],
     });
 
     return res.status(200).json(expiredItems);
@@ -101,26 +99,21 @@ exports.getExpiredItems = async (req, res) => {
 // Update Item
 exports.updateItem = async (req, res) => {
   try {
-    const { itemName, expirationDate, itemAmount, itemType, unit, itemCategoryId, itemDetails,min_amount } = req.body;
+    const { itemName, expirationDate, itemAmount, itemType, unit, itemCategoryId, itemDetails, min_amount } = req.body;
 
-    // Validate itemType
-    if (!validItemTypes.includes(itemType)) {
-      return res.status(400).json({ message: "Invalid item type. Valid types are 'Purchase' or 'Existing'" });
-    }
+   
 
     const item = await Item.findByPk(req.params.id);
     if (!item) {
       return res.status(404).json({ message: "Item not found" });
     }
 
-    
-
     // Update the item in the database
     await item.update({
       itemName,
       expirationDate,
       itemAmount,
-      itemType,  
+      itemType,
       unit,
       itemCategoryId,
       itemDetails,
@@ -133,7 +126,6 @@ exports.updateItem = async (req, res) => {
   }
 };
 
-
 // Delete Item
 exports.deleteItem = async (req, res) => {
   try {
@@ -141,14 +133,6 @@ exports.deleteItem = async (req, res) => {
     if (!item) {
       return res.status(404).json({ message: "Item not found" });
     }
-
-    // Check if the item amount is below the min_amount before deletion
-    if (item.itemAmount < item.min_amount) {
-      return res.status(400).json({
-        message: `Item ${item.itemName} has low stock (Amount: ${item.itemAmount}) and cannot be deleted.`
-      });
-    }
-
     await item.destroy();
 
     return res.status(200).json({ message: "Item deleted successfully" });
@@ -156,8 +140,3 @@ exports.deleteItem = async (req, res) => {
     return res.status(500).json({ message: "Error deleting item", error: error.message });
   }
 };
-
-
-
-
-
