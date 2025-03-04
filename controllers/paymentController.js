@@ -3,6 +3,7 @@ const Vendor = require("../models/vendor");
 const Purchase = require("../models/Purchase");
 const { paymentValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
+const Joi = require('joi');
 
 // Create Payment
 exports.createPayment = async (req, res) => {
@@ -13,7 +14,7 @@ exports.createPayment = async (req, res) => {
         .status(400)
         .json({ message: "Validation Error", error: error.details[0].message });
     }
-    const { vendorId, price, paymentMethod, status } = req.body;
+    const { vendorId, price, paymentMethod, status ,paymentDate} = req.body;
 
     // Fetch the total price from the purchase table for the vendor
     const purchase = await Purchase.findOne({ where: { vendorId } });
@@ -32,6 +33,7 @@ exports.createPayment = async (req, res) => {
       paymentMethod,
       status,
       leftMoney,
+      paymentDate,
     });
 
     res.status(201).json(payment);
@@ -84,7 +86,7 @@ exports.updatePayment = async (req, res) => {
         .status(400)
         .json({ message: "Validation Error", error: error.details[0].message });
     }
-    const { vendorId, price, paymentMethod, status } = req.body;
+    const { vendorId, price, paymentMethod, status,paymentDate } = req.body;
     const { errorId } = paramsSchema.validate(req.params);
     if (errorId) {
       return res
@@ -107,7 +109,7 @@ exports.updatePayment = async (req, res) => {
     }
 
     const leftMoney = purchase.totalPrice - price;
-
+    payment.paymentDate = paymentDate;
     payment.vendorId = vendorId;
     payment.price = price;
     payment.paymentMethod = paymentMethod;
@@ -148,14 +150,39 @@ exports.deletePayment = async (req, res) => {
 // Get Payments Report by Vendor and Status (Using req.body)
 exports.getPaymentsReport = async (req, res) => {
   try {
-   
-    const { vendorId, status } = req.body; // Get parameters from the request body
+    // Define validation schema for startDate and endDate
+    const dateSchema = Joi.object({
+      startDate: Joi.date().iso().optional(),
+      endDate: Joi.date().iso().greater(Joi.ref('startDate')).optional()
+    });
+
+    // Validate request body
+    const { error } = dateSchema.validate(req.body);
+    if (error) {
+      return res
+        .status(400)
+        .json({ message: "Validation Error", error: error.details[0].message });
+    }
+
+    const { vendorId, status, startDate, endDate } = req.body;
 
     // Define query conditions
     let whereConditions = {};
 
     if (vendorId) whereConditions.vendorId = vendorId;
     if (status) whereConditions.status = status;
+
+    // Add date filtering to the conditions
+    if (startDate) {
+      whereConditions.paymentDate = { [Op.gte]: new Date(startDate) }; // Greater than or equal to startDate
+    }
+
+    if (endDate) {
+      whereConditions.paymentDate = {
+        ...whereConditions.paymentDate,
+        [Op.lte]: new Date(endDate), // Less than or equal to endDate
+      };
+    }
 
     // Fetch payments based on conditions
     const payments = await Payment.findAll({
