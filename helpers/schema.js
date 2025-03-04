@@ -411,10 +411,13 @@ const returnValidationSchema = Joi.object({
 const vendorValidationSchema = Joi.object({
   fname: Joi.string().min(1).required(),
   lname: Joi.string().min(1).required(),
-  phone: Joi.string().min(1).required(),
+  phone: Joi.string().min(1).required().messages({
+    'string.base': 'Phone must be a string',
+    'string.empty': 'Phone cannot be empty',
+    'any.required': 'Phone is required',
+  }),
   email: Joi.string().email().optional(),
   address: Joi.string().optional(),
-  contractTerms: Joi.string().optional(),
   serviceTypeId: Joi.number().integer().required(),
 });
 const inventorySchema = Joi.object({
@@ -440,6 +443,11 @@ const UpdateinventorySchema = Joi.object({
     })
   ).min(1).optional(),
   notes: Joi.string().optional().allow("")
+});
+//letter Type validation
+const letterTypeValidationSchema = Joi.object({
+  name: Joi.string().max(255).required(),
+  description: Joi.string().optional().allow(''),
 });
 
 module.exports = {
@@ -498,6 +506,7 @@ module.exports = {
     paymentValidationSchema,
     serviceTypeValidationSchema,
     returnValidationSchema,
-    vendorValidationSchema
+    vendorValidationSchema,
+    letterTypeValidationSchema
   };
   

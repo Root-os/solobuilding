@@ -26,8 +26,8 @@ const {
 
 const defineAssociations = () => {
   // Define Relationships
-    Item.belongsTo(ItemCategory, { foreignKey: "ItemCategoryId", onDelete: "CASCADE", onUpdate: "CASCADE" });
-    ItemCategory.hasMany(Item, { foreignKey: "ItemCategoryId", onDelete: "CASCADE", onUpdate: "CASCADE" });
+    Item.belongsTo(ItemCategory, { foreignKey: "itemCategoryId", onDelete: "CASCADE", onUpdate: "CASCADE" });
+    ItemCategory.hasMany(Item, { foreignKey: "itemCategoryId", onDelete: "CASCADE", onUpdate: "CASCADE" });
 
     BillPayment.belongsTo(BillType, { foreignKey: "billTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
     BillType.hasMany(BillPayment, { foreignKey: "billTypeId", onDelete: "CASCADE", onUpdate: "CASCADE" });
