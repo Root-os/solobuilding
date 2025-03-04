@@ -11,7 +11,7 @@ exports.createReturn = async (req, res) => {
     if (error) {
       return res.status(400).json({ message: error.details[0].message });
     }
-    const { vendorId, itemId, quantity, reason } = req.body;
+    const { vendorId, itemId, quantity, reason,returnDate } = req.body;
 
     // Fetch the item to check its current amount
     const item = await Item.findByPk(itemId);
@@ -33,6 +33,7 @@ exports.createReturn = async (req, res) => {
       itemId,
       quantity,
       reason,
+      returnDate,
     });
 
     // Update the item amount in the Item table
