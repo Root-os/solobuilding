@@ -186,7 +186,7 @@ exports.getEmployeeSalaryHistory = async (req, res) => {
 
     const salaryPayments = await SalaryPayment.findAll({
       where: { employeeId },
-      order: [["paymentDate", "DESC"]],
+      order: [["paymentToDate", "DESC"]],
     });
 
     if (!salaryPayments.length) {
@@ -247,7 +247,7 @@ exports.getAllSalaryPayments = async (req, res) => {
   try {
     const salaryPayments = await SalaryPayment.findAll({
       include: [{ model: User, attributes: ["fname", "lname", "email"] }],
-      order: [["paymentDate", "DESC"]],
+      order: [["paymentToDate", "DESC"]],
     });
     res.status(200).json({ message: "Salary payments retrieved", data: salaryPayments });
   } catch (error) {

@@ -24,12 +24,10 @@ const SalaryPayment = sequelize.define("SalaryPayment", {
   paymentFromDate: {
     type: DataTypes.DATE,
     allowNull: false,
-    defaultValue:DataTypes.NOW,
   },
   paymentToDate: {
     type: DataTypes.DATE,
     allowNull: false,
-    defaultValue:DataTypes.NOW,
   },
   paymentMethod: {
     type: DataTypes.STRING,
@@ -64,6 +62,14 @@ const SalaryPayment = sequelize.define("SalaryPayment", {
 });
 
 
+SalaryPayment.belongsTo(User, { 
+  foreignKey: 'employeeId',
+});
+User.hasMany(SalaryPayment, { 
+  foreignKey: 'employeeId',
+  onDelete: 'CASCADE',
+  onUpdate: 'CASCADE',
+});
 // Method to calculate deductions and net salary based on the Ethiopian guidelines
 SalaryPayment.calculateDeductions = function(grossSalary, allowance) {
   // Pension Contribution: 7% of the gross salary
