@@ -10,6 +10,7 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+package-lock.json
 pids/
 logs/
 *.log
@@ -24,5 +25,8 @@ uploads/
 .vscode/
 .idea/
 .next/
-uploads/  # If you store user uploads, consider excluding
-*.vite
+uploads/
+*.zip
+.htaccess
+*.rar
+*.yaml

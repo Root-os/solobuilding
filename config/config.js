@@ -6,9 +6,10 @@ module.exports = {
   DB_CONFIG: {
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
+    password: process.env.DB_PASSWORD??'',
     database: process.env.DB_NAME,
     dialect: process.env.DB_DIALECT?? "mysql",
+    
   },
   
   CORS_ORIGIN: process.env.CORS_ORIGIN?? "http://localhost:3000",

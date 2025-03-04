@@ -107,7 +107,7 @@ exports.getStockoutRequests = async (req, res) => {
 
         const stockouts = await Stockout.findAll({
             where: whereCondition,
-            include: [{ model: Item, attributes: ["itemName"] }, { model: User, attributes: ["fullName"] }]
+            include: [{ model: Item, attributes: ["itemName"] }, { model: User, attributes: ["fname","lname","email"] }]
         });
 
         return res.status(200).json(stockouts);
