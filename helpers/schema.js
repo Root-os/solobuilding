@@ -444,6 +444,11 @@ const UpdateinventorySchema = Joi.object({
   ).min(1).optional(),
   notes: Joi.string().optional().allow("")
 });
+//letter Type validation
+const letterTypeValidationSchema = Joi.object({
+  name: Joi.string().max(255).required(),
+  description: Joi.string().optional().allow(''),
+});
 
 module.exports = {
   UpdateinventorySchema,
@@ -501,6 +506,7 @@ module.exports = {
     paymentValidationSchema,
     serviceTypeValidationSchema,
     returnValidationSchema,
-    vendorValidationSchema
+    vendorValidationSchema,
+    letterTypeValidationSchema
   };
   
