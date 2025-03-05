@@ -384,8 +384,7 @@ const purchaseRequestValidationSchema = Joi.object({
   requestDate: Joi.date().required(),
   reason: Joi.string().optional().allow(null),
   approvedBy: Joi.number().integer().optional().allow(null),
-  vendorName: Joi.string().optional().allow(null),
-  vendorPhone: Joi.string().optional().allow(null),
+  vendorId: Joi.number().integer().optional().allow(null),
 });
 // Define the Joi schema for Payment validation
 const paymentValidationSchema = Joi.object({
