@@ -418,6 +418,7 @@ const vendorValidationSchema = Joi.object({
   }),
   email: Joi.string().email().optional(),
   address: Joi.string().optional(),
+  contractTerms: Joi.string().optional(),
   serviceTypeId: Joi.number().integer().required(),
 });
 const inventorySchema = Joi.object({
