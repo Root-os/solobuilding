@@ -4,7 +4,7 @@ const Purchase = require("../models/Purchase");
 const { paymentValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
 const Joi = require('joi');
-
+const { Op } = require('sequelize');
 // Create Payment
 exports.createPayment = async (req, res) => {
   try {
@@ -156,13 +156,7 @@ exports.getPaymentsReport = async (req, res) => {
       endDate: Joi.date().iso().greater(Joi.ref('startDate')).optional()
     });
 
-    // Validate request body
-    const { error } = dateSchema.validate(req.body);
-    if (error) {
-      return res
-        .status(400)
-        .json({ message: "Validation Error", error: error.details[0].message });
-    }
+   
 
     const { vendorId, status, startDate, endDate } = req.body;
 

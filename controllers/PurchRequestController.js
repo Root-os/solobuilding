@@ -2,6 +2,7 @@ const { Op } = require("sequelize");
 const PurchaseRequest = require("../models/purchaseRequest");
 const User = require("../models/user");
 const Item = require("../models/item");
+const Vendor = require("../models/vendor");
 const { purchaseRequestValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
 
@@ -21,8 +22,7 @@ exports.createPurchaseRequest = async (req, res) => {
       requestDate,
       reason,
       approvedBy,
-      vendorName,
-      vendorPhone,
+      vendorId,
     } = req.body;
 
     const newRequest = await PurchaseRequest.create({
@@ -33,8 +33,7 @@ exports.createPurchaseRequest = async (req, res) => {
       requestDate,
       reason,
       approvedBy,
-      vendorName,
-      vendorPhone,
+      vendorId,
     });
 
     res.status(201).json(newRequest);
@@ -58,6 +57,11 @@ exports.getAllPurchaseRequests = async (req, res) => {
           as: "approvedby",
           attributes: ["id", "fname", "lname", "email"],
         },
+        {
+          model: Vendor,
+          as: "vendor", 
+          attributes: ["id", "fname", "lname", "email","phone","address"],
+        }
       ],
     });
     res.status(200).json(purchaseRequests);
@@ -180,13 +184,13 @@ exports.generatePurchaseRequestReport = async (req, res) => {
   //     .status(400)
   //     .json({ message: "Validation Error", error: error.details[0].message });
   // }
-  const { vendorName, startDate, endDate, itemId } = req.body;
+  const { vendorId, startDate, endDate, itemId } = req.body;
 
   try {
     const whereConditions = {};
 
-    if (vendorName) {
-      whereConditions.vendorName = { [Op.like]: `%${vendorName}%` };
+    if (vendorId) {
+      whereConditions.vendorId = { [Op.like]: `%${vendorId}%` };
     }
 
     if (startDate && endDate) {
