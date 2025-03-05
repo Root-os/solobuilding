@@ -20,7 +20,9 @@ exports.createVendor = async (req, res) => {
       phone,
       email,
       address,
+      contractTerms,
       serviceTypeId,
+
     } = req.body;
 
 
@@ -44,7 +46,7 @@ exports.createVendor = async (req, res) => {
       phone,
       email,
       address,
-      contractTerms,
+      contractTerms: req.file ? req.file.path : contractTerms,
       serviceTypeId: parsedServiceTypeId,
     });
 

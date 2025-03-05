@@ -178,6 +178,11 @@ const defineAssociations = () => {
     Letter.belongsTo(Tenant, { foreignKey: 'tenantId', onDelete: "CASCADE" });
     Tenant.hasMany(Letter, { foreignKey: 'tenantId', onDelete: "CASCADE" });
 
+
+    //purchaseRequest with vendor
+    purchaseRequest.belongsTo(Vendor, { foreignKey: 'vendorId',as:"vendor", onDelete: "CASCADE" });
+    Vendor.hasMany(purchaseRequest, { foreignKey: 'vendorId',as:"vendor", onDelete: "CASCADE" });
+
     
 };
 

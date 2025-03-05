@@ -38,14 +38,10 @@ const PurchaseRequest = sequelize.define(
       type: DataTypes.INTEGER, 
       allowNull: true,
     },
-    vendorName: {
-      type: DataTypes.STRING,
+   vendorId:{
+      type: DataTypes.INTEGER,
       allowNull: true,
-    },
-    vendorPhone: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
+   },
   },
   {
     tableName: "purchase_requests",
