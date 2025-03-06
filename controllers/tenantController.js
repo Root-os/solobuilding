@@ -9,6 +9,7 @@ const moment = require('moment');
 const fs = require('fs');
 const sendEmail = require('../middleware/sendEmail');
 const bcrypt = require('bcryptjs');
+const {tenatSchema}=require('../helpers/schema')
 
 // Set up multer storage for file uploads
 const storage = multer.diskStorage({
@@ -34,14 +35,13 @@ exports.createTenant = async (req, res) => {
         return res.status(400).json({ error: err.message });
       }
 
+
       const filePath = req.file ? `/uploads/${req.file.filename}` : null;
-      const { unitId, leaseStartDate, carPlate, carName, color, email, fullName, nationalId, phoneNumber } = req.body;
-
-      // Validate required fields
-      if (!unitId || !leaseStartDate || !email || !fullName || !nationalId || !phoneNumber) {
-        return res.status(400).json({ error: "Unit ID, lease start date, email, full name, national ID, and phone number are required" });
+      const { error } = tenatSchema.validate(req.body);
+      if (error) {
+        return res.status(400).json({ error: error.details[0].message });
       }
-
+      const { unitId, leaseStartDate,  email, fullName, nationalId, phoneNumber, tin,floorId, advance, carPlate, carName, color, } = req.body;
       // Check if the unit exists and is available
       const unit = await Unit.findByPk(unitId);
       if (!unit) return res.status(404).json({ error: "Unit not found" });
@@ -49,6 +49,8 @@ exports.createTenant = async (req, res) => {
       if (unit.status !== "available") {
         return res.status(400).json({ error: "Unit is already occupied or under maintenance" });
       }
+      const floor = await Floor.findByPk(floorId);
+      if (!floor) return res.status(404).json({ error: "Floor not found" });
 
       // Check for existing tenant with the same email, nationalId, or phoneNumber
       const existingTenant = await Tenant.findOne({
@@ -57,6 +59,7 @@ exports.createTenant = async (req, res) => {
             { email },
             { nationalId },
             { phoneNumber },
+            {tin}
           ],
         },
       });
@@ -70,6 +73,9 @@ exports.createTenant = async (req, res) => {
           errorMessage = "A tenant with the same national ID already exists";
         } else if (existingTenant.phoneNumber === phoneNumber) {
           errorMessage = "A tenant with the same phone number already exists";
+        }
+        else if (existingTenant.tin === tin) {
+          errorMessage = "A tenant with the same tin already exists";
         }
 
         return res.status(400).json({ error: errorMessage });
