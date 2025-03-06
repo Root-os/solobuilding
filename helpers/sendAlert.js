@@ -1,27 +1,23 @@
 const Notification = require("../models/notification");
 const NotificationType = require("../models/notificationType");
 
-const sendNotificationHelper = async (adminId, title, body) => {
+const sendNotificationHelper = async ({ adminId, title, body, type = "Low Stock Alert!", receiver_type = "staff" }) => {
   try {
-    // Check if the "Stock Level Low" notification type exists
-    let notificationType = await NotificationType.findOne({
-      where: { name: "Low Stock Alert!" },
-    });
+    // Check if the specified notification type exists
+    let notificationType = await NotificationType.findOne({ where: { name: type } });
 
     // If it doesn't exist, create it
     if (!notificationType) {
-      notificationType = await NotificationType.create({
-        name: "Low Stock Alert!",
-      });
-      console.log("Created new notification type: Stock Level Low");
+      notificationType = await NotificationType.create({ name: type });
+      console.log(`Created new notification type: ${type}`);
     }
 
-    // Create notification for the specified admin
+    // Create the notification
     await Notification.create({
       title,
       body,
       type_id: notificationType.id, // Use the existing or newly created type ID
-      receiver_type: "staff", // Assuming admin falls under "staff"
+      receiver_type,
       receiver_id: adminId,
     });
 

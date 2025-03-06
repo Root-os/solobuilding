@@ -3,12 +3,21 @@ const Tenant = require('../models/tenant');
 const Floor = require('../models/floor');
 const Unit = require('../models/unit');
 const { Op } = require('sequelize');
-
+const {tenantRentCollectionSchema} = require('../helpers/schema');
 // Create a new rent payment
 exports.createRentPayment = async (req, res) => {
     try {
+const { error } = tenantRentCollectionSchema.validate(req.body);
+if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+}
         const { tenantId, amountPaid, paymentDate, paymentMethod, paymentFrequency, nextDueDate, status } = req.body;
 
+// Find the tenant and update their status and leaseEndDate
+const tenant = await Tenant.findByPk(tenantId);
+if (!tenant) {
+    return res.status(404).json({ message: 'Tenant not found' });
+}
         // Convert paymentDate and nextDueDate to Date objects
         const paymentDateObj = new Date(paymentDate);
         const nextDueDateObj = new Date(nextDueDate);
@@ -32,6 +41,24 @@ exports.createRentPayment = async (req, res) => {
         paidDays = paidDays.trim(); // Remove extra spaces
 
         // Create rent payment record
+        const previousPayment = await TenantRentCollection.findOne({
+            where: { tenantId, status: "paid" },
+            order: [['paymentDate', 'DESC']]
+        });
+        if (previousPayment) {
+            // Check if the payment is for the same nextDueDate or if the payment date is earlier than the previous one
+            if (previousPayment.nextDueDate === nextDueDateObj) {
+              return res.status(400).json({ message: 'Tenant has already paid rent for this period' });
+            }
+            if (previousPayment.paymentDate >= paymentDateObj) {
+              return res.status(400).json({ message: 'Payment date cannot be earlier or the same as the previous payment date' });
+            }
+            if (previousPayment.nextDueDate > paymentDateObj) {
+              return res.status(400).json({ message: 'Rent payment date cannot be earlier than the last payment date' });
+            }
+          }
+        
+
         const rentPayment = await TenantRentCollection.create({
             tenantId,
             amountPaid,
@@ -43,12 +70,7 @@ exports.createRentPayment = async (req, res) => {
             status
         });
 
-        // Find the tenant and update their status and leaseEndDate
-        const tenant = await Tenant.findByPk(tenantId);
-        if (!tenant) {
-            return res.status(404).json({ message: 'Tenant not found' });
-        }
-
+        // Update tenant status and leaseEndDate
         tenant.paymentStatus = "paid";
         tenant.leaseEndDate = nextDueDate;
 
@@ -230,7 +252,6 @@ exports.filterRentCollections = async (req, res) => {
           [Op.between]: [nextDueDateFrom, nextDueDateTo],
         };
       }
-  
       if (paymentFrequency) {
         whereConditions.paymentFrequency = paymentFrequency;
       }
