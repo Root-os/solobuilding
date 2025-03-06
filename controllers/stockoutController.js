@@ -81,10 +81,12 @@ if(status==='rejected'){
         if(item.itemAmount<item.min_amount){
             isStockLow = true;
             itemLeft = item.itemAmount
-            sendNotificationHelper(
-                req.user.id,
-                 "Low Stock Alert!",
-                  `Stock of ${item.itemName} is running low. Only ${itemLeft} left, consider restocking.`);
+            sendNotificationHelper({
+                adminId: req.user.id,
+                title: "Low Stock Alert!",
+                body: `Stock of ${item.itemName} is running low. Only ${itemLeft} left, consider restocking.`
+            });
+            
         }
         await item.save();
         // Update stockout record
