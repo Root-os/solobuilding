@@ -34,7 +34,7 @@ exports.getAllFloors = async (req, res) => {
 
       return {
         id: floor.id,
-        name: floor.floorNumber, // Assuming the floor has a "name" field
+        name: floor.floorNumber,
         totalUnits,
         rentedUnits,
         freeUnits,
@@ -67,7 +67,6 @@ exports.getFloorById = async (req, res) => {
     });
 
     res.status(200).json({
-      
       freeUnits: freeUnits,  // Return the free units along with floor details
     });
   } catch (error) {
