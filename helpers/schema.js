@@ -126,7 +126,6 @@ const notificationSchema = Joi.object({
     .valid("staff", "tenant")
     .required(),
     receiver_id: Joi.number().integer().min(0).optional(),
-    senderId: Joi.number().integer().min(0).optional(),
   title: Joi.string()
     .min(3)
     .max(100)
