@@ -2,6 +2,7 @@ const  Tenant  = require("../models/tenant");
 const  Parking  = require("../models/parking");
 const { Op } = require("sequelize");
 const Setting=require("../models/setting");
+const {parkingSchema}=require("../helpers/schema");
 // Update parking record - handling partial updates
 exports.updateParking = async (req, res) => {
     try {
@@ -85,6 +86,10 @@ exports.getParkingsByStatus = async (req, res) => {
 
 // Add parking record (adjusted to handle tenant information)
 exports.addParking = async (req, res) => {
+    const{error}=parkingSchema.validate(req.body);
+    if(error){
+        return res.status(400).json({error:error.details[0].message});
+    }
     try {
         const { carPlate, carName, driverName, driverPhone, tenantId, timeIn, timeOut, isTenant, status } = req.body;
 
@@ -106,7 +111,7 @@ exports.addParking = async (req, res) => {
             driverPhone,
             tenantId: tenantInfo ? tenantInfo.id : tenantId,
             timeIn,
-            timeOut,
+            timeOut:timeOut || null, // Default timeOut is null
             isTenant,
             status: status || 'onparking' // Default status if not provided
         });

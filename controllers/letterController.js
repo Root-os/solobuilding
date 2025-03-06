@@ -1,7 +1,8 @@
 const { Letter } = require('../models'); 
 const Tenant = require('../models/tenant');
 const LetterType = require('../models/letterType');
-const {letterValidationSchema} = require('../helpers/schema');  
+const {letterValidationSchema} = require('../helpers/schema');
+const sendNotificationHelper= require('../helpers/sendAlert');
 
 // Create a Letter
 exports.createLetter = async (req, res) => {
@@ -17,7 +18,6 @@ exports.createLetter = async (req, res) => {
     if (!tenant) {
       return res.status(400).json({ message: "Invalid tenantId" });
     }
-
     const letterType = await LetterType.findByPk(letterTypeId);
     if (!letterType) {
       return res.status(400).json({ message: "Invalid letterTypeId" });
@@ -32,7 +32,21 @@ exports.createLetter = async (req, res) => {
       status: "Sent",
     });
 
-    return res.status(201).json({ message: "Letter created successfully", newLetter });
+    let notification;
+    if(newLetter){
+      const formattedDate = new Date(newLetter.Date).toLocaleDateString();
+
+       notification = await sendNotificationHelper({
+        adminId: tenant.id,
+        title: `Dear ${tenant.fullName} you have New Letter`,
+        body: `You have received a new letter from the management on ${formattedDate}. Please check your dashboard for more details.`,
+        type: "New Letter",
+        receiver_type: "tenant"
+    });
+    
+    }
+
+    return res.status(201).json({ message: "Letter created successfully", newLetter, notification });
   } catch (error) {
     return res.status(500).json({ message: "Error creating letter", error: error.message });
   }

@@ -1,15 +1,19 @@
 const Complaint =require ('../models/complaint.js');
 const Tenant=require('../models/tenant.js');
+const sendNotificationHelper= require('../helpers/sendAlert');
+const User=require('../models/user.js');
 
 // Create a new complaint with multiple image uploads
- const createComplaint = async (req, res) => {
+const createComplaint = async (req, res) => {
   try {
-    const  tenantId  = req.user.id;
-    const {  description, urgency } = req.body;
+    const tenantId = req.user.id;
+    const { description, urgency } = req.body;
     const tenant = await Tenant.findByPk(tenantId);
+
     if (!tenant) {
       return res.status(404).json({ message: 'Tenant not found' });
     }
+
     const imagePaths = req.files ? req.files.map(file => file.path) : [];
 
     if (!tenantId || !description) {
@@ -23,11 +27,29 @@ const Tenant=require('../models/tenant.js');
       images: imagePaths,
     });
 
+    const admins = await User.findAll({ where: { role: 'admin' } }); // Fetch all admins
+
+    if (complaint && admins.length > 0) {
+      // Send notification to each admin
+      await Promise.all(
+        admins.map((admin) =>
+          sendNotificationHelper({
+            adminId: admin.id,
+            title: 'New Complaint from Tenant',
+            body: `A new complaint has been submitted by ${tenant.fullName}. Please check the complaints page for more details.`,
+            type: 'New Complaint',
+            receiver_type: 'staff',
+          })
+        )
+      );
+    }
+
     res.status(201).json({ message: 'Complaint submitted successfully', complaint });
   } catch (error) {
     res.status(500).json({ message: 'Error submitting complaint', error: error.message });
   }
 };
+
 
 // Get all complaints (admin view)
  const getAllComplaints = async (req, res) => {
@@ -46,7 +68,7 @@ const Tenant=require('../models/tenant.js');
 };
 
 // Assign a complaint to an employee
- const assignComplaint = async (req, res) => {
+const assignComplaint = async (req, res) => {
   try {
     const { complaintId, employeeId } = req.body;
     const complaint = await Complaint.findByPk(complaintId);
@@ -55,15 +77,45 @@ const Tenant=require('../models/tenant.js');
       return res.status(404).json({ message: 'Complaint not found' });
     }
 
+    const assignedEmployee = await User.findByPk(employeeId);
+    if (!assignedEmployee) {
+      return res.status(404).json({ message: 'Assigned employee not found' });
+    }
+
     complaint.assignedEmployeeId = employeeId;
     complaint.status = 'in_progress';
     await complaint.save();
+
+    const tenant = await Tenant.findByPk(complaint.tenantId);
+    if (!tenant) {
+      return res.status(404).json({ message: 'Tenant not found' });
+    }
+
+    // Send notifications concurrently
+    await Promise.all([
+      sendNotificationHelper({
+        adminId: employeeId, // Employee receives the notification
+        title: 'New Complaint Assigned',
+        body: `A new complaint has been assigned to you. Please check the complaints page for more details.`,
+        type: 'New Complaint',
+        receiver_type: 'staff',
+      }),
+
+      sendNotificationHelper({
+        adminId: tenant.id, // Tenant receives the notification
+        title: 'Your Complaint is Processing',
+        body: `Your complaint has been assigned to ${assignedEmployee.fname} ${assignedEmployee.lname}. The employee will visit you soon.`,
+        type: 'Complaint Processing',
+        receiver_type: 'tenant',
+      }),
+    ]);
 
     res.status(200).json({ message: 'Complaint assigned successfully', complaint });
   } catch (error) {
     res.status(500).json({ message: 'Error assigning complaint', error: error.message });
   }
 };
+
 
 
 // Update complaint status
