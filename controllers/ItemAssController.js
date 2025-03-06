@@ -1,11 +1,24 @@
 const  ItemAssignment  = require("../models/itemAssignment");
 const  Item  = require("../models/item");
 const  User  = require("../models/user");
+const { itemAssignmentSchema } = require("../helpers/schema"); // Adjust path if necessary
+const {paramsSchema} = require("../helpers/schema");
+
 
 
 // CREATE ItemAssignment
- exports.createItemAssignment = async (req, res) => {
+exports.createItemAssignment = async (req, res) => {
   try {
+    // Validate the incoming request body using Joi schema
+    const { error } = itemAssignmentSchema.validate(req.body);
+
+    if (error) {
+      return res.status(400).json({
+        message: "Validation error",
+        error: error.details[0].message,
+      });
+    }
+
     const { itemId, assignedId, assignType, assignDate, amount, description } = req.body;
 
     // Create a new ItemAssignment record
@@ -30,6 +43,7 @@ const  User  = require("../models/user");
     });
   }
 };
+
 
 // GET all ItemAssignments
  exports.getAllItemAssignments = async (req, res) => {
@@ -65,6 +79,13 @@ const  User  = require("../models/user");
 // GET a specific ItemAssignment by ID
  exports.getItemAssignmentById = async (req, res) => {
   try {
+    const { error } = paramsSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({
+        message: "Validation error",
+        error: error.details[0].message,
+      });
+    }
     const { id } = req.params;
 
     const itemAssignment = await ItemAssignment.findOne({
@@ -104,6 +125,24 @@ const  User  = require("../models/user");
 // UPDATE an ItemAssignment
  exports.updateItemAssignment = async (req, res) => {
   try {
+    // Validate the incoming request body using Joi schema
+    const { error } = itemAssignmentSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        message: "Validation error",
+        error: error.details[0].message,
+      });
+    }
+
+    const {erroId} = paramsSchema.validate(req.params);
+    if (erroId) {
+      return res.status(400).json({
+        message: "Validation error",
+        error: erroId.details[0].message,
+      });
+    }
+
+
     const { id } = req.params;
     const { assignType, assignDate, amount, description } = req.body;
 
@@ -135,6 +174,14 @@ const  User  = require("../models/user");
 // DELETE an ItemAssignment
  exports.deleteItemAssignment = async (req, res) => {
   try {
+    const { error } = paramsSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({
+        message: "Validation error",
+        error: error.details[0].message,
+      }); 
+    }
+
     const { id } = req.params;
 
     const deleted = await ItemAssignment.destroy({ where: { id } });
@@ -160,6 +207,15 @@ const  User  = require("../models/user");
 // REPORT ItemAssignments based on itemId, assignDate, and assignType
 exports.generateReport = async (req, res) => {
     try {
+
+      // const { error } = itemAssignmentSchema.validate(req.body);
+      // if (error) {
+      //   return res.status(400).json({
+      //     message: "Validation error",
+      //     error: error.details[0].message,
+      //   });
+      // }
+      
       const { itemId, assignDate, assignType } = req.body;
   
       const whereConditions = {};

@@ -1,6 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const Vendor = require('./Vendor'); // Import the Vendor model
+const Vendor = require('./vendor'); // Import the Vendor model
 
 const Payment = sequelize.define('Payment', {
   id: {
