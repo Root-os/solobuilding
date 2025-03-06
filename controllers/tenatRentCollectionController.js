@@ -4,6 +4,88 @@ const Floor = require('../models/floor');
 const Unit = require('../models/unit');
 const { Op } = require('sequelize');
 const {tenantRentCollectionSchema} = require('../helpers/schema');
+const cron = require('node-cron');
+
+//* * * * * to test evey minute
+//schedule a task to run every day at midnight (0 0 * * *)
+cron.schedule('* * * * *', async () => {
+    try {
+      const today = new Date();
+      console.log(`Current Date: ${today.toISOString()}`);
+  
+      // Calculate the dates 10 and 2 days from now
+      const tenDaysBefore = new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000);  // 10 days from now
+      const twoDaysBefore = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000);   // 2 days from now
+      console.log(`10 Days From Now: ${tenDaysBefore.toISOString()}`);
+      console.log(`2 Days From Now: ${twoDaysBefore.toISOString()}`);
+  
+      // Find tenants whose nextDueDate is within 10 or 2 days
+      const rentCollections = await TenantRentCollection.findAll({
+        where: {
+          nextDueDate: {
+            [Op.in]: [tenDaysBefore, twoDaysBefore], // Match with 10 days or 2 days remaining
+          },
+        },
+        include: {
+          model: Tenant,
+          attributes: ['fullName', 'email', 'phoneNumber'],
+        },
+      });
+  
+      // Log if no rent collections were found
+      if (rentCollections.length === 0) {
+        console.log('No rent collections found for the next 10 or 2 days.');
+      }
+  
+      for (const rentCollection of rentCollections) {
+        const tenant = rentCollection.Tenant;  // Access the tenant information
+        const remainingDays = Math.floor((rentCollection.nextDueDate - today) / (1000 * 60 * 60 * 24));  // Calculate remaining days
+  
+        console.log(`Checking Tenant: ${tenant.fullName}`);
+        console.log(`Remaining Days for Rent Payment: ${remainingDays}`);
+  
+        if (remainingDays === 10 || remainingDays === 2) {
+          console.log(`Notifying admins and tenant about rent due in ${remainingDays} days.`);
+  
+          // Send notifications to admins
+          const admins = await User.findAll({ where: { role: 'admin' } });
+          if (admins.length === 0) {
+            console.log('No admins found to send notifications.');
+          }
+  
+          await Promise.all(
+            admins.map((admin) => {
+              const message = `Tenant ${tenant.fullName} has ${remainingDays} days left for the next rent payment.`;
+              console.log(`Sending notification to admin: ${admin.id}`);
+              return sendNotificationHelper({
+                receiverId: admin.id,
+                title: `Tenant Rent Due in ${remainingDays} Days`,
+                body: message,
+                type: 'Rent Due Notification',
+                receiver_type: 'staff',
+              });
+            })
+          );
+  
+          // Send notification to tenant
+          console.log(`Sending rent payment due notification to tenant: ${tenant.fullName}`);
+          await sendNotificationHelper({
+            receiverId: tenant.id,
+            title: `Your Rent Payment is Due in ${remainingDays} Days`,
+            body: `Your next rent payment is due in ${remainingDays} days. Please ensure timely payment.`,
+            type: 'Rent Payment Due',
+            receiver_type: 'tenant',
+          });
+        }
+      }
+  
+      console.log('Rent payment due notifications sent successfully.');
+    } catch (error) {
+      console.error('Error while sending rent payment due notifications:', error.message);
+    }
+  });
+  
+
 // Create a new rent payment
 exports.createRentPayment = async (req, res) => {
     try {

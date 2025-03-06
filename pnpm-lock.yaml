@@ -65,6 +65,9 @@ importers:
       mysql2:
         specifier: ^3.11.5
         version: 3.12.0
+      node-cron:
+        specifier: ^3.0.3
+        version: 3.0.3
       nodemailer:
         specifier: ^6.10.0
         version: 6.10.0
@@ -903,6 +906,10 @@ packages:
   negotiator@0.6.3:
     resolution: {integrity: sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==}
     engines: {node: '>= 0.6'}
+
+  node-cron@3.0.3:
+    resolution: {integrity: sha512-dOal67//nohNgYWb+nWmg5dkFdIwDm8EpeGYMekPMrngV3637lqnX0lbUcCtgibHTz6SEz7DAIjKvKDFYCnO1A==}
+    engines: {node: '>=6.0.0'}
 
   nodemailer@6.10.0:
     resolution: {integrity: sha512-SQ3wZCExjeSatLE/HBaXS5vqUOQk6GtBdIIKxiFdmm01mOQZX/POJkO3SUX1wDiYcwUOJwT23scFSC9fY2H8IA==}
@@ -2224,6 +2231,10 @@ snapshots:
       lru-cache: 7.18.3
 
   negotiator@0.6.3: {}
+
+  node-cron@3.0.3:
+    dependencies:
+      uuid: 8.3.2
 
   nodemailer@6.10.0: {}
 
