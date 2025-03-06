@@ -6,33 +6,46 @@ const {refundStatusSchema} = require('../helpers/schema');
 // Create a new withdrawal request
 const createWithdrawalRequest = async (req, res) => {
     try {
-        const tenantId = req.user.id;
-
-        const {  terminationDate, reason } = req.body;
-
-        if (!tenantId || !terminationDate || !reason) {
-            return res.status(400).json({ message: "Tenant ID, termination date, and reason are required." });
-        }
-
-        const tenant = await Tenant.findByPk(tenantId);
-        if (!tenant) {
-            return res.status(404).json({ message: "Tenant not found." });
-        }
-
-
-        const request = await WithdrawalRequest.create({ tenantId, terminationDate, reason });
-
-        res.status(201).json({ message: "Withdrawal request submitted successfully.", request });
+      const tenantId = req.user.id;
+      const { terminationDate, reason } = req.body;
+  
+      if (!tenantId || !terminationDate || !reason) {
+        return res.status(400).json({ message: "Tenant ID, termination date, and reason are required." });
+      }
+  
+      const tenant = await Tenant.findByPk(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found." });
+      }
+  
+      const request = await WithdrawalRequest.create({ tenantId, terminationDate, reason });
+      const admins = await User.findAll({ where: { role: 'admin' } });
+  
+      if (request && admins.length > 0) {
+        await Promise.all(
+          admins.map((admin) =>
+            sendNotificationHelper({
+              adminId: admin.id,
+              title: 'New Withdrawal Request from Tenant',
+              body: `A new withdrawal request has been submitted by ${tenant.fullName}. Please check the withdrawal requests page for more details.`,
+              type: 'New Withdrawal Request',
+              receiver_type: 'staff', // Changed from 'staff' to 'admin' for better clarity
+            })
+          )
+        );
+      }
+      res.status(201).json({ message: "Withdrawal request submitted successfully.", request });
     } catch (error) {
-        res.status(500).json({ message: "Error submitting withdrawal request.", error: error.message });
+      res.status(500).json({ message: "Error submitting withdrawal request.", error: error.message });
     }
-};
+  };
+
 
 // Admin retrieves all withdrawal requests
 const getAllWithdrawalRequests = async (req, res) => {
     try {
         const requests = await WithdrawalRequest.findAll(
-            { include: { model: Tenant, } }
+            { include: { model: Tenant,attributes:['id','fullName','email','phoneNumber'] } }
         );
         res.status(200).json(requests);
     } catch (error) {
@@ -63,34 +76,50 @@ const getMyWithdrawalRequests = async (req, res) => {
 // Admin reviews and updates withdrawal request status
 const reviewWithdrawalRequest = async (req, res) => {
     try {
-        const { requestId, status, adminResponse } = req.body;
-
-        const request = await WithdrawalRequest.findByPk(requestId
-            , { include: { model: Tenant,} }
-        );
-        if (!request) {
-            return res.status(404).json({ message: "Withdrawal request not found." });
-        }
-
-        if (!["approved", "rejected"].includes(status)) {
-            return res.status(400).json({ message: "Invalid status update." });
-        }
-
-        request.status = status;
-        request.adminResponse = adminResponse || null;
-
-        if (status === "approved") {
-            request.processedAt = new Date();
-        }
-
-        await request.save();
-
-        res.status(200).json({ message: `Request ${status} successfully.`, request });
+      const { requestId, status, adminResponse } = req.body;
+  
+      // Fetch the request along with Tenant details
+      const request = await WithdrawalRequest.findByPk(requestId, {
+        include: { model: Tenant, attributes: ['id', 'fullName', 'email', 'phoneNumber'] },
+      });
+  
+      if (!request) {
+        return res.status(404).json({ message: "Withdrawal request not found." });
+      }
+  
+      if (!["approved", "rejected"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status update." });
+      }
+  
+      if (request.status === "approved") {
+        return res.status(400).json({ message: "Request has already been approved." });
+      }
+  
+      if (request.status === "rejected") {
+        return res.status(400).json({ message: "Request has already been rejected." });
+      }
+  
+      if (status === "approved" && !request.assignedEmployeeId) {
+        return res.status(400).json({ message: "Please assign an employee to this request before approving." });
+      }
+  
+      if (status === "rejected" && !adminResponse) {
+        return res.status(400).json({ message: "Please provide a reason for rejecting this request." });
+      }
+  
+      // Update request details
+      request.status = status;
+      request.adminResponse = adminResponse || null;
+      request.processedAt = status === "approved" ? new Date() : request.processedAt;
+  
+      await request.save();
+  
+      res.status(200).json({ message: `Request ${status} successfully.`, request });
     } catch (error) {
-        res.status(500).json({ message: "Error updating withdrawal request.", error: error.message });
+      res.status(500).json({ message: "Error updating withdrawal request.", error: error.message });
     }
-};
-
+  };
+  
 const deleteWithdrawalRequest = async (req, res) => {
     try {
         const requestId  = req.params.id;
@@ -111,33 +140,66 @@ const deleteWithdrawalRequest = async (req, res) => {
 // Assign an employee to handle the exit process
 const assignEmployeeToRequest = async (req, res) => {
     try {
-        const { requestId, employeeId } = req.body;
-
-        const request = await WithdrawalRequest.findByPk(requestId);
-        if (!request) {
-            return res.status(404).json({ message: "Withdrawal request not found." });
-        }
-const employee = await User.findByPk(employeeId);
-if (!employee) {
-    return res.status(404).json({ message: "Employee not found." });
-}
-if (employee.role !== "employee") {
-    return res.status(400).json({ message: "Only employees can be assigned to requests." });
-}
-        request.status = "in_progress";
-        request.assignedEmployeeId = employeeId;
-        await request.save();
-
-        res.status(200).json({ message: "Employee assigned successfully.", request });
+      const { requestId, employeeId } = req.body;
+  
+      const request = await WithdrawalRequest.findByPk(requestId);
+      if (!request) {
+        return res.status(404).json({ message: "Withdrawal request not found." });
+      }
+  
+      const employee = await User.findByPk(employeeId);
+      if (!employee) {
+        return res.status(404).json({ message: "Employee not found." });
+      }
+  
+      if (employee.role !== "employee") {
+        return res.status(400).json({ message: "Only employees can be assigned to requests." });
+      }
+  
+      // Update request status
+      request.status = "in_progress";
+      request.assignedEmployeeId = employeeId;
+      await request.save();
+  
+      // Fetch tenant details
+      const tenant = await Tenant.findByPk(request.tenantId, {
+        attributes: ['id', 'fullName'],
+      });
+  
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found." });
+      }
+  
+      // Send notifications to both employee and tenant
+      await Promise.all([
+        sendNotificationHelper({
+          receiverId: employeeId, // Employee receives the notification
+          title: 'New Withdrawal Request Assigned',
+          body: `A new withdrawal request has been assigned to you. Please check the requests page for more details.`,
+          type: 'Withdrawal Request Assigned',
+          receiver_type: 'staff',
+        }),
+  
+        sendNotificationHelper({
+          receiverId: tenant.id, // Tenant receives the notification
+          title: 'Your Withdrawal Request is in Progress',
+          body: `Your withdrawal request has been assigned to ${employee.fname} ${employee.lname}. The assigned employee will process it soon.`,
+          type: 'Withdrawal Request Processing',
+          receiver_type: 'tenant',
+        }),
+      ]);
+  
+      res.status(200).json({ message: "Employee assigned successfully.", request });
     } catch (error) {
-        res.status(500).json({ message: "Error assigning employee.", error: error.message });
+      res.status(500).json({ message: "Error assigning employee.", error: error.message });
     }
-};
+  };
+  
 const myAssignedRequests=async(req,res)=>{
     try {
         const employeeId = req.user.id;
 const employee = await User.findByPk(employeeId,
-    { include: { model: User, } }
+    { include: { model: User,attributes:['fullName','email','phoneNumber'], } }
 );
 if (!employee) {
     return res.status(404).json({ message: "Employee not found." });
@@ -161,7 +223,6 @@ const provideTenantFeedback = async (req, res) => {
 
         request.tenantFeedback = tenantFeedback;
         await request.save();
-
         res.status(200).json({ message: "Tenant feedback submitted.", request });
     } catch (error) {
         res.status(500).json({ message: "Error submitting feedback.", error: error.message });
