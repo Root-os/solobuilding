@@ -5,6 +5,8 @@ const Item = require("../models/item");
 const Vendor = require("../models/vendor");
 const { purchaseRequestValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
+const sendNotificationHelper= require('../helpers/sendAlert');
+
 
 // Create a new PurchaseRequest
 exports.createPurchaseRequest = async (req, res) => {
@@ -35,6 +37,21 @@ exports.createPurchaseRequest = async (req, res) => {
       approvedBy,
       vendorId,
     });
+    const admins= await User.findAll({ where: { role: 'admin' } }); // Fetch all admins
+    if (newRequest && admins.length > 0) {
+      // Send notification to each admin
+      await Promise.all(
+        admins.map((admin) =>
+          sendNotificationHelper({
+            adminId: admin.id,
+            title: 'New Purchase Request from Tenant',
+            body: `A new purchase request has been submitted by ${requestedBy}. Please check the purchase requests page for more details.`,
+            type: 'New Purchase Request',
+            receiver_type: 'staff',
+          })
+        )
+      );
+    }
 
     res.status(201).json(newRequest);
   } catch (error) {
