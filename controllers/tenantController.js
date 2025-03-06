@@ -218,7 +218,7 @@ exports.getTenantById = async (req, res) => {
 exports.updateTenant = async (req, res) => {
   try {
     const id = Number(req.params.id);
-    if(NaN(id)) {
+    if(isNaN(id)) {
       return res.status(400).json({ error: 'Invalid tenant ID' });
     }
     const tenant = await Tenant.findOne({ where: { id:id} });
@@ -373,12 +373,10 @@ exports.filterTenants = async (req, res) => {
 
 exports.getTenantsWithExpiringLease = async (req, res) => {
   try {
-    // daysLeft=req.body.daysLeft;
     const today = new Date();
-    let tenDaysLater;
+    const tenDaysLater = new Date(today);
     tenDaysLater.setDate(today.getDate() + 10);
 
-    
     const tenants = await Tenant.findAll({
       where: {
         leaseEndDate: {
@@ -407,6 +405,7 @@ exports.getTenantsWithExpiringLease = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 const processTenantDetails = (tenants) => {
   const baseUploadPath = path.join(__dirname, '../uploads'); // Path to your 'uploads' directory
