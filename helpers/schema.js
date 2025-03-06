@@ -294,7 +294,7 @@ const tenantRentCollectionSchema = Joi.object({
     tenantId: Joi.number().integer().min(0).required(),
     amountPaid: Joi.number().min(0).required(),
     paymentDate: Joi.date().required(),
-    paidDays: Joi.string().required(),
+    paidDays: Joi.string().optional(),
     paymentMethod: Joi.string().required(),
     paymentFrequency: Joi.string().valid('Monthly', 'Quarterly', 'Yearly').required(),
     nextDueDate: Joi.date().required(),
