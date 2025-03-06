@@ -72,7 +72,7 @@ exports.getParkingsByStatus = async (req, res) => {
             },
             include: [{
                 model: Tenant,
-                attributes: ['id', 'fullName',"carName","carPlate"] // Assuming you want to fetch tenant name and id
+                attributes: ['id', 'fullName', 'email', 'phoneNumber'],
             }]
         });
 
