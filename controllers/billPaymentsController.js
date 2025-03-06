@@ -7,11 +7,22 @@ const  Expense  = require('../models/expense');
 
 exports.createBillPayment = async (req, res) => {
   try {
+    const {billTypeId, amount, startDate, endDate, status, paymentMethod, description} = req.body;
+    const billType = await BillType.findByPk(billTypeId);
+    if (!billType) {
+      return res.status(404).json({ message: "Bill type not found" });
+    }
+    if(!amount || !startDate || !endDate || !status || !paymentMethod || !description) {
+      return res.status(400).json({ message: "Please provide all required fields" });
+    }
+    if(amount <= 0) {
+      return res.status(400).json({ message: "Amount must be greater than 0" });
+    }
+    if(new Date(startDate) > new Date(endDate)) {
+      return res.status(400).json({ message: "Start date cannot be greater than end date" });
+    }
     // Create the BillPayment
     const billPayment = await BillPayment.create(req.body);
-
-    // Extract information from the created BillPayment
-    const { amount, startDate, endDate, description, billTypeId } = billPayment;
 
     // Create the corresponding Expense
     const expense = await Expense.create({
