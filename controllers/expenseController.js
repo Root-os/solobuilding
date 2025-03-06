@@ -1,6 +1,5 @@
 const Expense = require("../models/expense");
 const ExpenseType = require("../models/expenseType");
-const BillType = require("../models/billType");
 
 const { Op } = require("sequelize");
 
@@ -26,7 +25,7 @@ exports.createExpense = async (req, res) => {
 exports.getAllExpenses = async (req, res) => {
     try {
         const expenses = await Expense.findAll({
-            include: { model: ExpenseType, as: "expenseType" ,model: BillType, as: "billType"} // Include ExpenseType details
+            include: { model: ExpenseType, as: "expenseType" } // Include ExpenseType details
         });
         return res.status(200).json(expenses);
     } catch (error) {
