@@ -2,10 +2,9 @@ const PaymentRequest = require('../models/paymentRequests');
 const Tenant = require('../models/tenant');
 const PaymentType=require('../models/paymentType');
 const { Op } = require('sequelize');
-const multer = require('multer');
-const path = require('path');
 const {paymentRequestSchema,paramsSchema,paymentRequestStatusSchema} = require('../helpers/schema')
-
+const sendNotificationHelper= require('../helpers/sendAlert');
+const User = require('../models/user.js');
 // Create a payment request
 exports.createPaymentRequest = async (req, res) => {
   try {
@@ -32,7 +31,13 @@ exports.createPaymentRequest = async (req, res) => {
       dueDate,
       repeatedFor,
     });
-
+ await sendNotificationHelper({
+  adminId: tenantId,
+  title: 'New Payment Request',
+  body: `A new payment request has been submitted by apartment manager. Please check the payment requests page for more details.`,
+  type: 'New Payment Request',
+  receiver_type: 'tenant',
+});
     res.status(201).json({ message: 'Payment request created successfully', data: newPaymentRequest });
   } catch (error) {
     console.error("Error creating payment request:", error);
@@ -212,7 +217,18 @@ exports.uploadReceipt = async (req, res) => {
     // Update with receipt path
     paymentRequest.receipt = `/uploads/receipts/${req.file.filename}`;
     await paymentRequest.save();
-
+const admins = await User.findAll({ where: { role: 'admin' } }); // Fetch all admins
+if(admins.length > 0){await Promise.all(
+  admins.map((admin) =>
+    sendNotificationHelper({
+      adminId: admin.id,
+      title: 'New Payment Receipt',
+      body: `A new payment receipt has been uploaded by tenant. Please check the payment requests page for more details.`,
+      type: 'New Payment Receipt',
+      receiver_type: 'staff',
+    })
+  )
+);}
     res.status(200).json({ message: 'Receipt uploaded successfully', data: paymentRequest });
   } catch (error) {
     console.error('Error uploading receipt:', error);

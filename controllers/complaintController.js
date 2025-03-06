@@ -1,7 +1,7 @@
 const Complaint =require ('../models/complaint.js');
-const Tenant=require('../models/tenant.js');
+const Tenant = require('../models/tenant.js');
 const sendNotificationHelper= require('../helpers/sendAlert');
-const User=require('../models/user.js');
+const User = require('../models/user.js');
 
 // Create a new complaint with multiple image uploads
 const createComplaint = async (req, res) => {
