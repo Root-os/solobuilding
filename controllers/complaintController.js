@@ -38,7 +38,7 @@ const createComplaint = async (req, res) => {
             title: 'New Complaint from Tenant',
             body: `A new complaint has been submitted by ${tenant.fullName}. Please check the complaints page for more details.`,
             type: 'New Complaint',
-            receiver_type: 'admin',
+            receiver_type: 'staff',
           })
         )
       );
@@ -68,7 +68,7 @@ const createComplaint = async (req, res) => {
 };
 
 // Assign a complaint to an employee
- const assignComplaint = async (req, res) => {
+const assignComplaint = async (req, res) => {
   try {
     const { complaintId, employeeId } = req.body;
     const complaint = await Complaint.findByPk(complaintId);
@@ -77,15 +77,45 @@ const createComplaint = async (req, res) => {
       return res.status(404).json({ message: 'Complaint not found' });
     }
 
+    const assignedEmployee = await User.findByPk(employeeId);
+    if (!assignedEmployee) {
+      return res.status(404).json({ message: 'Assigned employee not found' });
+    }
+
     complaint.assignedEmployeeId = employeeId;
     complaint.status = 'in_progress';
     await complaint.save();
+
+    const tenant = await Tenant.findByPk(complaint.tenantId);
+    if (!tenant) {
+      return res.status(404).json({ message: 'Tenant not found' });
+    }
+
+    // Send notifications concurrently
+    await Promise.all([
+      sendNotificationHelper({
+        adminId: employeeId, // Employee receives the notification
+        title: 'New Complaint Assigned',
+        body: `A new complaint has been assigned to you. Please check the complaints page for more details.`,
+        type: 'New Complaint',
+        receiver_type: 'staff',
+      }),
+
+      sendNotificationHelper({
+        adminId: tenant.id, // Tenant receives the notification
+        title: 'Your Complaint is Processing',
+        body: `Your complaint has been assigned to ${assignedEmployee.fname} ${assignedEmployee.lname}. The employee will visit you soon.`,
+        type: 'Complaint Processing',
+        receiver_type: 'tenant',
+      }),
+    ]);
 
     res.status(200).json({ message: 'Complaint assigned successfully', complaint });
   } catch (error) {
     res.status(500).json({ message: 'Error assigning complaint', error: error.message });
   }
 };
+
 
 
 // Update complaint status
