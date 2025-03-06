@@ -8,7 +8,7 @@ const createNotificationForUser = async (req, res) => {
   try {
     const { error } = await notificationSchema.validateAsync(req.body);
     if (error) return res.status(400).json({ message: error.details[0].message });
-    const { receiver_id, receiver_type, senderId, title, body, type_id } = req.body;
+    const { receiver_id, receiver_type,  title, body, type_id } = req.body;
 
     let receiver;
     if (receiver_type === "staff") {
@@ -22,12 +22,11 @@ const createNotificationForUser = async (req, res) => {
     if (!receiver) return res.status(404).json({ message: "Receiver not found" });
 
     const notification = await Notification.create({
-      senderId,
       receiver_id,
       receiver_type,
       title,
       body,
-      notificationTypeId: type_id,
+     type_id,
     });
 
     return res.status(201).json({ status: "success", message: "Notification created successfully", notification });
@@ -40,7 +39,7 @@ const createNotificationForUser = async (req, res) => {
 // Create notification for all tenants or employees
 const createNotificationForGroup = async (req, res) => {
   try {
-    const { title, body, type_id, receiver_type, senderId } = req.body;
+    const { title, body, type_id, receiver_type } = req.body;
     if (!title || !body || !type_id || !receiver_type) {
       return res.status(400).json({ message: "Title, body, type_id, and receiver_type are required." });
     }
@@ -57,7 +56,6 @@ const createNotificationForGroup = async (req, res) => {
     await Promise.all(receivers.map(async (receiver) => {
       try {
         await Notification.create({
-          senderId,
           receiver_id: receiver.id,
           receiver_type,
           title,
@@ -101,9 +99,13 @@ const fetchNotificationById = async (req, res) => {
     const notification = await Notification.findByPk(req.params.id, {
       include: [
         { model: NotificationType, as: "type", attributes: ["id", "name"] },
-        { model: User, as: "sender", attributes: ["id", "name", "email"] },
-        { model: User, as: "receiverStaff", attributes: ["id", "name", "email"], required: false },
-        { model: Tenant, as: "receiverTenant", attributes: ["id", "name", "email"], required: false },
+        { model: User, 
+           attributes: ["id", "name", "email"], required: false,
+           where: { '$receiverStaff.receiver_type$': 'staff' }, },
+        { model: Tenant, 
+          attributes: ["id", "name", "email"], required: false,
+          where: { '$receiverTenant.receiver_type$': 'tenant' },
+         },
       ],
     });
 
@@ -166,12 +168,23 @@ const getAllNotifications = async (req, res) => {
       order: [["createdAt", "DESC"]],
       include: [
         { model: NotificationType, as: "type", attributes: ["id", "name"] },
-        // { model: User, as: "sender", attributes: ["id", "name", "email"] },
-        { model: User, as: "receiverStaff", attributes: ["id", "name", "email"], required: false },
-        { model: Tenant, as: "receiverTenant", attributes: ["id", "name", "email"], required: false },
+        {
+          model: User,
+          attributes: ["id", "fname", "lname", "email"],
+          required: false,
+          as: "receiverStaff",
+          where: Sequelize.literal('Notification.receiver_type = "staff" AND Notification.receiver_id = User.id'),
+        },
+        {
+          model: Tenant,
+          attributes: ["id", "fullName", "email"],
+          required: false,
+          as: "receiverTenant",
+          where: Sequelize.literal('Notification.receiver_type = "tenant" AND Notification.receiver_id = Tenant.id'),
+        },
       ],
     });
-
+    
     return res.status(200).json(notifications);
   } catch (error) {
     return res.status(500).json({ status: "error", message: `Failed to fetch notifications: ${error.message}` });

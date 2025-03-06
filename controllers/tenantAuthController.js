@@ -130,7 +130,7 @@ exports.resetPassword = async (req, res) => {
 // Get Tenant Profile
 exports.getProfile = async (req, res) => {
   try {
-    const tenant = await Tenant.findByPk(req.tenant.id, { attributes: { exclude: ['password'] } });
+    const tenant = await Tenant.findByPk(req.user.id, { attributes: { exclude: ['password'] } });
     res.status(200).json({ success: true, tenant });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to fetch profile', error: error.message });
@@ -141,7 +141,7 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const { fullName, phoneNumber } = req.body;
-    const tenant = await Tenant.findByPk(req.tenant.id);
+    const tenant = await Tenant.findByPk(req.user.id);
 
     if (!tenant) {
       return res.status(404).json({ success: false, message: 'Tenant not found' });
