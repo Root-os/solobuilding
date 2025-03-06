@@ -33,7 +33,11 @@ const Tenant=require('../models/tenant.js');
  const getAllComplaints = async (req, res) => {
   try {
     const complaints = await Complaint.findAll(
-      { include: { model: Tenant, as: 'tenant' } }
+      {
+         include: { 
+          model: Tenant,attributes: ['fullName', 'email', 'phoneNumber']
+          },
+     }
     );
     res.status(200).json(complaints);
   } catch (error) {
@@ -131,7 +135,7 @@ const getSingleComplaint = async (req, res) => {
   try {
     const { complaintId } = req.params;
     const complaint = await Complaint.findByPk(complaintId
-      , { include: { model: Tenant, as: 'tenant' } }
+      , { include: { model: Tenant,attributes: ['fullName', 'email', 'phoneNumber'] } }
     );
 
     if (!complaint) {
@@ -147,8 +151,7 @@ const getTenantComplaints = async (req, res) => {
   try {
     const { tenantId } = req.params;
     const complaints = await Complaint.findAll({ where: { tenantId } }
-      , { include: { model: Tenant, as
-        : 'tenant' } }
+      , { include: { model: Tenant,attributes: ['fullName', 'email', 'phoneNumber'] } }
     );
 
     res.status(200).json(complaints);
@@ -159,21 +162,35 @@ const getTenantComplaints = async (req, res) => {
 const getAssignedComplaints = async (req, res) => {
   try {
     const { employeeId } = req.params;
-    const complaints = await Complaint.findAll({ where: { assignedEmployeeId: employeeId } });
+    const complaints = await Complaint.findAll({
+      where: { assignedEmployeeId: employeeId },
+      include: [
+        {
+          model: Tenant,
+          attributes: ['fullName', 'email', 'phoneNumber'],
+        },
+        {
+          model: User,
+          attributes: ['fname', 'lname', 'email', 'phoneNumber'],
+          as: 'assignedEmployee',
+        },
+      ],
+    });
 
     res.status(200).json(complaints);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching complaints', error: error.message });
   }
 };
+
 module.exports={
 createComplaint,
- getAllComplaints,
- assignComplaint,
- updateComplaintStatus,
- confirmComplaintResolution,
- deleteComplaint,
-  getSingleComplaint,
-  getTenantComplaints,
-  getAssignedComplaints,
+getAllComplaints,
+assignComplaint,
+updateComplaintStatus,
+confirmComplaintResolution,
+deleteComplaint,
+getSingleComplaint,
+getTenantComplaints,
+getAssignedComplaints,
 }
