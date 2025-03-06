@@ -13,6 +13,10 @@ exports.createUnit = async (req, res) => {
     if (existingUnit) {
       return res.status(400).json({ error: "Unit number must be unique." });
     }
+    const floor = await Floor.findByPk(req.body.floorId);
+    if (!floor) {
+      return res.status(404).json({ error: "Floor not found." });
+    } 
 
     const unit = await Unit.create(req.body);
     res.status(201).json(unit);
