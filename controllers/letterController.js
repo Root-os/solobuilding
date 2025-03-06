@@ -1,7 +1,9 @@
 const { Letter } = require('../models'); 
 const Tenant = require('../models/tenant');
 const LetterType = require('../models/letterType');
-const {letterValidationSchema} = require('../helpers/schema');  
+const {letterValidationSchema} = require('../helpers/schema');
+const Notification = require('../models/notification');
+const NotificationType = require('../models/notificationType');
 
 // Create a Letter
 exports.createLetter = async (req, res) => {
@@ -12,6 +14,7 @@ exports.createLetter = async (req, res) => {
     }
 
     const { letterTypeId, tenantId, Date, description } = req.body;
+    
 
     const tenant = await Tenant.findByPk(tenantId);
     if (!tenant) {
@@ -31,8 +34,25 @@ exports.createLetter = async (req, res) => {
       description,
       status: "Sent",
     });
+    if(newLetter){
+      let notificationType = await NotificationType.findOne({
+        where: { name: "New Letter" },
+      });
+      if (!notificationType) {
+        notificationType = await NotificationType.create({
+          name: "New Letter",
+        });
+      }
+      const notification = await Notification.create({
+        receiver_id: tenantId,
+        receiver_type: "tenant",
+        title: "New Letter",
+        body: `You have received a new letter from the management`,
+        type_id: notificationType.id,
+      });
+    }
 
-    return res.status(201).json({ message: "Letter created successfully", newLetter });
+    return res.status(201).json({ message: "Letter created successfully", newLetter, notification });
   } catch (error) {
     return res.status(500).json({ message: "Error creating letter", error: error.message });
   }
