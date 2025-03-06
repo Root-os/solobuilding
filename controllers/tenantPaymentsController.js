@@ -10,7 +10,10 @@ const { Op } = require('sequelize');
 exports.createPayment = async (req, res) => {
   try {
     const { tenantId, billPaymentTypeId, amount, startDate, endDate, status } = req.body;
-    const payment = await TenantPayment.create({ tenantId, billPaymentTypeId, amount, startDate, endDate, status });
+    if(!tenantId || !billPaymentTypeId || !amount || !startDate || !endDate) {
+      return res.status(400).json({ message: 'Please provide all required fields' });
+    }
+    const payment = await TenantPayment.create({ tenantId, paymentTypeId:billPaymentTypeId, amount, startDate, endDate, status });
     res.status(201).json(payment);
   } catch (error) {
     res.status(500).json({ message: 'Error creating payment', error });
@@ -155,7 +158,7 @@ exports.updatePayment = async (req, res) => {
     const payment = await TenantPayment.findByPk(id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
 
-    await payment.update({ tenantId, billPaymentTypeId, amount, startDate, endDate, status });
+    await payment.update({ tenantId, paymentTypeId:billPaymentTypeId, amount, startDate, endDate, status });
     res.status(200).json(payment);
   } catch (error) {
     res.status(500).json({ message: 'Error updating payment', error });
@@ -195,7 +198,7 @@ exports.getTenantPaymentsReport = async (req, res) => {
 
       // Filter by bill type
       if (billPaymentTypeId) {
-          whereCondition.billPaymentTypeId = billPaymentTypeId;
+          whereCondition.paymentTypeId = billPaymentTypeId;
       }
 
       // Filter by tenant ID
