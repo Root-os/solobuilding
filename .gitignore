@@ -30,3 +30,5 @@ uploads/
 .htaccess
 *.rar
 *.yaml
+package-lock.json
+yarn.lock
