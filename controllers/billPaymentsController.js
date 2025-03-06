@@ -3,6 +3,7 @@ const { Op } = require("sequelize");
 const BillPayment = require("../models/billPayment");
 const BillType = require("../models/billType");
 const  Expense  = require('../models/expense');
+const ExpenseType = require('../models/expenseType')
 
 
 exports.createBillPayment = async (req, res) => {
@@ -24,15 +25,21 @@ exports.createBillPayment = async (req, res) => {
     // Create the BillPayment
     const billPayment = await BillPayment.create(req.body);
 
-
+    const type = billType.typeName;
+    
+    let expenseType= await ExpenseType.findOne({ where: { name: type } });
+    if (!expenseType) {
+        expenseType = await ExpenseType.create({ name: type, description: `Expense type for ${type}` });
+        console.log(`Created new notification type: ${type}`);
+      }
     // Create the corresponding Expense
     const expense = await Expense.create({
       amount, 
        date: new Date(),  
       description: `Bill payment for ${description}`,
-      expenseTypeId: billTypeId,
+      expenseTypeId: expenseType.id,
     });
-
+    
     return res.status(201).json({
       message: "Bill payment and corresponding expense created successfully",
       billPayment,
