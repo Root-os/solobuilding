@@ -24,13 +24,13 @@ exports.createBillPayment = async (req, res) => {
     // Create the BillPayment
     const billPayment = await BillPayment.create(req.body);
 
+
     // Create the corresponding Expense
     const expense = await Expense.create({
       amount, 
        date: new Date(),  
       description: `Bill payment for ${description}`,
-
-      expenseTypeId: billTypeId,  // Assuming the BillPayment has a relation to ExpenseType
+      expenseTypeId: billTypeId,
     });
 
     return res.status(201).json({
