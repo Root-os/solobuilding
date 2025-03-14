@@ -14,7 +14,7 @@ const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
-const PORT = config.PORT?? 3000;
+const PORT =  3000;
 
 // Security & Performance Middlewares
 app.use(helmet());
@@ -48,7 +48,7 @@ connectDB();
 defineAssociation(); // Define associations before syncing models
 
 
-sequelize.sync({alter: false})
+sequelize.sync({alter: true})
   .then(() => {
     console.log('Database & tables are up to date!');
   })

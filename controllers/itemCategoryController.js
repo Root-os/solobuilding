@@ -8,7 +8,7 @@ exports.createItemCategory = async (req, res) => {
     // Check if ItemCategory already exists
     const existingItemCategory = await ItemCategory.findOne({ where: { categoryName } });
     if (existingItemCategory) {
-      return res.status(400).json({ message: "Item type already exists." });
+      return res.status(400).json({ message: "Item category already exists." });
     }
 
     const itemCategory = await ItemCategory.create({ categoryName, description });

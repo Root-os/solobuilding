@@ -47,5 +47,8 @@ router.use("/stockout", require("./stockoutRoutes"));
 router.use('/letter-type', require('./letterTypeRoute'));
 router.use('/letter', require('./letterRoute'));
 
+//asset
+router.use('/asset-type', require('./assetTypeRoute'));
+
 
 module.exports = router;
