@@ -49,6 +49,7 @@ router.use('/letter', require('./letterRoute'));
 
 //asset
 router.use('/asset-type', require('./assetTypeRoute'));
+router.use('/asset-audits', require('./assetRoutes'));
 
 
 module.exports = router;

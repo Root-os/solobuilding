@@ -48,7 +48,7 @@ connectDB();
 defineAssociation(); // Define associations before syncing models
 
 
-sequelize.sync({alter: true})
+sequelize.sync({alter: false})
   .then(() => {
     console.log('Database & tables are up to date!');
   })
