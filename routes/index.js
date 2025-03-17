@@ -48,7 +48,7 @@ router.use('/letter-type', require('./letterTypeRoute'));
 router.use('/letter', require('./letterRoute'));
 
 //asset
-router.use('/asset-type', require('./assetTypeRoute'));
+router.use('/asset', require('./assetTypeRoute'));
 router.use('/asset-audits', require('./assetRoutes'));
 
 
