@@ -10,5 +10,7 @@ router.get("/category/:id", itemController.getItemByCategoryId);
 router.put("/:id", itemController.updateItem); // Update item
 router.delete("/:id", itemController.deleteItem); // Delete item
 router.delete("/expired-items", itemController.getExpiredItems); // Delete item
+router.get('/:itemId/audit-history', itemController.getAssetAuditHistoryForItem);
+
 
 module.exports = router;

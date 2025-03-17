@@ -253,7 +253,7 @@ exports.getAssetAuditsByStatusAndDateRange = async (req, res) => {
     const { status, startDate, endDate } = req.body;
 
     // Log incoming request data
-    console.log('Received parameters:', { status, startDate, endDate });
+    // console.log('Received parameters:', { status, startDate, endDate });
 
     // Validate input
     if (!status || !startDate || !endDate) {

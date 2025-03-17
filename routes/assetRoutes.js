@@ -8,7 +8,7 @@ const {
   deleteAssetAudit,
   getAssetAuditsByDate,
   getAssetAuditsByStatus,
-  getAssetAuditsByStatusAndDateRange
+  getAssetAuditsByStatusAndDateRange,
 } = require('../controllers/assetController');
 
 router.post('/', createAssetAudit);
