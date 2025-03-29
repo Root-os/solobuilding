@@ -374,7 +374,6 @@ const purchaseValidationSchema = Joi.object({
   amount: Joi.number().positive().precision(2).required(),
   date: Joi.date().required(),
   price: Joi.number().positive().precision(2).required(),
-  totalPrice: Joi.number().positive().precision(2).required(),
   description: Joi.string().optional().allow(null),
   expirationDate: Joi.date().optional().allow(null),
   itemId: Joi.number().integer().required(),
@@ -384,7 +383,6 @@ const purchaseValidationSchema = Joi.object({
 const purchaseRequestValidationSchema = Joi.object({
   itemId: Joi.number().integer().required(),
   requestedBy: Joi.number().integer().required(),
-  status: Joi.string().valid("pending", "approved", "rejected").required(),
   amount: Joi.number().positive().precision(2).required(),
   requestDate: Joi.date().required(),
   reason: Joi.string().optional().allow(null),
@@ -458,11 +456,34 @@ const letterTypeValidationSchema = Joi.object({
 const letterValidationSchema = Joi.object({
   letterTypeId: Joi.number().integer().required(), 
   tenantId: Joi.number().integer().required(), 
-  Date: Joi.date().required(), 
+  letterDate: Joi.date().required(), 
   description: Joi.string().required(),   
 });
+//orderType validation
+const orderTypeValidationSchema = Joi.object({
+  name: Joi.string().max(255).required(),
+  description: Joi.string().optional().allow(''),
+  price: Joi.number().positive().required(),
+});
+// order validation
+const orderValidationSchema = Joi.object({
+  orderDate: Joi.date().required(),
+  amount: Joi.number().positive().precision(2).required(),
+  status: Joi.string().valid('pending', 'completed', 'canceled').optional(),
+  notes: Joi.string().optional().allow(''),
+  receiptImage: Joi.string().optional().allow(''),
+  orderTypeId: Joi.number().integer().positive().required(),
+});
+
+// { startDate, endDate } validation
+  const dayBetweenQuerySchema = Joi.object({
+    startDate: Joi.date().optional(),
+    endDate: Joi.date().optional().greater(Joi.ref('startDate')),
+  });
+
 
 module.exports = {
+  dayBetweenQuerySchema,
   UpdateinventorySchema,
   inventorySchema,
   stockOutSchema,
@@ -520,6 +541,8 @@ module.exports = {
     returnValidationSchema,
     vendorValidationSchema,
     letterTypeValidationSchema,
-    letterValidationSchema
+    letterValidationSchema,
+    orderTypeValidationSchema,
+    orderValidationSchema,
   };
   

@@ -52,15 +52,22 @@ const createComplaint = async (req, res) => {
 
 
 // Get all complaints (admin view)
- const getAllComplaints = async (req, res) => {
+const getAllComplaints = async (req, res) => {
   try {
-    const complaints = await Complaint.findAll(
-      {
-         include: { 
-          model: Tenant,attributes: ['fullName', 'email', 'phoneNumber']
-          },
-     }
-    );
+    const complaints = await Complaint.findAll({
+      include: [
+        {
+          model: Tenant,
+          attributes: ['fullName', 'email', 'phoneNumber'],
+        },
+        {
+          model: User, // Including the assigned employee
+          attributes: ['fname', 'lname'], // Fetch 'fname' and 'lname' from the 'User' model
+          as: 'assignedEmployee', // Alias to link with the assigned employee
+        },
+      ],
+    });
+
     res.status(200).json(complaints);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching complaints', error: error.message });
@@ -82,6 +89,7 @@ const assignComplaint = async (req, res) => {
       return res.status(404).json({ message: 'Assigned employee not found' });
     }
 
+    // Assign employee to the complaint and set status
     complaint.assignedEmployeeId = employeeId;
     complaint.status = 'in_progress';
     await complaint.save();
@@ -110,14 +118,25 @@ const assignComplaint = async (req, res) => {
       }),
     ]);
 
-    res.status(200).json({ message: 'Complaint assigned successfully', complaint });
+    // Send the complaint along with the assigned employee information in the response
+    res.status(200).json({
+      message: 'Complaint assigned successfully',
+      complaint: {
+        ...complaint.toJSON(),  // Convert complaint to plain object
+        assignedEmployee: {
+          id: assignedEmployee.id,
+          fname: assignedEmployee.fname,
+          lname: assignedEmployee.lname,
+          email: assignedEmployee.email,  // Add any other relevant details
+          phoneNumber: assignedEmployee.phoneNumber,
+        },
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error assigning complaint', error: error.message });
   }
 };
-
-
-
+ 
 // Update complaint status
  const updateComplaintStatus = async (req, res) => {
   try {
@@ -223,7 +242,7 @@ const getAssignedComplaints = async (req, res) => {
         },
         {
           model: User,
-          attributes: ['fname', 'lname', 'email', 'phoneNumber'],
+          attributes: ['fname', 'lname', 'email'],
           as: 'assignedEmployee',
         },
       ],

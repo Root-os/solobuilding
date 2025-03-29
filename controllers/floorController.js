@@ -34,7 +34,7 @@ exports.getAllFloors = async (req, res) => {
 
       return {
         id: floor.id,
-        name: floor.floorNumber,
+        floorNumber: floor.floorNumber,
         totalUnits,
         rentedUnits,
         freeUnits,

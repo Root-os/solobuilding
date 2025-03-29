@@ -113,7 +113,7 @@ exports.addParking = async (req, res) => {
             timeIn,
             timeOut:timeOut || null, // Default timeOut is null
             isTenant,
-            status: status || 'onparking' // Default status if not provided
+            status: 'parkingcomplete' || 'onparking' 
         });
 
         return res.status(201).json(parking);
