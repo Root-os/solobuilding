@@ -48,17 +48,37 @@ exports.createChargingSession = async (req, res) => {
 };
 
 // 2. Update the charging session (set price, charging end time, etc.)
+        const moment = require('moment');  // Importing moment.js for time calculations
+
+// 2. Update the charging session (set price, charging end time, etc.)
 exports.updateChargingSession = async (req, res) => {
     try {
         const chargingSessionId = req.params.id;
-        const { chargingEndTime, status,chargingCost } = req.body;
+        const { chargingEndTime, status } = req.body;
 
         const chargingSession = await ElectricCarCharging.findByPk(chargingSessionId);
         if (!chargingSession) {
             return res.status(404).json({ message: 'Charging session not found.' });
         }
 
-        // Update the charging session with the end time, cost, and status
+        // Check if chargingEndTime is provided
+        if (!chargingEndTime) {
+            return res.status(400).json({ message: 'Charging end time is required.' });
+        }
+
+        // Calculate the duration in minutes between chargingStartTime and chargingEndTime
+        const startTime = moment(chargingSession.chargingStartTime);
+        const endTime = moment(chargingEndTime);
+        const durationInMinutes = endTime.diff(startTime, 'minutes');  // Difference in minutes
+
+        if (durationInMinutes <= 0) {
+            return res.status(400).json({ message: 'End time must be later than start time.' });
+        }
+
+        // Calculate the charging cost (e.g., $10 per minute)
+        const chargingCost = durationInMinutes * 10;
+
+        // Update the charging session with the end time, calculated cost, and status
         const updatedChargingSession = await chargingSession.update({
             chargingEndTime,
             chargingCost,

@@ -3,6 +3,7 @@ const NotificationType = require("../models/notificationType");
 const User = require("../models/user");
 const Tenant = require("../models/tenant");
 const {notificationSchema}=require('../helpers/schema')
+const { Sequelize } = require('sequelize');
 // Create notification for a specific user or tenant
 const createNotificationForUser = async (req, res) => {
   try {
@@ -156,13 +157,15 @@ const markAsRead = async (req, res) => {
 // Get all notifications (Admin)
 const getAllNotifications = async (req, res) => {
   try {
+    // Ensure the user has admin role
     if (req.user.role !== "admin") return res.status(403).json({ message: "Access denied." });
 
-    const {  type } = req.query;
+    const { type } = req.query;
     const whereClause = {};
 
     if (type) whereClause.type_id = type;
 
+    // Fetch notifications with conditional joins based on receiver_type
     const notifications = await Notification.findAndCountAll({
       where: whereClause,
       order: [["createdAt", "DESC"]],
@@ -173,18 +176,40 @@ const getAllNotifications = async (req, res) => {
           attributes: ["id", "fname", "lname", "email"],
           required: false,
           as: "receiverStaff",
-          where: Sequelize.literal('Notification.receiver_type = "staff" AND Notification.receiver_id = User.id'),
+          where: Sequelize.where(
+            Sequelize.col('Notification.receiver_type'),
+            'staff'
+          ),
+          // Ensure the correct user is matched with the notification's receiver_id
+          include: {
+            model: Notification,
+            where: {
+              receiver_id: Sequelize.col('User.id'),
+            },
+            required: false,
+          },
         },
         {
           model: Tenant,
           attributes: ["id", "fullName", "email"],
           required: false,
           as: "receiverTenant",
-          where: Sequelize.literal('Notification.receiver_type = "tenant" AND Notification.receiver_id = Tenant.id'),
+          where: Sequelize.where(
+            Sequelize.col('Notification.receiver_type'),
+            'tenant'
+          ),
+          // Ensure the correct tenant is matched with the notification's receiver_id
+          include: {
+            model: Notification,
+            where: {
+              receiver_id: Sequelize.col('Tenant.id'),
+            },
+            required: false,
+          },
         },
       ],
     });
-    
+
     return res.status(200).json(notifications);
   } catch (error) {
     return res.status(500).json({ status: "error", message: `Failed to fetch notifications: ${error.message}` });

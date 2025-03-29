@@ -217,21 +217,21 @@ exports.uploadReceipt = async (req, res) => {
     // Update with receipt path
     paymentRequest.receipt = `/uploads/receipts/${req.file.filename}`;
     await paymentRequest.save();
-const admins = await User.findAll({ where: { role: 'admin' } }); // Fetch all admins
-if(admins.length > 0){await Promise.all(
-  admins.map((admin) =>
-    sendNotificationHelper({
-      adminId: admin.id,
-      title: 'New Payment Receipt',
-      body: `A new payment receipt has been uploaded by tenant. Please check the payment requests page for more details.`,
-      type: 'New Payment Receipt',
-      receiver_type: 'staff',
-    })
-  )
-);}
-    res.status(200).json({ message: 'Receipt uploaded successfully', data: paymentRequest });
-  } catch (error) {
-    console.error('Error uploading receipt:', error);
-    res.status(500).json({ message: 'Error uploading receipt', error: error.message });
-  }
-};
+    const admins = await User.findAll({ where: { role: 'admin' } }); // Fetch all admins
+    if(admins.length > 0){await Promise.all(
+      admins.map((admin) =>
+        sendNotificationHelper({
+          adminId: admin.id,
+          title: 'New Payment Receipt',
+          body: `A new payment receipt has been uploaded by tenant. Please check the payment requests page for more details.`,
+          type: 'New Payment Receipt',
+          receiver_type: 'staff',
+        })
+      )
+    );}
+        res.status(200).json({ message: 'Receipt uploaded successfully', data: paymentRequest });
+      } catch (error) {
+        console.error('Error uploading receipt:', error);
+        res.status(500).json({ message: 'Error uploading receipt', error: error.message });
+      }
+    };
