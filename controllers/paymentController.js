@@ -1,5 +1,5 @@
 const Payment = require("../models/payment");
-const Vendor = require("../models/vendor");
+const Vendor = require("../models/Vendor");
 const Purchase = require("../models/Purchase");
 const { paymentValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
@@ -42,17 +42,23 @@ exports.createPayment = async (req, res) => {
   }
 };
 
-// Get All Payments
+
 exports.getAllPayments = async (req, res) => {
   try {
     const payments = await Payment.findAll({
-      include: [Vendor],
+      include: [
+        {
+          model: Vendor,
+          attributes: ["id", "fname", "lname"], // Correctly place attributes inside the Vendor model
+        },
+      ],
     });
     res.status(200).json(payments);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // Get Payment by ID
 exports.getPaymentById = async (req, res) => {

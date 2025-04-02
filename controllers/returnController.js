@@ -1,5 +1,5 @@
 const Return = require("../models/return");
-const Vendor = require("../models/vendor");
+const Vendor = require("../models/Vendor");
 const Item = require("../models/item");
 const { returnValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");

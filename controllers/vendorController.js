@@ -1,6 +1,6 @@
-const Vendor = require("../models/vendor");
-const ServiceType = require("../models/serviceType");
-const { vendorValidationSchema } = require("../helpers/schema");
+const Vendor = require("../models/Vendor");
+const ServiceType = require("../models/ServiceType");
+const { vendorUpdateSchema, vendorValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
 
 
@@ -97,10 +97,13 @@ exports.getVendorById = async (req, res) => {
 
 exports.updateVendor = async (req, res) => {
   try {
-    // Validate request body with Joi
-    const { error } = vendorValidationSchema.validate(req.body);
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('Request body:', req.body);
+    console.log('File:', req.file);
+    // Validate request body with Joi using the update schema
+    const { error } = vendorUpdateSchema.validate(req.body, { abortEarly: false });
     if (error) {
-      return res.status(400).json({ message: error.details[0].message });
+      return res.status(400).json({ message: error.details.map(detail => detail.message).join(', ') });
     }
 
     const {
@@ -112,13 +115,7 @@ exports.updateVendor = async (req, res) => {
       contractTerms,
       serviceTypeId,
     } = req.body;
-
-    // Validate that required fields are provided
-    if (!fname || !lname || !phone || !serviceTypeId) {
-      return res.status(400).json({
-        message: "Required fields are missing: fname, lname, phone, serviceTypeId",
-      });
-    }
+    
 
     // Validate request params with Joi
     const { error: errorId } = paramsSchema.validate(req.params);
@@ -132,16 +129,15 @@ exports.updateVendor = async (req, res) => {
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    // Update vendor fields, handle optional contractTerms field
-    vendor.fname = fname;
-    vendor.lname = lname;
-    vendor.phone = phone;
-    vendor.email = email;
-    vendor.address = address;
-    vendor.contractTerms = req.file
-      ? req.file.path
-      : contractTerms || vendor.contractTerms; // Keep existing contractTerms if not provided
-    vendor.serviceTypeId = serviceTypeId;
+    // Update only the fields provided in the request
+    if (fname !== undefined) vendor.fname = fname;
+    if (lname !== undefined) vendor.lname = lname;
+    if (phone !== undefined) vendor.phone = phone;
+    if (email !== undefined) vendor.email = email;
+    if (address !== undefined) vendor.address = address;
+    if (req.file) vendor.contractTerms = req.file.path;
+    else if (contractTerms !== undefined) vendor.contractTerms = contractTerms;
+    if (serviceTypeId !== undefined) vendor.serviceTypeId = serviceTypeId;
 
     // Save updated vendor
     await vendor.save();
