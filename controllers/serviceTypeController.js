@@ -1,4 +1,4 @@
-const ServiceType = require("../models/serviceType");
+const ServiceType = require("../models/ServiceType");
 const { serviceTypeValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
 

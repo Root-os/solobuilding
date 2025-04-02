@@ -1,6 +1,8 @@
 const Setting = require("../models/setting");
 
 // Create Setting
+require('dotenv').config(); // Make sure you load environment variables
+
 exports.createSetting = async (req, res) => {
     try {
         const { 
@@ -17,10 +19,11 @@ exports.createSetting = async (req, res) => {
 
         if (req.files) {
             if (req.files.logos) {
-                logoPath = req.files.logos[0].path;
+                // Generate full URL using BASE_URL from the environment variable
+                logoPath = `${process.env.BASE_URL}/uploads/setting/${req.files.logos[0].filename}`;
             }
             if (req.files.seal) {
-                sealPath = req.files.seal[0].path;
+                sealPath = `${process.env.BASE_URL}/uploads/setting/${req.files.seal[0].filename}`;
             }
         }
 
@@ -46,7 +49,6 @@ exports.createSetting = async (req, res) => {
     }
 };
 
-
 // Update Setting
 exports.updateSetting = async (req, res) => {
     try {
@@ -67,28 +69,33 @@ exports.updateSetting = async (req, res) => {
         // Handle file uploads for logos and seal
         if (req.files) {
             if (req.files.logos) {
-                setting.logos = req.files.logos[0].path;
+                // Generate full URL using BASE_URL from the environment variable for logos
+                setting.logos = `${process.env.BASE_URL}/uploads/setting/${req.files.logos[0].filename}`;
             }
             if (req.files.seal) {
-                setting.seal = req.files.seal[0].path;
+                // Generate full URL using BASE_URL from the environment variable for seal
+                setting.seal = `${process.env.BASE_URL}/uploads/setting/${req.files.seal[0].filename}`;
             }
         }
 
-        // Update only provided fields, keep existing values for unspecified fields
-        setting.buildingName = buildingName !== undefined ? buildingName : setting.buildingName;
-        setting.buildingAddress = buildingAddress !== undefined ? buildingAddress : setting.buildingAddress;
-        setting.email = email !== undefined ? email : setting.email;
-        setting.phoneNumber = phoneNumber !== undefined ? phoneNumber : setting.phoneNumber;
-        setting.postOfficeAddress = postOfficeAddress !== undefined ? postOfficeAddress : setting.postOfficeAddress;
+        // Update other fields if provided, keep existing values for unspecified fields
+        setting.buildingName = buildingName || setting.buildingName;
+        setting.buildingAddress =  buildingAddress || setting.buildingAddress;
+        setting.email = email || setting.email;
+        setting.phoneNumber =  phoneNumber || setting.phoneNumber;
+        setting.postOfficeAddress = postOfficeAddress || setting.postOfficeAddress;
 
+        // Save the updated setting
         await setting.save();
 
+        // Retrieve the updated setting with the full URL for logos and seal
         const updatedSetting = await Setting.findOne({ 
             where: { id: setting.id },
             attributes: ['id', 'buildingName', 'buildingAddress', 'email', 'phoneNumber', 
                         'postOfficeAddress', 'logos', 'seal', 'createdAt', 'updatedAt']
         });
 
+        // Respond with the updated setting
         res.status(200).json(updatedSetting);
     } catch (error) {
         res.status(500).json({ message: "Error updating setting", error: error.message });

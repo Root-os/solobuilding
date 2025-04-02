@@ -12,7 +12,14 @@ exports.createLetter = async (req, res) => {
       return res.status(400).json({ message: error.details[0].message });
     }
 
-    const { letterTypeId, tenantId, Date, description } = req.body;
+    let { letterTypeId, tenantId, Date, description } = req.body;
+
+    // Parse the Date field to a valid Date object if necessary
+    Date = new Date(Date);  // Ensure that Date is a valid Date object
+
+    if (isNaN(Date.getTime())) {  // If the Date is invalid
+      return res.status(400).json({ message: "Invalid date format" });
+    }
 
     const tenant = await Tenant.findByPk(tenantId);
     if (!tenant) {
@@ -33,17 +40,16 @@ exports.createLetter = async (req, res) => {
     });
 
     let notification;
-    if(newLetter){
+    if (newLetter) {
       const formattedDate = new Date(newLetter.Date).toLocaleDateString();
 
-       notification = await sendNotificationHelper({
+      notification = await sendNotificationHelper({
         adminId: tenant.id,
         title: `Dear ${tenant.fullName} you have New Letter`,
         body: `You have received a new letter from the management on ${formattedDate}. Please check your dashboard for more details.`,
         type: "New Letter",
         receiver_type: "tenant"
-    });
-    
+      });
     }
 
     return res.status(201).json({ message: "Letter created successfully", newLetter, notification });

@@ -424,7 +424,6 @@ exports.getTenantsWithExpiringLease = async (req, res) => {
     }
 
     res.status(200).json(processTenantDetails(tenants));
-
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -432,7 +431,7 @@ exports.getTenantsWithExpiringLease = async (req, res) => {
 
 
 const processTenantDetails = (tenants) => {
-  const baseUploadPath = path.join(__dirname, '../uploads'); // Path to your 'uploads' directory
+  const baseUploadPath = path.join(__dirname, '../uploads'); 
 
   return tenants.map(tenant => {
     const documentFullPath = tenant.document ? path.join(baseUploadPath, tenant.document) : null;

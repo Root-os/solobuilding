@@ -423,6 +423,18 @@ const vendorValidationSchema = Joi.object({
   contractTerms: Joi.string().optional(),
   serviceTypeId: Joi.number().integer().required(),
 });
+const vendorUpdateSchema = Joi.object({
+  fname: Joi.string().min(1).optional(),
+  lname: Joi.string().min(1).optional(),
+  phone: Joi.string().min(1).optional().messages({
+    'string.base': 'Phone must be a string',
+    'string.empty': 'Phone cannot be empty',
+  }),
+  email: Joi.string().email().optional(),
+  address: Joi.string().optional(),
+  contractTerms: Joi.string().optional(),
+  serviceTypeId: Joi.number().integer().optional(),
+}).min(1); // Ensure at least one field is provided
 const inventorySchema = Joi.object({
   tenantId: Joi.number().integer().required(),
   type: Joi.string().valid("move-in", "move-out").required(),
@@ -540,6 +552,7 @@ module.exports = {
     serviceTypeValidationSchema,
     returnValidationSchema,
     vendorValidationSchema,
+    vendorUpdateSchema,
     letterTypeValidationSchema,
     letterValidationSchema,
     orderTypeValidationSchema,
