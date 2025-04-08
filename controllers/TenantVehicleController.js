@@ -165,9 +165,6 @@ exports.getAllVehicles= async (req, res) => {
   }
 };
 
-
-
-
 exports.getVehiclesWithFilter = async (req, res) => {
   try {
     const { tenantId, startDate, endDate, color, carPlate } = req.query;

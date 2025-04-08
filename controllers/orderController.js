@@ -52,8 +52,8 @@ exports.getAllOrders = async (req, res) => {
   try {
     const orders = await Order.findAll({
       include: [
-        { model: Tenant },
-        { model: OrderType },
+        { model: Tenant }, // Include tenant details
+        { model: OrderType }, // Include order type details
       ],
     });
     res.status(200).json(orders);
@@ -61,6 +61,7 @@ exports.getAllOrders = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // Get Order by ID
 exports.getOrderById = async (req, res) => {
@@ -179,11 +180,74 @@ exports.updateOrder = async (req, res) => {
 
     await order.save(); // Save updated order
 
-    res.status(200).json(order);
+    // Include tenant and order type in the response
+    const updatedOrder = await Order.findByPk(order.id, {
+      include: [
+        { model: Tenant },
+        { model: OrderType },
+      ],
+    });
+
+    res.status(200).json(updatedOrder);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+// Approve Order
+exports.approveOrder = async (req, res) => {
+  try {
+    // Ensure the user is an admin (or adjust based on your logic)
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Unauthorized: Only admins can approve orders' });
+    }
+
+    // Extract order ID from URL params and status from the request body
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validate the incoming status to ensure it's one of the allowed values
+    if (!status || !['pending', 'completed', 'canceled'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status value. Allowed values are "pending", "completed", "canceled".' });
+    }
+
+    // Find the order by ID
+    const order = await Order.findByPk(id);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Update the order's status
+    order.status = status;
+
+    // Recalculate totalPrice if necessary (based on your logic)
+    if (order.amount || order.orderTypeId) {
+      const orderType = await OrderType.findByPk(order.orderTypeId);
+      if (orderType) {
+        order.totalprice = order.amount * orderType.price;
+      }
+    }
+
+    // Save the updated order
+    await order.save();
+
+    // Include tenant and order type in the response
+    const updatedOrder = await Order.findByPk(order.id, {
+      include: [
+        { model: Tenant },
+        { model: OrderType },
+      ],
+    });
+
+    res.status(200).json(updatedOrder);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 // Delete Order
 exports.deleteOrder = async (req, res) => {

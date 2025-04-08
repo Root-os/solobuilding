@@ -49,7 +49,7 @@ exports.getAllPayments = async (req, res) => {
       include: [
         {
           model: Vendor,
-          attributes: ["id", "fname", "lname"], // Correctly place attributes inside the Vendor model
+          attributes: ["id", "fname", "lname", "phone", "email","address"], // Correctly place attributes inside the Vendor model
         },
       ],
     });

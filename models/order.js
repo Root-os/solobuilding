@@ -1,5 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
+const OrderType = require("./orderType"); 
+const Tenant = require("./tenant");
 
 const Order = sequelize.define(
   "Order",
@@ -17,8 +19,8 @@ const Order = sequelize.define(
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
-    totalprice:{
-        type: DataTypes.DECIMAL(10, 2),
+    totalprice: {
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
     status: {
@@ -35,13 +37,13 @@ const Order = sequelize.define(
       allowNull: true,
     },
     tenantId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-      orderTypeId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    orderTypeId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
   },
   {
     tableName: "orders",
@@ -50,5 +52,10 @@ const Order = sequelize.define(
     collate: "utf8_general_ci",
   }
 );
+
+// Define the association: an Order belongs to an OrderType
+Order.belongsTo(OrderType, { foreignKey: "orderTypeId" });
+
+Order.belongsTo(Tenant, { foreignKey: 'tenantId' });
 
 module.exports = Order;
