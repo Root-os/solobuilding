@@ -25,7 +25,7 @@ router.get("/employee",adminAuth,userController.getAllEmployeeUsers)
 router.get("/user/:id",adminAuth, userController.getUserById);
 router.delete("/delete/:id",adminAuth, userController.deleteUser);
 router.delete("/delete-my-account",adminOrEmployeeAuth, userController.deleteMyAccount);
-
+router.put("/update-employee/:id", adminAuth, userController.updateEmployee);
 // Session Verification
 router.get("/verify-session",adminOrEmployeeAuth, userController.verifySession);
 

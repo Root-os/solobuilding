@@ -47,9 +47,15 @@ exports.sendBulkEmailToTenants = async (req, res) => {
       return res.status(404).json({ message: "No active tenants found" });
     }
 
-    // Send emails to all tenants
     const emailPromises = tenants.map(async (tenant) => {
-      // Save email in database
+      // Check if tenant exists in the tenants table (foreign key reference)
+      const receiverExists = await Tenant.findByPk(tenant.id); // Use the Tenant model here
+      if (!receiverExists) {
+        console.log(`Receiver ID ${tenant.id} does not exist in tenants table. Skipping email.`);
+        return { success: false, message: `Receiver ID ${tenant.id} does not exist` };
+      }
+
+      // Save email in the database
       await Email.create({ senderId, receiverId: tenant.id, subject, content });
 
       // Send actual email
@@ -58,15 +64,20 @@ exports.sendBulkEmailToTenants = async (req, res) => {
 
     const emailResponses = await Promise.all(emailPromises);
 
-    res.status(201).json({ 
-      message: "Bulk email sent successfully", 
-      emailStatus: emailResponses 
+    res.status(201).json({
+      message: "Bulk email sent successfully",
+      emailStatus: emailResponses
     });
 
   } catch (error) {
-    res.status(500).json({ message: "Error sending bulk email", error });
+    console.error('Error sending bulk email:', error);
+    res.status(500).json({
+      message: "Error sending bulk email",
+      error: error.message || error
+    });
   }
 };
+
 
 
 // Get received emails for a tenant

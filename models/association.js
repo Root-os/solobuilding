@@ -63,22 +63,24 @@ const defineAssociations = () => {
     Unit.belongsTo(Floor, { foreignKey: 'floorId', onDelete: 'CASCADE' });
 
 
-    Notification.belongsTo(NotificationType, { foreignKey: "type_id", as: "type", onDelete: "CASCADE" });
-    NotificationType.hasMany(Notification, { foreignKey: "type_id", as: "notifications", onDelete: "CASCADE" });
-    // Notification.belongsTo(User, { as: "sender", foreignKey: "senderId", onDelete: "CASCADE" });
-    Notification.belongsTo(User, {
-        as: "receiverStaff",
-        foreignKey: "receiver_id",
-        onDelete: "CASCADE",
-        scope: { receiver_type: "staff" },
-      });
-      
-      Notification.belongsTo(Tenant, {
-        as: "receiverTenant",
-        foreignKey: "receiver_id",
-        onDelete: "CASCADE",
-        scope: { receiver_type: "tenant" },
-      });
+  // association.js (relevant section)
+Notification.belongsTo(NotificationType, { foreignKey: "type_id", as: "type", onDelete: "CASCADE" });
+NotificationType.hasMany(Notification, { foreignKey: "type_id", as: "notifications", onDelete: "CASCADE" });
+
+// Polymorphic associations
+Notification.belongsTo(User, {
+  as: "receiverStaff",
+  foreignKey: "receiver_id",
+  onDelete: "CASCADE",
+  constraints: false, // Disable FK constraint for polymorphism
+});
+
+Notification.belongsTo(Tenant, {
+  as: "receiverTenant",
+  foreignKey: "receiver_id",
+  onDelete: "CASCADE",
+  constraints: false, // Disable FK constraint for polymorphism
+});
       
     
     Parking.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "CASCADE" });

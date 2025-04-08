@@ -158,61 +158,61 @@ const markAsRead = async (req, res) => {
 const getAllNotifications = async (req, res) => {
   try {
     // Ensure the user has admin role
-    if (req.user.role !== "admin") return res.status(403).json({ message: "Access denied." });
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied." });
+    }
 
     const { type } = req.query;
     const whereClause = {};
 
     if (type) whereClause.type_id = type;
 
-    // Fetch notifications with conditional joins based on receiver_type
     const notifications = await Notification.findAndCountAll({
       where: whereClause,
       order: [["createdAt", "DESC"]],
       include: [
-        { model: NotificationType, as: "type", attributes: ["id", "name"] },
+        {
+          model: NotificationType,
+          as: "type",
+          attributes: ["id", "name"],
+        },
         {
           model: User,
-          attributes: ["id", "fname", "lname", "email"],
-          required: false,
           as: "receiverStaff",
-          where: Sequelize.where(
-            Sequelize.col('Notification.receiver_type'),
-            'staff'
-          ),
-          // Ensure the correct user is matched with the notification's receiver_id
-          include: {
-            model: Notification,
-            where: {
-              receiver_id: Sequelize.col('User.id'),
-            },
-            required: false,
-          },
+          attributes: ["id", "fname", "lname", "email"],
+          required: false, // Optional include
+          where: { "$Notification.receiver_type$": "staff" }, // Filter by receiver_type
         },
         {
           model: Tenant,
-          attributes: ["id", "fullName", "email"],
-          required: false,
           as: "receiverTenant",
-          where: Sequelize.where(
-            Sequelize.col('Notification.receiver_type'),
-            'tenant'
-          ),
-          // Ensure the correct tenant is matched with the notification's receiver_id
-          include: {
-            model: Notification,
-            where: {
-              receiver_id: Sequelize.col('Tenant.id'),
-            },
-            required: false,
-          },
+          attributes: ["id", "fullName", "email"],
+          required: false, // Optional include
+          where: { "$Notification.receiver_type$": "tenant" }, // Filter by receiver_type
         },
       ],
     });
 
-    return res.status(200).json(notifications);
+    // Clean up the response to include only the relevant receiver
+    const result = notifications.rows.map((notification) => {
+      const { receiverStaff, receiverTenant, ...rest } = notification.toJSON();
+      return {
+        ...rest,
+        receiver: notification.receiver_type === "staff" ? receiverStaff : receiverTenant,
+      };
+    });
+
+    return res.status(200).json({
+      status: "success",
+      count: notifications.count,
+      data: result,
+    });
   } catch (error) {
-    return res.status(500).json({ status: "error", message: `Failed to fetch notifications: ${error.message}` });
+    console.error("Failed to fetch notifications:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: `Failed to fetch notifications: ${error.message}`,
+    });
   }
 };
 

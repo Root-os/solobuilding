@@ -23,6 +23,14 @@ const Setting = sequelize.define("Setting", {
         type: DataTypes.STRING,
         allowNull: true,
     },
+    chargingCost: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+    },
+    parkingCost: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+    },
     logos: {
         type: DataTypes.STRING, 
         allowNull: true,

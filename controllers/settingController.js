@@ -3,6 +3,7 @@ const Setting = require("../models/setting");
 // Create Setting
 require('dotenv').config(); // Make sure you load environment variables
 
+// Create Setting
 exports.createSetting = async (req, res) => {
     try {
         const { 
@@ -10,16 +11,16 @@ exports.createSetting = async (req, res) => {
             buildingAddress, 
             email, 
             phoneNumber, 
-            postOfficeAddress 
+            postOfficeAddress,
+            chargingCost,   // Add this
+            parkingCost     // Add this
         } = req.body;
 
-        // Handle file uploads for logos and seal
         let logoPath = null;
         let sealPath = null;
 
         if (req.files) {
             if (req.files.logos) {
-                // Generate full URL using BASE_URL from the environment variable
                 logoPath = `${process.env.BASE_URL}/uploads/setting/${req.files.logos[0].filename}`;
             }
             if (req.files.seal) {
@@ -34,13 +35,16 @@ exports.createSetting = async (req, res) => {
             phoneNumber,
             postOfficeAddress,
             logos: logoPath,
-            seal: sealPath
+            seal: sealPath,
+            chargingCost,   // Save this
+            parkingCost     // Save this
         });
 
         const fullSetting = await Setting.findOne({ 
             where: { id: setting.id },
             attributes: ['id', 'buildingName', 'buildingAddress', 'email', 'phoneNumber', 
-                        'postOfficeAddress', 'logos', 'seal', 'createdAt', 'updatedAt']
+                        'postOfficeAddress', 'logos', 'seal', 'chargingCost', 'parkingCost', 
+                        'createdAt', 'updatedAt']
         });
 
         res.status(201).json(fullSetting);
@@ -48,6 +52,7 @@ exports.createSetting = async (req, res) => {
         res.status(500).json({ message: "Error creating setting", error: error.message });
     }
 };
+
 
 // Update Setting
 exports.updateSetting = async (req, res) => {
@@ -57,7 +62,9 @@ exports.updateSetting = async (req, res) => {
             buildingAddress, 
             email, 
             phoneNumber, 
-            postOfficeAddress 
+            postOfficeAddress,
+            chargingCost,  // Add this
+            parkingCost    // Add this
         } = req.body;
 
         const setting = await Setting.findOne({ where: { id: req.params.id } });
@@ -66,36 +73,33 @@ exports.updateSetting = async (req, res) => {
             return res.status(404).json({ message: "Setting not found" });
         }
 
-        // Handle file uploads for logos and seal
         if (req.files) {
             if (req.files.logos) {
-                // Generate full URL using BASE_URL from the environment variable for logos
                 setting.logos = `${process.env.BASE_URL}/uploads/setting/${req.files.logos[0].filename}`;
             }
             if (req.files.seal) {
-                // Generate full URL using BASE_URL from the environment variable for seal
                 setting.seal = `${process.env.BASE_URL}/uploads/setting/${req.files.seal[0].filename}`;
             }
         }
 
-        // Update other fields if provided, keep existing values for unspecified fields
+        // Update fields
         setting.buildingName = buildingName || setting.buildingName;
-        setting.buildingAddress =  buildingAddress || setting.buildingAddress;
+        setting.buildingAddress = buildingAddress || setting.buildingAddress;
         setting.email = email || setting.email;
-        setting.phoneNumber =  phoneNumber || setting.phoneNumber;
+        setting.phoneNumber = phoneNumber || setting.phoneNumber;
         setting.postOfficeAddress = postOfficeAddress || setting.postOfficeAddress;
+        setting.chargingCost = chargingCost || setting.chargingCost;  // Update this
+        setting.parkingCost = parkingCost || setting.parkingCost;    // Update this
 
-        // Save the updated setting
         await setting.save();
 
-        // Retrieve the updated setting with the full URL for logos and seal
         const updatedSetting = await Setting.findOne({ 
             where: { id: setting.id },
             attributes: ['id', 'buildingName', 'buildingAddress', 'email', 'phoneNumber', 
-                        'postOfficeAddress', 'logos', 'seal', 'createdAt', 'updatedAt']
+                        'postOfficeAddress', 'logos', 'seal', 'chargingCost', 'parkingCost', 
+                        'createdAt', 'updatedAt']
         });
 
-        // Respond with the updated setting
         res.status(200).json(updatedSetting);
     } catch (error) {
         res.status(500).json({ message: "Error updating setting", error: error.message });
@@ -103,18 +107,21 @@ exports.updateSetting = async (req, res) => {
 };
 
 
+
 // Get All Settings
 exports.getAllSettings = async (req, res) => {
     try {
         const settings = await Setting.findAll({
             attributes: ['id', 'buildingName', 'buildingAddress', 'email', 'phoneNumber', 
-                        'postOfficeAddress', 'logos', 'seal', 'createdAt', 'updatedAt']
+                        'postOfficeAddress', 'logos', 'seal', 'chargingCost', 'parkingCost', 
+                        'createdAt', 'updatedAt']
         });
         res.status(200).json(settings);
     } catch (error) {
         res.status(500).json({ message: "Error retrieving settings", error: error.message });
     }
 };
+
 
 // Get Setting by ID
 exports.getSettingById = async (req, res) => {

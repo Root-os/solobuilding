@@ -43,7 +43,7 @@ exports.createTenant = async (req, res) => {
       const { 
         unitId, 
         leaseStartDate, 
-        email, 
+        email,
         fullName, 
         nationalId, 
         phoneNumber, 
@@ -166,52 +166,59 @@ exports.createTenant = async (req, res) => {
   }
 };
 
+
 // Get all tenants
 exports.getAllTenants = async (req, res) => {
-    try {
-      const tenants = await Tenant.findAll({
-        include: [
-          {
-            model: Unit,
-            attributes: ['unitNumber'], // Only select the unit number
-          },
-          {
-            model: Floor,
-            attributes: ['floorNumber'], // Only select the floor number
-          },
-        ],
-      });
-  
-      const baseUploadPath = path.join(__dirname, '../uploads'); // Path to your 'uploads' directory
-  
-      // Map through tenants to add the full document path and date calculations
-      const tenantsWithDetails = tenants.map(tenant => {
-        const documentFullPath = tenant.document ? path.join(baseUploadPath, tenant.document) : null;
-  
-        // Convert lease dates to moment objects
-        const leaseStartDate = moment(tenant.leaseStartDate);
-        const leaseEndDate = moment(tenant.leaseEndDate);
-        const currentDate = moment();
-  
-        // Months paid calculation: full months between leaseStartDate and leaseEndDate
-        const monthsPaid = leaseEndDate.diff(leaseStartDate, 'months');  
-        // Remaining days for rent payment (between currentDate and leaseEndDate)
-        const remainingDays = leaseEndDate.diff(currentDate, 'days');
-  
-        return {
-          ...tenant.toJSON(),
-          documentFullPath,
-          monthsPaid,
-          remainingDays: remainingDays > 0 ? remainingDays : 0, // Return 0 if the lease has already expired
-        };
-      });
-  
-      res.status(200).json(tenantsWithDetails);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  };
-// Get tenant by ID
+  try {
+    const tenants = await Tenant.findAll({
+      include: [
+        {
+          model: Unit,
+          attributes: ['unitNumber'], // Only select the unit number
+        },
+        {
+          model: Floor,
+          attributes: ['floorNumber'], // Only select the floor number
+        },
+        {
+          model: TenantVehicle, // Include tenant vehicle information
+          attributes: ['carPlate', 'carName', 'color'], // Select car details
+        }
+      ],
+    });
+
+    const baseUploadPath = path.join(__dirname, '../uploads'); // Path to your 'uploads' directory
+
+    // Map through tenants to add the full document path and date calculations
+    const tenantsWithDetails = tenants.map(tenant => {
+      const documentFullPath = tenant.document ? path.join(baseUploadPath, tenant.document) : null;
+
+      // Convert lease dates to moment objects
+      const leaseStartDate = moment(tenant.leaseStartDate);
+      const leaseEndDate = moment(tenant.leaseEndDate);
+      const currentDate = moment();
+
+      // Months paid calculation: full months between leaseStartDate and leaseEndDate
+      const monthsPaid = leaseEndDate.diff(leaseStartDate, 'months');  
+      // Remaining days for rent payment (between currentDate and leaseEndDate)
+      const remainingDays = leaseEndDate.diff(currentDate, 'days');
+
+      return {
+        ...tenant.toJSON(),
+        documentFullPath,
+        monthsPaid,
+        remainingDays: remainingDays > 0 ? remainingDays : 0, // Return 0 if the lease has already expired
+      };
+    });
+
+    res.status(200).json(tenantsWithDetails);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+
 exports.getTenantById = async (req, res) => {
   try {
        const tenants = await Tenant.findAll({
