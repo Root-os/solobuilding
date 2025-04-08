@@ -55,7 +55,7 @@ exports.createChargingSession = async (req, res) => {
 exports.updateChargingSession = async (req, res) => {
     try {
         const chargingSessionId = req.params.id;
-        const { chargingEndTime, status } = req.body;
+        const { carPlate, carName, isTenant, tenantId, chargingEndTime, status } = req.body;
 
         // Find the charging session by its ID
         const chargingSession = await ElectricCarCharging.findByPk(chargingSessionId);
@@ -97,19 +97,45 @@ exports.updateChargingSession = async (req, res) => {
         // Calculate the charging cost using the default value from the Settings table
         const chargingCost = durationInMinutes * (setting.chargingCost || 10); // Default to 10 if no chargingCost is set
 
-        // Update the charging session with the end time, calculated cost, and status
-        const updatedChargingSession = await chargingSession.update({
+        // Prepare the updated data
+        const updatedData = {
+            carPlate: carPlate || chargingSession.carPlate,
+            carName: carName || chargingSession.carName,
             chargingEndTime,
-            chargingCost,
+            chargingCost: chargingCost.toFixed(2),  // Ensure chargingCost is a string with two decimal places
             status,  // status can be 'completed' or 'charging'
-        });
+            tenantId: isTenant ? tenantId : null,  // If isTenant is true, update tenantId
+            isTenant,  // Update isTenant flag
+        };
 
-        res.status(200).json(updatedChargingSession);
+        // Update the charging session with the new details
+        const updatedChargingSession = await chargingSession.update(updatedData);
+
+        // If isTenant is true, include tenant's fullName in the response
+        if (updatedChargingSession.isTenant && updatedChargingSession.tenantId) {
+            const tenant = await Tenant.findByPk(updatedChargingSession.tenantId, { attributes: ['fullName'] });
+            updatedChargingSession.dataValues.tenant = tenant ? tenant.fullName : 'N/A';
+        } else {
+            updatedChargingSession.dataValues.tenant = 'N/A';
+        }
+
+        return res.status(200).json(updatedChargingSession);
     } catch (error) {
         console.error('Error updating charging session:', error);
-        res.status(500).json({ message: 'Error updating charging session.', error: error.message });
+
+        // Detailed error logging to catch the Sequelize validation issues
+        if (error.name === 'SequelizeValidationError') {
+            const validationErrors = error.errors.map(err => err.message);
+            return res.status(400).json({
+                message: 'Validation error',
+                errors: validationErrors,
+            });
+        }
+
+        return res.status(500).json({ message: 'Error updating charging session.', error: error.message });
     }
 };
+
 
 // 3. Get all charging sessions (with optional filters)
 exports.getAllChargingSessions = async (req, res) => {

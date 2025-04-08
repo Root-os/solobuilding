@@ -12,8 +12,14 @@ exports.updateParking = async (req, res) => {
         const parkingId = req.params.id;
         const { carPlate, carName, driverName, driverPhone, tenantId, timeIn, timeOut, isTenant, status } = req.body;
 
-        // Find the parking record
-        const parking = await Parking.findByPk(parkingId);
+        // Find the parking record with its associated Tenant
+        const parking = await Parking.findByPk(parkingId, {
+            include: [{
+                model: Tenant,
+                attributes: ['id', 'fullName']
+            }]
+        });
+        
         if (!parking) {
             return res.status(404).json({ message: "Parking record not found" });
         }
@@ -42,8 +48,8 @@ exports.updateParking = async (req, res) => {
         }
 
         // Update the parking record with new information
-        const updatedParking = await parking.update({
-            carPlate: carPlate || parking.carPlate,
+        await parking.update({
+            carPlate: carPlate || parking.carPlate, 
             carName: carName || parking.carName,
             driverName: driverName || parking.driverName,
             driverPhone: driverPhone || parking.driverPhone,
@@ -55,7 +61,15 @@ exports.updateParking = async (req, res) => {
             price: calculatedPrice, // Updated price based on duration
         });
 
-        return res.status(200).json(updatedParking);
+        // Reload the parking instance with the updated Tenant association
+        await parking.reload({
+            include: [{
+                model: Tenant,
+                attributes: ['id', 'fullName']
+            }]
+        });
+
+        return res.status(200).json(parking);
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: "Error updating parking", error });
