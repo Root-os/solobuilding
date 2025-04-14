@@ -11,12 +11,11 @@ const Parking = sequelize.define("Parking", {
     parkingSpaceId: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        unique: true,
     },
     carPlate: {
         type: DataTypes.STRING,
         allowNull: true,
-        unique: true,
+       
     },
     carName: {
         type: DataTypes.STRING,

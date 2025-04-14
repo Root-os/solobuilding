@@ -1,5 +1,5 @@
 // controllers/ItemCategoryController.js
-const ItemCategory  = require('../models/itemCategory');
+const ItemCategory = require('../models/itemCategory');
 
 exports.createItemCategory = async (req, res) => {
   try {
@@ -21,8 +21,8 @@ exports.createItemCategory = async (req, res) => {
 
 exports.getAllItemCategorys = async (req, res) => {
   try {
-    const itemCategory = await ItemCategory.findAll();
-    return res.status(200).json(itemCategory);
+    const itemCategories = await ItemCategory.findAll();
+    return res.status(200).json(itemCategories);
   } catch (error) {
     return res.status(500).json({ message: "Error fetching item types", error: error.message });
   }
@@ -57,7 +57,8 @@ exports.updateItemCategory = async (req, res) => {
     itemCategory.categoryName = categoryName || itemCategory.categoryName;
     itemCategory.description = description || itemCategory.description;
 
-    await ItemCategory.save();
+    // Correct usage of save on instance
+    await itemCategory.save();
 
     return res.status(200).json(itemCategory);
   } catch (error) {
@@ -75,7 +76,8 @@ exports.deleteItemCategory = async (req, res) => {
       return res.status(404).json({ message: "Item type not found" });
     }
 
-    await ItemCategory.destroy();
+    // Correct usage of destroy on instance
+    await itemCategory.destroy();
 
     return res.status(200).json({ message: "Item type deleted successfully" });
   } catch (error) {

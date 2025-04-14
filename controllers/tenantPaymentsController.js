@@ -9,16 +9,32 @@ const { Op } = require('sequelize');
 // Create a new tenant payment
 exports.createPayment = async (req, res) => {
   try {
-    const { tenantId, billPaymentTypeId, amount, startDate, endDate, status } = req.body;
-    if(!tenantId || !billPaymentTypeId || !amount || !startDate || !endDate) {
+    const { tenantId, billPaymentTypeId, amount, startDate, endDate, status, amountPaid, paymentMethod, paymentDate } = req.body;
+
+    // Ensure all required fields are provided
+    if (!tenantId || !billPaymentTypeId || !amount || !startDate || !endDate || !amountPaid || !paymentMethod || !paymentDate) {
       return res.status(400).json({ message: 'Please provide all required fields' });
     }
-    const payment = await TenantPayment.create({ tenantId, paymentTypeId:billPaymentTypeId, amount, startDate, endDate, status });
+
+    // Proceed with payment creation
+    const payment = await TenantPayment.create({
+      tenantId,
+      paymentTypeId: billPaymentTypeId,
+      amount,
+      startDate,
+      endDate,
+      status,
+      amountPaid,
+      paymentMethod,
+      paymentDate
+    });
+
     res.status(201).json(payment);
   } catch (error) {
     res.status(500).json({ message: 'Error creating payment', error });
   }
 };
+
 
 // Get all tenant payments
 exports.getAllPayments = async (req, res) => {

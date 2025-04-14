@@ -1,5 +1,6 @@
 const ElectricCarCharging = require('../models/charging');
 const Tenant = require('../models/tenant');
+const Setting = require('../models/setting');
 const { Op } = require('sequelize');
 
 // 1. Create a new electric car charging session
@@ -37,7 +38,7 @@ exports.createChargingSession = async (req, res) => {
         });
 
         // Set price (could be dynamically calculated or set based on some logic, here assumed as a placeholder)
-        newChargingSession.chargingCost = 100; // You can set a dynamic cost logic here based on time, location, etc.
+        newChargingSession.chargingCost = null; 
         await newChargingSession.save();
 
         res.status(201).json(newChargingSession);
@@ -48,29 +49,93 @@ exports.createChargingSession = async (req, res) => {
 };
 
 // 2. Update the charging session (set price, charging end time, etc.)
+        const moment = require('moment');  // Importing moment.js for time calculations
+
+// 2. Update the charging session (set price, charging end time, etc.)
 exports.updateChargingSession = async (req, res) => {
     try {
         const chargingSessionId = req.params.id;
-        const { chargingEndTime, status,chargingCost } = req.body;
+        const { carPlate, carName, isTenant, tenantId, chargingEndTime, status } = req.body;
 
+        // Find the charging session by its ID
         const chargingSession = await ElectricCarCharging.findByPk(chargingSessionId);
         if (!chargingSession) {
             return res.status(404).json({ message: 'Charging session not found.' });
         }
 
-        // Update the charging session with the end time, cost, and status
-        const updatedChargingSession = await chargingSession.update({
-            chargingEndTime,
-            chargingCost,
-            status,  // status can be 'completed' or 'charging'
-        });
+        // Ensure that chargingEndTime is provided
+        if (!chargingEndTime) {
+            return res.status(400).json({ message: 'Charging end time is required.' });
+        }
 
-        res.status(200).json(updatedChargingSession);
+        // Ensure that chargingStartTime exists
+        if (!chargingSession.chargingStartTime) {
+            return res.status(400).json({ message: 'Charging start time is missing.' });
+        }
+
+        // Fetch the default charging cost from the Setting model
+        const setting = await Setting.findOne(); // Assuming there's only one record in the Settings table
+        if (!setting) {
+            return res.status(500).json({ message: 'Setting not found.' });
+        }
+
+        // Calculate the duration in minutes between chargingStartTime and chargingEndTime
+        const startTime = moment(chargingSession.chargingStartTime);
+        const endTime = moment(chargingEndTime);
+        const durationInMinutes = endTime.diff(startTime, 'minutes');  // Difference in minutes
+
+        // Ensure the duration is valid (end time must be later than start time)
+        if (durationInMinutes <= 0) {
+            return res.status(400).json({ message: 'End time must be later than start time.' });
+        }
+
+        // Check for valid status
+        if (!['charging', 'completed'].includes(status)) {
+            return res.status(400).json({ message: 'Invalid status value.' });
+        }
+
+        // Calculate the charging cost using the default value from the Settings table
+        const chargingCost = durationInMinutes * (setting.chargingCost || 10); // Default to 10 if no chargingCost is set
+
+        // Prepare the updated data
+        const updatedData = {
+            carPlate: carPlate || chargingSession.carPlate,
+            carName: carName || chargingSession.carName,
+            chargingEndTime,
+            chargingCost: chargingCost.toFixed(2),  // Ensure chargingCost is a string with two decimal places
+            status,  // status can be 'completed' or 'charging'
+            tenantId: isTenant ? tenantId : null,  // If isTenant is true, update tenantId
+            isTenant,  // Update isTenant flag
+        };
+
+        // Update the charging session with the new details
+        const updatedChargingSession = await chargingSession.update(updatedData);
+
+        // If isTenant is true, include tenant's fullName in the response
+        if (updatedChargingSession.isTenant && updatedChargingSession.tenantId) {
+            const tenant = await Tenant.findByPk(updatedChargingSession.tenantId, { attributes: ['fullName'] });
+            updatedChargingSession.dataValues.tenant = tenant ? tenant.fullName : 'N/A';
+        } else {
+            updatedChargingSession.dataValues.tenant = 'N/A';
+        }
+
+        return res.status(200).json(updatedChargingSession);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error updating charging session.', error });
+        console.error('Error updating charging session:', error);
+
+        // Detailed error logging to catch the Sequelize validation issues
+        if (error.name === 'SequelizeValidationError') {
+            const validationErrors = error.errors.map(err => err.message);
+            return res.status(400).json({
+                message: 'Validation error',
+                errors: validationErrors,
+            });
+        }
+
+        return res.status(500).json({ message: 'Error updating charging session.', error: error.message });
     }
 };
+
 
 // 3. Get all charging sessions (with optional filters)
 exports.getAllChargingSessions = async (req, res) => {

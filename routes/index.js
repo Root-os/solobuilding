@@ -48,8 +48,15 @@ router.use('/letter-type', require('./letterTypeRoute'));
 router.use('/letter', require('./letterRoute'));
 
 //asset
-router.use('/asset-type', require('./assetTypeRoute'));
+router.use('/asset', require('./assetTypeRoute'));
 router.use('/asset-audits', require('./assetRoutes'));
+
+//order
+router.use('/order-type', require('./orderTypeRoute'));
+router.use('/order', require('./orderRoute'));
+
+//report
+router.use('/report', require('./reportRoute'));
 
 
 module.exports = router;

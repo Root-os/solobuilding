@@ -3,6 +3,7 @@ const NotificationType = require("../models/notificationType");
 const User = require("../models/user");
 const Tenant = require("../models/tenant");
 const {notificationSchema}=require('../helpers/schema')
+const { Sequelize } = require('sequelize');
 // Create notification for a specific user or tenant
 const createNotificationForUser = async (req, res) => {
   try {
@@ -156,9 +157,12 @@ const markAsRead = async (req, res) => {
 // Get all notifications (Admin)
 const getAllNotifications = async (req, res) => {
   try {
-    if (req.user.role !== "admin") return res.status(403).json({ message: "Access denied." });
+    // Ensure the user has admin role
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied." });
+    }
 
-    const {  type } = req.query;
+    const { type } = req.query;
     const whereClause = {};
 
     if (type) whereClause.type_id = type;
@@ -167,27 +171,48 @@ const getAllNotifications = async (req, res) => {
       where: whereClause,
       order: [["createdAt", "DESC"]],
       include: [
-        { model: NotificationType, as: "type", attributes: ["id", "name"] },
+        {
+          model: NotificationType,
+          as: "type",
+          attributes: ["id", "name"],
+        },
         {
           model: User,
-          attributes: ["id", "fname", "lname", "email"],
-          required: false,
           as: "receiverStaff",
-          where: Sequelize.literal('Notification.receiver_type = "staff" AND Notification.receiver_id = User.id'),
+          attributes: ["id", "fname", "lname", "email"],
+          required: false, // Optional include
+          where: { "$Notification.receiver_type$": "staff" }, // Filter by receiver_type
         },
         {
           model: Tenant,
-          attributes: ["id", "fullName", "email"],
-          required: false,
           as: "receiverTenant",
-          where: Sequelize.literal('Notification.receiver_type = "tenant" AND Notification.receiver_id = Tenant.id'),
+          attributes: ["id", "fullName", "email"],
+          required: false, // Optional include
+          where: { "$Notification.receiver_type$": "tenant" }, // Filter by receiver_type
         },
       ],
     });
-    
-    return res.status(200).json(notifications);
+
+    // Clean up the response to include only the relevant receiver
+    const result = notifications.rows.map((notification) => {
+      const { receiverStaff, receiverTenant, ...rest } = notification.toJSON();
+      return {
+        ...rest,
+        receiver: notification.receiver_type === "staff" ? receiverStaff : receiverTenant,
+      };
+    });
+
+    return res.status(200).json({
+      status: "success",
+      count: notifications.count,
+      data: result,
+    });
   } catch (error) {
-    return res.status(500).json({ status: "error", message: `Failed to fetch notifications: ${error.message}` });
+    console.error("Failed to fetch notifications:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: `Failed to fetch notifications: ${error.message}`,
+    });
   }
 };
 

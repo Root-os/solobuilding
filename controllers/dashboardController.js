@@ -13,7 +13,7 @@ const Inventory= require("../models/item");
 const WithdrawalRequest= require("../models/withdrawal");
 const Email= require("../models/email");
 const Employee= require("../models/user");
-const Salary= require("../models/salaryPayment");
+const Salary= require("../models/SalaryPayment");
 const Stockout= require("../models/stockout");
 const TenantPayment= require("../models/tenantPayments");
 const BillPayment= require("../models/billPayment");
@@ -22,6 +22,29 @@ const { Op,Sequelize } = require('sequelize');
 
 
 exports.getDashboardStats = async (req, res) => {
+  let whereCondition = {};
+  if(req.query.startDate && req.query.endDate) {
+    whereCondition = {
+      createdAt: {
+        [Op.between]: [new Date(req.query.startDate), new Date(req.query.endDate)]
+      }
+    };
+  }
+  if(req.query.startDate && !req.query.endDate) {
+    whereCondition = {
+      createdAt: {
+        [Op.gte]: new Date(req.query.startDate)
+      }
+    };
+  }
+
+  if(!req.query.startDate && req.query.endDate) {
+    whereCondition = {
+      createdAt: {
+        [Op.lte]: new Date(req.query.endDate)
+      }
+    };
+  }
   try {
     const [
       // Notifications
@@ -55,7 +78,7 @@ exports.getDashboardStats = async (req, res) => {
       totalTenants,
       activeTenants,
       inactiveTenants,
-      terminatedTenants,
+      
 
       // Tenant Vehicles
       totalVehicles,
@@ -90,11 +113,11 @@ exports.getDashboardStats = async (req, res) => {
       // Emails
       totalEmails,
       sentEmails,
-      readEmails,
+      
 
       // Employees
       totalEmployees,
-      adminEmployees,
+   
 
       // Salaries
       totalSalaries,
@@ -121,25 +144,25 @@ exports.getDashboardStats = async (req, res) => {
 
       // Rent Collections
       totalRentCollections,
-      paidRentCollections,
+      paidRentCollections, 
       pendingRentCollections,
       overdueRentCollections,
     ] = await Promise.all([
-      // Notifications
-      Notification.count(),
-      Notification.count({ where: { isRead: false } }),
-      Notification.count({ where: { isRead: true } }),
+    
+      Notification.count({where:whereCondition}),
+      Notification.count({ where: { isRead: false,...whereCondition } }),
+      Notification.count({ where: { isRead: true,...whereCondition } }),
 
       // Payments
-      PaymentRequest.count(),
-      PaymentRequest.count({ where: { status: "pending" } }),
-      PaymentRequest.count({ where: { status: "approved" } }),
+      PaymentRequest.count({where:whereCondition}),
+      PaymentRequest.count({ where: { status: "pending", ...whereCondition  } }),
+      PaymentRequest.count({ where: { status: "approved", ...whereCondition } }),
 
       // Complaints
-      Complaint.count(),
-      Complaint.count({ where: { status: "in_progress" } }),
-      Complaint.count({ where: { status: "resolved" } }),
-      Complaint.count({ where: { status: "pending" } }),
+      Complaint.count({where:whereCondition}),
+      Complaint.count({ where: { status: "in_progress", ...whereCondition } }),
+      Complaint.count({ where: { status: "resolved", ...whereCondition } }),
+      Complaint.count({ where: { status: "pending", ...whereCondition } }),
 
       // Units
       Unit.count(),
@@ -153,10 +176,10 @@ exports.getDashboardStats = async (req, res) => {
       Floor.count({ where: { status: "under_maintenance" } }),
 
       // Tenants
-      Tenant.count(),
-      Tenant.count({ where: { status: "active" } }),
-      Tenant.count({ where: { status: "inactive" } }),
-      Tenant.count({ where: { status: "terminated" } }),
+      Tenant.count({where:whereCondition}),
+      Tenant.count({ where: { status: "active", ...whereCondition } }),
+      Tenant.count({ where: { status: "inactive", ...whereCondition } }),
+      // Tenant.count({ where: { status: "terminated" } }),
 
       // Tenant Vehicles
       TenantVehicle.count(),
@@ -167,13 +190,13 @@ exports.getDashboardStats = async (req, res) => {
       TenantInventory.count({ where: { type: "move-out" } }),
 
       // Parking
-      Parking.count(),
-      Parking.count({ where: { status: "onparking" } }),
-      Parking.count({ where: { status: "ready to out" } }),
-      Parking.count({ where: { status: "completed" } }),
+      Parking.count({where:whereCondition}),
+      Parking.count({ where: { status: "onparking", ...whereCondition } }),
+      Parking.count({ where: { status: "ready to out", ...whereCondition } }),
+      Parking.count({ where: { status: "completed", ...whereCondition } }),
 
       // Expenses
-      Expense.count(),
+      Expense.count({where:whereCondition}),
 
       // Inventory
       Inventory.count(),
@@ -184,49 +207,49 @@ exports.getDashboardStats = async (req, res) => {
       }}}),
 
       // Withdrawal Requests
-      WithdrawalRequest.count(),
-      WithdrawalRequest.count({ where: { status: "pending" } }),
-      WithdrawalRequest.count({ where: { status: "approved" } }),
-      WithdrawalRequest.count({ where: { status: "rejected" } }),
-      WithdrawalRequest.count({ where: { status: "in_progress" } }),
+      WithdrawalRequest.count({where:whereCondition}),
+      WithdrawalRequest.count({ where: { status: "pending", ...whereCondition } }),
+      WithdrawalRequest.count({ where: { status: "approved", ...whereCondition } }),
+      WithdrawalRequest.count({ where: { status: "rejected", ...whereCondition } }),
+      WithdrawalRequest.count({ where: { status: "in_progress", ...whereCondition } }),
 
       // Emails
-      Email.count(),
-      Email.count({ where: { status: "sent" } }),
-      Email.count({ where: { status: "read" } }),
+      Email.count({where:whereCondition}),
+      Email.count({ where: { status: "sent", ...whereCondition } }),
+      // Email.count({ where: { status: "read" } }),
 
       // Employees
       Employee.count({ where: { role: "employee" } }),
-      Employee.count({ where: { role: "admin" } }),
+      // Employee.count({ where: { role: "admin" } }),
 
       // Salaries
-      Salary.count(),
-      Salary.count({ where: { status: "pending" } }),
-      Salary.count({ where: { status: "paid" } }),
+      Salary.count({where:whereCondition}),
+      Salary.count({ where: { status: "pending", ...whereCondition } }),
+      Salary.count({ where: { status: "paid", ...whereCondition } }),
 
       // Stockouts
-      Stockout.count(),
-      Stockout.count({ where: { status: "pending" } }),
-      Stockout.count({ where: { status: "approved" } }),
-      Stockout.count({ where: { status: "rejected" } }),
+      Stockout.count({where:whereCondition}),
+      Stockout.count({ where: { status: "pending", ...whereCondition } }),
+      Stockout.count({ where: { status: "approved", ...whereCondition } }),
+      Stockout.count({ where: { status: "rejected", ...whereCondition } }),
 
       // Tenant Payments
-      TenantPayment.count(),
-      TenantPayment.count({ where: { status: "due" } }),
-      TenantPayment.count({ where: { status: "paid" } }),
-      TenantPayment.count({ where: { status: "overdue" } }),
+      TenantPayment.count({where:whereCondition}),
+      TenantPayment.count({ where: { status: "due", ...whereCondition } }),
+      TenantPayment.count({ where: { status: "paid", ...whereCondition } }),
+      TenantPayment.count({ where: { status: "overdue", ...whereCondition } }),
 
       // Bill Payments
-      BillPayment.count(),
-      BillPayment.count({ where: { status: "pending" } }),
-      BillPayment.count({ where: { status: "paid" } }),
-      BillPayment.count({ where: { status: "overdue" } }),
+      BillPayment.count({where: whereCondition}),
+      BillPayment.count({ where: { status: "pending",...whereCondition } }),
+      BillPayment.count({ where: { status: "paid",...whereCondition } }),
+      BillPayment.count({ where: { status: "overdue",...whereCondition } }),
 
       // Rent Collections
-      TenantRentCollection.count(),
-      TenantRentCollection.count({ where: { status: "Paid" } }),
-      TenantRentCollection.count({ where: { status: "Pending" } }),
-      TenantRentCollection.count({ where: { status: "Overdue" } }),
+      TenantRentCollection.count({where:whereCondition}),
+      TenantRentCollection.count({ where: { status: "Paid", ...whereCondition } }),
+      TenantRentCollection.count({ where: { status: "Pending", ...whereCondition } }),
+      TenantRentCollection.count({ where: { status: "Overdue", ...whereCondition } }),
     ]);
 
     // Send response
@@ -236,15 +259,15 @@ exports.getDashboardStats = async (req, res) => {
       complaints: { totalComplaints, inProgressComplaints, resolvedComplaints, notResolvedComplaints },
       units: { totalUnits, availableUnits, occupiedUnits, underMaintenanceUnits },
       floors: { totalFloors, availableFloors, underMaintenanceFloors },
-      tenants: { totalTenants, activeTenants, inactiveTenants, terminatedTenants },
+      tenants: { totalTenants, activeTenants, inactiveTenants },
       tenantVehicles: { totalVehicles },
       TenantInventories: { totalInventory, moveInInventories, moveOutInventories },
       parking: { totalParking, onParking, readyToOut, completed },
       expenses: { totalExpenses },
       items: { totalItems, totalPurchasedItems, totalExistedItems,alertNumberOfItems },
       TenantWithdrawalRequests: { totalWithdrawals, pendingWithdrawals, approvedWithdrawals, rejectedWithdrawals, processedWithdrawals },
-      emails: { totalEmails, sentEmails, readEmails },
-      employees: { totalEmployees, adminEmployees },
+      emails: { totalEmails, sentEmails },
+      employees: { totalEmployees },
       EmployeeSalaries: { totalSalaries, pendingSalaries, paidSalaries },
       stockouts: { totalStockouts, pendingStockouts, completedStockouts, rejectedStockouts },
       tenantPayments: { totalTenantPayments, pendingTenantPayments, paidTenantPayments, overdueTenantPayments },

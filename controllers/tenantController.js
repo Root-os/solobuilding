@@ -27,7 +27,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-
 exports.createTenant = async (req, res) => {
   try {
     upload.single("document")(req, res, async (err) => {
@@ -35,37 +34,52 @@ exports.createTenant = async (req, res) => {
         return res.status(400).json({ error: err.message });
       }
 
-
       const filePath = req.file ? `/uploads/${req.file.filename}` : null;
       const { error } = tenatSchema.validate(req.body);
       if (error) {
         return res.status(400).json({ error: error.details[0].message });
       }
-      const { unitId, leaseStartDate,  email, fullName, nationalId, phoneNumber, tin,floorId, advance, carPlate, carName, color, } = req.body;
+
+      const { 
+        unitId, 
+        leaseStartDate, 
+        leaseEndDate,
+        email,
+        fullName, 
+        nationalId, 
+        phoneNumber, 
+        tin, 
+        floorId, 
+        advance, 
+        amount,
+        carPlate = null, // Optional
+        carName = null,  // Optional
+        color = null     // Optional
+      } = req.body;
+
       // Check if the unit exists and is available
       const unit = await Unit.findByPk(unitId);
       if (!unit) return res.status(404).json({ error: "Unit not found" });
-
       if (unit.status !== "available") {
         return res.status(400).json({ error: "Unit is already occupied or under maintenance" });
       }
+
       const floor = await Floor.findByPk(floorId);
       if (!floor) return res.status(404).json({ error: "Floor not found" });
 
-      // Check for existing tenant with the same email, nationalId, or phoneNumber
+      // Check for existing tenant with the same email, nationalId, phoneNumber, or tin
       const existingTenant = await Tenant.findOne({
         where: {
           [Op.or]: [
             { email },
             { nationalId },
             { phoneNumber },
-            {tin}
+            { tin }
           ],
         },
       });
 
       if (existingTenant) {
-        // Determine which field already exists
         let errorMessage = '';
         if (existingTenant.email === email) {
           errorMessage = "A tenant with the same email already exists";
@@ -73,11 +87,9 @@ exports.createTenant = async (req, res) => {
           errorMessage = "A tenant with the same national ID already exists";
         } else if (existingTenant.phoneNumber === phoneNumber) {
           errorMessage = "A tenant with the same phone number already exists";
-        }
-        else if (existingTenant.tin === tin) {
+        } else if (existingTenant.tin === tin) {
           errorMessage = "A tenant with the same tin already exists";
         }
-
         return res.status(400).json({ error: errorMessage });
       }
 
@@ -87,15 +99,25 @@ exports.createTenant = async (req, res) => {
 
       // Prepare tenant data
       const tenantData = {
-        ...req.body,
+        unitId,
+        leaseStartDate,
+        leaseEndDate,
+        email,
+        fullName,
+        nationalId,
+        phoneNumber,
+        tin,
+        floorId,
+        amount,
+        advance,
         document: filePath,
-        password: hashedPassword, // Store hashed password
+        password: hashedPassword,
       };
 
       // Create tenant record
       const tenant = await Tenant.create(tenantData);
 
-      // Register tenant's vehicle if provided
+      // Register tenant's vehicle if provided (non-null/undefined values)
       if (carPlate || carName || color) {
         await TenantVehicle.create({
           tenantId: tenant.id,
@@ -106,23 +128,28 @@ exports.createTenant = async (req, res) => {
       }
 
       // Update unit status to "occupied" and set rented date
-      await Unit.update({ status: "occupied", rentedDate: leaseStartDate }, { where: { id: unitId } });
+      await Unit.update(
+        { status: "occupied", rentedDate: leaseStartDate },
+        { where: { id: unitId } }
+      );
 
-      // Send email with login credentials using existing sendEmail function
+      // Send email with login credentials
       const emailSubject = "Your Tenant Portal Login Credentials";
       const emailBody = `Hello ${fullName},\n\nWelcome! Here are your login credentials:\n\nEmail: ${email}\nPassword: ${generatedPassword}\n\nPlease log in and change your password immediately.\n\nThank you!`;
-
       const emailResponse = await sendEmail(email, emailSubject, emailBody);
       if (!emailResponse.success) {
         console.error("Email sending failed:", emailResponse.error);
       }
 
-      res.status(201).json({success: true, message: "Tenant registered successfully", password: generatedPassword });
+      res.status(201).json({
+        success: true,
+        message: "Tenant registered successfully",
+        password: generatedPassword,
+      });
     });
   } catch (error) {
     if (error.name === 'SequelizeUniqueConstraintError') {
-      // Handle database-level unique constraint errors
-      const field = error.errors[0].path; // Get the field that caused the error
+      const field = error.errors[0].path;
       let errorMessage = '';
       switch (field) {
         case 'email':
@@ -142,52 +169,60 @@ exports.createTenant = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
 // Get all tenants
 exports.getAllTenants = async (req, res) => {
-    try {
-      const tenants = await Tenant.findAll({
-        include: [
-          {
-            model: Unit,
-            attributes: ['unitNumber'], // Only select the unit number
-          },
-          {
-            model: Floor,
-            attributes: ['floorNumber'], // Only select the floor number
-          },
-        ],
-      });
-  
-      const baseUploadPath = path.join(__dirname, '../uploads'); // Path to your 'uploads' directory
-  
-      // Map through tenants to add the full document path and date calculations
-      const tenantsWithDetails = tenants.map(tenant => {
-        const documentFullPath = tenant.document ? path.join(baseUploadPath, tenant.document) : null;
-  
-        // Convert lease dates to moment objects
-        const leaseStartDate = moment(tenant.leaseStartDate);
-        const leaseEndDate = moment(tenant.leaseEndDate);
-        const currentDate = moment();
-  
-        // Months paid calculation: full months between leaseStartDate and leaseEndDate
-        const monthsPaid = leaseEndDate.diff(leaseStartDate, 'months');  
-        // Remaining days for rent payment (between currentDate and leaseEndDate)
-        const remainingDays = leaseEndDate.diff(currentDate, 'days');
-  
-        return {
-          ...tenant.toJSON(),
-          documentFullPath,
-          monthsPaid,
-          remainingDays: remainingDays > 0 ? remainingDays : 0, // Return 0 if the lease has already expired
-        };
-      });
-  
-      res.status(200).json(tenantsWithDetails);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  };
-// Get tenant by ID
+  try {
+    const tenants = await Tenant.findAll({
+      include: [
+        {
+          model: Unit,
+          attributes: ['unitNumber'], // Only select the unit number
+        },
+        {
+          model: Floor,
+          attributes: ['floorNumber'], // Only select the floor number
+        },
+        {
+          model: TenantVehicle, // Include tenant vehicle information
+          attributes: ['carPlate', 'carName', 'color'], // Select car details
+        }
+      ],
+    });
+
+    const baseUploadPath = path.join(__dirname, '../uploads'); // Path to your 'uploads' directory
+
+    // Map through tenants to add the full document path and date calculations
+    const tenantsWithDetails = tenants.map(tenant => {
+      const documentFullPath = tenant.document ? path.join(baseUploadPath, tenant.document) : null;
+
+      // Convert lease dates to moment objects
+      const leaseStartDate = moment(tenant.leaseStartDate);
+      const leaseEndDate = moment(tenant.leaseEndDate);
+      const currentDate = moment();
+
+      // Months paid calculation: full months between leaseStartDate and leaseEndDate
+      const monthsPaid = leaseEndDate.diff(leaseStartDate, 'months');  
+      // Remaining days for rent payment (between currentDate and leaseEndDate)
+      const remainingDays = leaseEndDate.diff(currentDate, 'days');
+
+      return {
+        ...tenant.toJSON(),
+        documentFullPath,
+        monthsPaid,
+        remainingDays: remainingDays > 0 ? remainingDays : 0, // Return 0 if the lease has already expired
+      };
+    });
+
+    res.status(200).json(tenantsWithDetails);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+
 exports.getTenantById = async (req, res) => {
   try {
        const tenants = await Tenant.findAll({
@@ -400,7 +435,6 @@ exports.getTenantsWithExpiringLease = async (req, res) => {
     }
 
     res.status(200).json(processTenantDetails(tenants));
-
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -408,7 +442,7 @@ exports.getTenantsWithExpiringLease = async (req, res) => {
 
 
 const processTenantDetails = (tenants) => {
-  const baseUploadPath = path.join(__dirname, '../uploads'); // Path to your 'uploads' directory
+  const baseUploadPath = path.join(__dirname, '../uploads'); 
 
   return tenants.map(tenant => {
     const documentFullPath = tenant.document ? path.join(baseUploadPath, tenant.document) : null;

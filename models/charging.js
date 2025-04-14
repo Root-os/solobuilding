@@ -11,7 +11,6 @@ const ElectricCarCharging = sequelize.define('ElectricCarCharging', {
     carPlate: {
         type: DataTypes.STRING,
         allowNull: true,
-        unique: true,
     },
     carName: {
         type: DataTypes.STRING,
