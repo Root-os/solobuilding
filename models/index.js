@@ -7,7 +7,7 @@ const Expense = require("./expense");
 const ExpenseType = require("./expenseType");
 const Floor = require("./floor");
 const Item = require("./item");
-const Purchase = require("./Purchase");
+const Purchase = require("./purchase");
 const ItemCategory = require("./itemCategory");
 const Notification = require("./notification");
 const NotificationType = require("./notificationType");
@@ -26,12 +26,20 @@ const itemAssignments = require("./itemAssignment");
 const Maintenance = require("./maintenance");
 const Vendor = require("./Vendor");
 const ServiceType = require("./ServiceType");
-const Return = require("./Return");
+const Return = require("./return");
 const payment = require("./payment");
 const LetterType = require("./letterType");
 const Letter = require("./letter");
+const Role = require('./role');
+const Permission = require('./permission');
+const Task = require('./task');
+const sequelize = require('../config/database');
 
 module.exports = {
+  sequelize,
+  Role,
+  Permission,
+  Task,
   BillPayment,
   BillType,
   ElectricCarCharging,

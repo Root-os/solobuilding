@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/authController");
-const { adminAuth, tenantAuth, employeeAuth,adminOrEmployeeAuth } = require("../middleware/auth");
+const { adminAuth,verifyToken, tenantAuth, employeeAuth,adminOrEmployeeAuth } = require("../middleware/auth");
 
 // Authentication & User Management
 router.post("/register", userController.registerUser);
@@ -28,5 +28,10 @@ router.delete("/delete-my-account",adminOrEmployeeAuth, userController.deleteMyA
 router.put("/update-employee/:id", adminAuth, userController.updateEmployee);
 // Session Verification
 router.get("/verify-session",adminOrEmployeeAuth, userController.verifySession);
+
+// Permissions
+router.get('/permissions', verifyToken, userController.getPermissions);
+router.get('/permissions/:id', verifyToken, userController.getUsersPermissions);
+
 
 module.exports = router;

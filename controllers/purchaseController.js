@@ -1,4 +1,4 @@
-const Purchase = require("../models/Purchase");
+const Purchase = require("../models/purchase");
 const Item = require("../models/item");
 const ItemType = require("../models/itemCategory");
 const { Sequelize } = require("sequelize");

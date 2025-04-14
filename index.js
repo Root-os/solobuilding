@@ -14,7 +14,7 @@ const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
-const PORT =  3000;
+const PORT =  process.env.PORT||3000;
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads/')));
 // Security & Performance Middlewares
