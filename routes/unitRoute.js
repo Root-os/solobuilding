@@ -10,5 +10,6 @@ router.put('/:id', unitController.updateUnit);
 router.delete('/:id', unitController.deleteUnit);
 router.get('/rented/units', unitController.getRentedUnits);
 router.get('/free/units', unitController.getFreeUnits);
+router.get('/status/data/report', unitController.getUnitStatusReport); 
 
 module.exports = router;
