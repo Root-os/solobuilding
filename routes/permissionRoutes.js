@@ -4,6 +4,8 @@ const {
   assignPermissionToRole,
   getAllPermissions,
   removePermissionsFromRole,
+  updatePermission,
+  deletePermission,
 } = require('../controllers/permissionController');
 const {
   createPermissionSchema,
@@ -44,5 +46,8 @@ router.post(
   removePermissionsFromRole
 );
 router.get('/', authMiddleware, getAllPermissions);
+router.put('/:id', authMiddleware,  validate(createPermissionSchema),
+updatePermission);
+router.delete('/:id', authMiddleware,deletePermission);
 
 module.exports = router;
