@@ -1,49 +1,55 @@
 const  Tenant  = require("../models/tenant");
 const  Parking  = require("../models/parking");
 const { Op } = require("sequelize");
-const Setting=require("../models/setting");
+const Setting = require("../models/setting");
+const moment = require("moment");
 const {parkingSchema}=require("../helpers/schema");
+
+
 // Update parking record - handling partial updates
 exports.updateParking = async (req, res) => {
     try {
         const parkingId = req.params.id;
         const { carPlate, carName, driverName, driverPhone, tenantId, timeIn, timeOut, isTenant, status } = req.body;
 
-        // Find the parking record
-        const parking = await Parking.findByPk(parkingId);
+        // Find the parking record with its associated Tenant
+        const parking = await Parking.findByPk(parkingId, {
+            include: [{
+                model: Tenant,
+                attributes: ['id', 'fullName']
+            }]
+        });
+        
         if (!parking) {
             return res.status(404).json({ message: "Parking record not found" });
         }
 
-        // Fetch the parking price per hour from the Setting table
-        const setting = await Setting.findOne({ where: { id: "1" } });
-        const pricePerHour = setting ? parseFloat(setting.value) : 10; // Default to 100 ETB if not set
-
-        // If isTenant is true, validate tenant existence
-        if (isTenant) {
-            const tenant = await Tenant.findByPk(tenantId);
-            if (!tenant) {
-                return res.status(400).json({ message: "Tenant not found" });
-            }
+        // Fetch the default parking cost from the Setting model
+        const setting = await Setting.findOne(); // Assuming there's only one record in the Settings table
+        if (!setting) {
+            return res.status(500).json({ message: 'Setting not found.' });
         }
+
+        // Get the price per hour from the setting, default to 10 if not set
+        const pricePerHour = setting.parkingCost || 10; // Default to 10 if no parkingCost is set
 
         let calculatedPrice = parking.price; // Default price remains unchanged
         if (timeOut) {
-            const timeInDate = new Date(parking.timeIn);
-            const timeOutDate = new Date(timeOut);
+            const timeInDate = moment(parking.timeIn);
+            const timeOutDate = moment(timeOut);
 
-            if (timeOutDate > timeInDate) {
+            if (timeOutDate.isAfter(timeInDate)) {
                 // Calculate total minutes parked
-                const totalMinutes = Math.floor((timeOutDate - timeInDate) / 60000);
+                const totalMinutes = timeOutDate.diff(timeInDate, 'minutes'); // Duration in minutes
                 calculatedPrice = (totalMinutes * (pricePerHour / 60)).toFixed(2); // Price per min = dynamic price / 60
             } else {
                 return res.status(400).json({ message: "Invalid timeOut. It must be after timeIn." });
             }
         }
 
-        // Update parking record
-        const updatedParking = await parking.update({
-            carPlate: carPlate || parking.carPlate,
+        // Update the parking record with new information
+        await parking.update({
+            carPlate: carPlate || parking.carPlate, 
             carName: carName || parking.carName,
             driverName: driverName || parking.driverName,
             driverPhone: driverPhone || parking.driverPhone,
@@ -52,15 +58,24 @@ exports.updateParking = async (req, res) => {
             timeOut: timeOut || parking.timeOut,
             isTenant: isTenant !== undefined ? isTenant : parking.isTenant,
             status: status || parking.status,
-            price: calculatedPrice
+            price: calculatedPrice, // Updated price based on duration
         });
 
-        return res.status(200).json(updatedParking);
+        // Reload the parking instance with the updated Tenant association
+        await parking.reload({
+            include: [{
+                model: Tenant,
+                attributes: ['id', 'fullName']
+            }]
+        });
+
+        return res.status(200).json(parking);
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: "Error updating parking", error });
     }
 };
+
 // Get parking records by status
 exports.getParkingsByStatus = async (req, res) => {
     try {
@@ -113,7 +128,7 @@ exports.addParking = async (req, res) => {
             timeIn,
             timeOut:timeOut || null, // Default timeOut is null
             isTenant,
-            status: status || 'onparking' // Default status if not provided
+            status: 'parkingcomplete' || 'onparking' 
         });
 
         return res.status(201).json(parking);

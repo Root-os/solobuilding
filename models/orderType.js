@@ -1,29 +1,33 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const Floor = sequelize.define('Floor', {
+const OrderType = sequelize.define('OrderType', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true,
   },
-  floorNumber: {
+  name: {
     type: DataTypes.STRING,
     allowNull: false,
+    unique: true,
   },
-  noUnits: {
-    type: DataTypes.STRING,
+  description: {
+    type: DataTypes.TEXT,
     allowNull: true,
   },
-  status: {
-    type: DataTypes.ENUM('active', 'inActive', 'under_construction'),
-    defaultValue: 'active',
-  },
+  price:{
+    type: DataTypes.DECIMAL(10,2),
+    defaultValue: 0.00,
+    validate: {
+      min: 0.00
+    }
+  }
 }, {
-  tableName: 'floors',
+  tableName: 'order_types',
   timestamps: true,
   charset: 'utf8',
   collate: 'utf8_general_ci',
 });
 
-module.exports = Floor;
+module.exports = OrderType;

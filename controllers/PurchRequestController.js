@@ -2,7 +2,7 @@ const { Op } = require("sequelize");
 const PurchaseRequest = require("../models/purchaseRequest");
 const User = require("../models/user");
 const Item = require("../models/item");
-const Vendor = require("../models/vendor");
+const Vendor = require("../models/Vendor");
 const { purchaseRequestValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
 const sendNotificationHelper= require('../helpers/sendAlert');
@@ -126,11 +126,13 @@ exports.getPurchaseRequestById = async (req, res) => {
 // Update a PurchaseRequest by ID
 exports.updatePurchaseRequest = async (req, res) => {
   try {
+    // Validate request body
     const { error } = purchaseRequestValidationSchema.validate(req.body);
     if (error)
       return res
         .status(400)
         .json({ message: "Validation Error", error: error.details[0].message });
+
     const {
       itemId,
       requestedBy,
@@ -139,21 +141,33 @@ exports.updatePurchaseRequest = async (req, res) => {
       requestDate,
       reason,
       approvedBy,
-      vendorName,
-      vendorPhone,
+      vendorId,
     } = req.body;
+
+    // Validate request parameters (ID)
     const { errorId } = paramsSchema.validate(req.params);
     if (errorId) {
       return res
         .status(400)
         .json({ message: "Validation Error", error: error.details[0].message });
     }
+
+    // Find the purchase request by ID
     const purchaseRequest = await PurchaseRequest.findByPk(req.params.id);
 
     if (!purchaseRequest) {
       return res.status(404).json({ message: "PurchaseRequest not found" });
     }
 
+    // Check if the vendorId exists if provided
+    if (vendorId) {
+      const vendorExists = await Vendor.findByPk(vendorId);
+      if (!vendorExists) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+    }
+
+    // Update the fields
     purchaseRequest.itemId = itemId || purchaseRequest.itemId;
     purchaseRequest.requestedBy = requestedBy || purchaseRequest.requestedBy;
     purchaseRequest.status = status || purchaseRequest.status;
@@ -161,16 +175,41 @@ exports.updatePurchaseRequest = async (req, res) => {
     purchaseRequest.requestDate = requestDate || purchaseRequest.requestDate;
     purchaseRequest.reason = reason || purchaseRequest.reason;
     purchaseRequest.approvedBy = approvedBy || purchaseRequest.approvedBy;
-    purchaseRequest.vendorName = vendorName || purchaseRequest.vendorName;
-    purchaseRequest.vendorPhone = vendorPhone || purchaseRequest.vendorPhone;
+    purchaseRequest.vendorId = vendorId || purchaseRequest.vendorId;
 
+    // Save the updated purchase request
     await purchaseRequest.save();
 
-    res.status(200).json(purchaseRequest);
+    // Fetch the updated purchase request with the related data (Item, requestedBy, approvedBy, vendor)
+    const updatedRequest = await PurchaseRequest.findByPk(req.params.id, {
+      include: [
+        { model: Item, as: "item" }, // Include related item details
+        {
+          model: User,
+          as: "requestedby",
+          attributes: ["id", "fname", "lname", "email"], // Include requestedBy details
+        },
+        {
+          model: User,
+          as: "approvedby",
+          attributes: ["id", "fname", "lname", "email"], // Include approvedBy details
+        },
+        {
+          model: Vendor,
+          as: "vendor", // Include vendor details if necessary
+          attributes: ["id", "fname", "lname", "email", "phone", "address"],
+        },
+      ],
+    });
+
+    // Send the updated purchase request with related data in the response
+    res.status(200).json(updatedRequest);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
+
 
 // Delete a PurchaseRequest by ID
 exports.deletePurchaseRequest = async (req, res) => {

@@ -6,7 +6,7 @@ const xss = require('xss-clean');
 const hpp = require('hpp');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
-
+const path = require('path');
 const config = require('./config/config');
 const sequelize = require('./config/database');
 const defineAssociation = require('./models/association');
@@ -16,6 +16,7 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 const PORT =  3000;
 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads/')));
 // Security & Performance Middlewares
 app.use(helmet());
 // app.use(rateLimit({

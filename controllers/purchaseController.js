@@ -4,6 +4,7 @@ const ItemType = require("../models/itemCategory");
 const { Sequelize } = require("sequelize");
 const { purchaseValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
+const Vendor = require("../models/Vendor");
 
 exports.createPurchase = async (req, res) => {
   try {
@@ -45,12 +46,16 @@ exports.createPurchase = async (req, res) => {
 exports.getAllPurchases = async (req, res) => {
   try {
     const purchases = await Purchase.findAll({
-      include: [Item, ItemType],
+      include: [Item, ItemType, Vendor],
+    
       attributes: [
         "id",
         "vendorId",
+        "amount",
+        "price",
         "totalPrice",
         "description",
+        "date",
         "expirationDate",
         "itemId",
         "ItemCategoryId",
@@ -197,7 +202,7 @@ exports.generatePurchaseReport = async (req, res) => {
 
     const report = await Purchase.findAll({
       where: whereConditions,
-      include: [Item, ItemType],
+      include: [Item, ItemType, Vendor],
       order: [["date", "ASC"]],
     });
 

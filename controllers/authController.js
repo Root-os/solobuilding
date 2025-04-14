@@ -142,6 +142,52 @@ exports.updateUser = async (req, res) => {
   }
 };
 
+exports.updateEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;  // Get the employee ID from the URL parameter
+    const { fname, lname, phone, salary, position, department, hireDate, shift, employmentType, emergencyContact, address, bankAccount } = req.body;
+
+    // Find the employee by ID
+    const user = await User.findOne({ where: { id } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Employee not found" });
+    }
+
+    // Validate and update the basic user details
+    user.fname = fname || user.fname;
+    user.lname = lname || user.lname;
+    user.phone = phone || user.phone;
+    await user.save();
+
+    // Find and update the employee details (if any)
+    const employeeDetails = await EmployeeDetail.findOne({ where: { userId: user.id } });
+    if (!employeeDetails) {
+      return res.status(404).json({ success: false, message: "Employee details not found" });
+    }
+
+    employeeDetails.salary = salary || employeeDetails.salary;
+    employeeDetails.position = position || employeeDetails.position;
+    employeeDetails.department = department || employeeDetails.department;
+    employeeDetails.hireDate = hireDate || employeeDetails.hireDate;
+    employeeDetails.shift = shift || employeeDetails.shift;
+    employeeDetails.employmentType = employmentType || employeeDetails.employmentType;
+    employeeDetails.emergencyContact = emergencyContact || employeeDetails.emergencyContact;
+    employeeDetails.address = address || employeeDetails.address;
+    employeeDetails.bankAccount = bankAccount || employeeDetails.bankAccount;
+    await employeeDetails.save();
+
+    // Return the updated user and employee details
+    res.status(200).json({
+      success: true,
+      message: "Employee details updated successfully",
+      user,
+      employeeDetail: employeeDetails
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to update employee", error: error.message });
+  }
+};
+
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -175,12 +221,22 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getAllEmployeeUsers = async (req, res) => {
   try {
-    const users = await User.findAll({where: { role: 'employee' }, attributes: { exclude: ["password"] } });
+    // Fetch users with the role of 'employee' along with their related employee details
+    const users = await User.findAll({
+      where: { role: 'employee' },
+      attributes: { exclude: ["password"] },
+      include: [{
+        model: EmployeeDetail,  // Include the EmployeeDetail model
+        required: true,         // Ensures only users with employee details are included
+      }]
+    });
+
     res.status(200).json({ success: true, users });
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to fetch users", error: error.message });
   }
 };
+
 
 exports.getUserById = async (req, res) => {
   try {

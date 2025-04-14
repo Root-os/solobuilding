@@ -12,11 +12,4 @@ router.post("/report", returnController.generateReturnReport); // Get return rep
 router.get("/item/:itemId", returnController.getReturnsByItemId); // Get returns by Item ID
 router.get("/vendor/:vendorId", returnController.getReturnsByVendorId);
 
-
-
-
-
-
-
-
 module.exports = router;

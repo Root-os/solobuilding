@@ -7,26 +7,46 @@ const Setting = sequelize.define("Setting", {
         autoIncrement: true,
         primaryKey: true,
     },
-    key: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-    },
-    value: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    unit: {
+    buildingName: {
         type: DataTypes.STRING,
         allowNull: true,
     },
-    description: {
+    buildingAddress: {
         type: DataTypes.STRING,
         allowNull: true,
-    }
+    },
+    email: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    phoneNumber: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    chargingCost: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+    },
+    parkingCost: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+    },
+    logos: {
+        type: DataTypes.STRING, 
+        allowNull: true,
+    },
+    seal: { 
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    postOfficeAddress: {  // New field for PO Box address
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    
 }, {
     tableName: "settings",
-    timestamps: false,
+    timestamps: true,
     charset: 'utf8', 
     collate: 'utf8_general_ci',
 });

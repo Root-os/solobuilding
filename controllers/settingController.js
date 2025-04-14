@@ -1,72 +1,149 @@
 const Setting = require("../models/setting");
 
-// Get all settings
-exports.getAllSettings = async (req, res) => {
-    try {
-        const settings = await Setting.findAll();
-        res.status(200).json(settings);
-    } catch (error) {
-        res.status(500).json({ message: "Error retrieving settings", error });
-    }
-};
+// Create Setting
+require('dotenv').config(); // Make sure you load environment variables
 
-// Get a specific setting by key
-exports.getSettingByKey = async (req, res) => {
-    try {
-        const setting = await Setting.findOne({ where: { key: req.params.key } });
-        if (!setting) {
-            return res.status(404).json({ message: "Setting not found" });
-        }
-        res.status(200).json(setting);
-    } catch (error) {
-        res.status(500).json({ message: "Error retrieving setting", error });
-    }
-};
-
-// Create a new setting
+// Create Setting
 exports.createSetting = async (req, res) => {
     try {
-        const { key, value, description,unit } = req.body;
-        
-        // Check if setting already exists
-        const existingSetting = await Setting.findOne({ where: { key } });
-        if (existingSetting) {
-            return res.status(400).json({ message: "Setting with this key already exists" });
+        const { 
+            buildingName, 
+            buildingAddress, 
+            email, 
+            phoneNumber, 
+            postOfficeAddress,
+            chargingCost,   // Add this
+            parkingCost     // Add this
+        } = req.body;
+
+        let logoPath = null;
+        let sealPath = null;
+
+        if (req.files) {
+            if (req.files.logos) {
+                logoPath = `${process.env.BASE_URL}/uploads/setting/${req.files.logos[0].filename}`;
+            }
+            if (req.files.seal) {
+                sealPath = `${process.env.BASE_URL}/uploads/setting/${req.files.seal[0].filename}`;
+            }
         }
 
-        const setting = await Setting.create({ key, value, description,unit});
-        res.status(201).json(setting);
+        const setting = await Setting.create({
+            buildingName,
+            buildingAddress,
+            email,
+            phoneNumber,
+            postOfficeAddress,
+            logos: logoPath,
+            seal: sealPath,
+            chargingCost,   // Save this
+            parkingCost     // Save this
+        });
+
+        const fullSetting = await Setting.findOne({ 
+            where: { id: setting.id },
+            attributes: ['id', 'buildingName', 'buildingAddress', 'email', 'phoneNumber', 
+                        'postOfficeAddress', 'logos', 'seal', 'chargingCost', 'parkingCost', 
+                        'createdAt', 'updatedAt']
+        });
+
+        res.status(201).json(fullSetting);
     } catch (error) {
-        res.status(500).json({ message: "Error creating setting", error });
+        res.status(500).json({ message: "Error creating setting", error: error.message });
     }
 };
 
-// Update an existing setting
+
+// Update Setting
 exports.updateSetting = async (req, res) => {
     try {
-        const { value, description,unit,key } = req.body;
-        const setting = await Setting.findOne({ where: { key: req.params.key } });
+        const { 
+            buildingName, 
+            buildingAddress, 
+            email, 
+            phoneNumber, 
+            postOfficeAddress,
+            chargingCost,  // Add this
+            parkingCost    // Add this
+        } = req.body;
+
+        const setting = await Setting.findOne({ where: { id: req.params.id } });
 
         if (!setting) {
             return res.status(404).json({ message: "Setting not found" });
         }
 
-        setting.value = value || setting.value;
-        setting.unit = unit || setting.unit;
-        setting.key = key || setting.key;
-        setting.description = description || setting.description;
+        if (req.files) {
+            if (req.files.logos) {
+                setting.logos = `${process.env.BASE_URL}/uploads/setting/${req.files.logos[0].filename}`;
+            }
+            if (req.files.seal) {
+                setting.seal = `${process.env.BASE_URL}/uploads/setting/${req.files.seal[0].filename}`;
+            }
+        }
+
+        // Update fields
+        setting.buildingName = buildingName || setting.buildingName;
+        setting.buildingAddress = buildingAddress || setting.buildingAddress;
+        setting.email = email || setting.email;
+        setting.phoneNumber = phoneNumber || setting.phoneNumber;
+        setting.postOfficeAddress = postOfficeAddress || setting.postOfficeAddress;
+        setting.chargingCost = chargingCost || setting.chargingCost;  // Update this
+        setting.parkingCost = parkingCost || setting.parkingCost;    // Update this
+
         await setting.save();
 
-        res.status(200).json(setting);
+        const updatedSetting = await Setting.findOne({ 
+            where: { id: setting.id },
+            attributes: ['id', 'buildingName', 'buildingAddress', 'email', 'phoneNumber', 
+                        'postOfficeAddress', 'logos', 'seal', 'chargingCost', 'parkingCost', 
+                        'createdAt', 'updatedAt']
+        });
+
+        res.status(200).json(updatedSetting);
     } catch (error) {
-        res.status(500).json({ message: "Error updating setting", error });
+        res.status(500).json({ message: "Error updating setting", error: error.message });
     }
 };
 
-// Delete a setting
+
+
+// Get All Settings
+exports.getAllSettings = async (req, res) => {
+    try {
+        const settings = await Setting.findAll({
+            attributes: ['id', 'buildingName', 'buildingAddress', 'email', 'phoneNumber', 
+                        'postOfficeAddress', 'logos', 'seal', 'chargingCost', 'parkingCost', 
+                        'createdAt', 'updatedAt']
+        });
+        res.status(200).json(settings);
+    } catch (error) {
+        res.status(500).json({ message: "Error retrieving settings", error: error.message });
+    }
+};
+
+
+// Get Setting by ID
+exports.getSettingById = async (req, res) => {
+    try {
+        const setting = await Setting.findOne({ 
+            where: { id: req.params.id },
+            attributes: ['id', 'buildingName', 'buildingAddress', 'email', 'phoneNumber', 
+                        'postOfficeAddress', 'logos', 'seal', 'createdAt', 'updatedAt']
+        });
+        if (!setting) {
+            return res.status(404).json({ message: "Setting not found" });
+        }
+        res.status(200).json(setting);
+    } catch (error) {
+        res.status(500).json({ message: "Error retrieving setting", error: error.message });
+    }
+};
+
+// Delete Setting
 exports.deleteSetting = async (req, res) => {
     try {
-        const setting = await Setting.findOne({ where: { key: req.params.key } });
+        const setting = await Setting.findOne({ where: { id: req.params.id } });
 
         if (!setting) {
             return res.status(404).json({ message: "Setting not found" });
@@ -75,6 +152,6 @@ exports.deleteSetting = async (req, res) => {
         await setting.destroy();
         res.status(200).json({ message: "Setting deleted successfully" });
     } catch (error) {
-        res.status(500).json({ message: "Error deleting setting", error });
+        res.status(500).json({ message: "Error deleting setting", error: error.message });
     }
 };

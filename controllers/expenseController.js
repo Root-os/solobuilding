@@ -56,8 +56,11 @@ exports.getFilteredExpenses = async (req, res) => {
             whereClause.expenseTypeId = expenseTypeId;
         }
 
-        // Fetch filtered expenses
-        const expenses = await Expense.findAll({ where: whereClause });
+        // Fetch filtered expenses with expense type information
+        const expenses = await Expense.findAll({ 
+            where: whereClause,
+            include: { model: ExpenseType, as: "expenseType" }
+        });
 
         return res.status(200).json(expenses);
     } catch (error) {

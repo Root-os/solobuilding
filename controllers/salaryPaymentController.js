@@ -1,11 +1,11 @@
 const { Op } = require("sequelize");
-const SalaryPayment = require("../models/salaryPayment");
+const SalaryPayment = require("../models/SalaryPayment");
 const User = require("../models/user");
 const { salaryPaymentSchema } = require("../helpers/schema");
 const EmployeeDetails = require("../models/employeeDetail");
 const sequelize = require("../config/database");
 
-// 💵 Pay Salary
+//  Pay Salary
 exports.paySalary = async (req, res) => {
   try {
       const { error } = salaryPaymentSchema.validate(req.body);
@@ -78,7 +78,7 @@ exports.paySalary = async (req, res) => {
 
 
 
-// ✅ Mass Salary Payment (Admin Only)
+//  Mass Salary Payment (Admin Only)
 exports.massPaySalaries = async (req, res) => {
   try {
       const { paymentMethod, paymentToDate, paymentFromDate,status, allowance } = req.body;
@@ -175,7 +175,7 @@ if (fromDate > toDate) {
 };
 
 
-// 👨‍💼 Employee Views Salary Payment History
+//  Employee Views Salary Payment History
 exports.getEmployeeSalaryHistory = async (req, res) => {
   try {
     const { id: employeeId, role } = req.user;
@@ -200,7 +200,7 @@ exports.getEmployeeSalaryHistory = async (req, res) => {
   }
 };
 
-// 📝 Admin Updates Salary Payment Record
+//  Admin Updates Salary Payment Record
 exports.updateSalaryPayment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -223,7 +223,7 @@ exports.updateSalaryPayment = async (req, res) => {
   }
 };
 
-// ❌ Admin Deletes Salary Payment Record
+//  Admin Deletes Salary Payment Record
 exports.deleteSalaryPayment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -242,7 +242,8 @@ exports.deleteSalaryPayment = async (req, res) => {
   }
 };
 
-// 📜 Get All Salary Payments (Admin)
+
+//  Get All Salary Payments (Admin)
 exports.getAllSalaryPayments = async (req, res) => {
   try {
     const salaryPayments = await SalaryPayment.findAll({

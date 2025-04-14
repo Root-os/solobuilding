@@ -258,21 +258,22 @@ const settingSchema = Joi.object({
 
 
 const tenatSchema= Joi.object({
-    fullName: Joi.string().min(3).max(50).required(),
-    email: Joi.string().email().required(),
-    phoneNumber: Joi.string().pattern(/^[0-9]+$/).required(),
-    nationalId: Joi.string().required(),
-    leaseStartDate: Joi.date().required(),
-    leaseEndDate: Joi.date().optional(),
-    paymentStatus: Joi.string().valid('paid', 'due', 'overdue').optional(),
-    additionalNotes: Joi.string().min(5).max(500).optional(),
-    advance: Joi.number().min(0).required(),
-    tin: Joi.string().required(),
-    password: Joi.string().min(6).max(25).optional(),
-    document: Joi.string().optional(),
-    status: Joi.string().valid('active', 'inactive').optional(),
-    floorId: Joi.number().integer().min(0).required(),
-    unitId: Joi.number().integer().min(0).required(),
+  fullName: Joi.string().min(3).max(50).required(),
+  email: Joi.string().email().required(),
+  phoneNumber: Joi.string().pattern(/^[0-9]+$/).required(),
+  nationalId: Joi.string().required(),
+  leaseStartDate: Joi.date().required(),
+  leaseEndDate: Joi.date().optional(),
+  additionalNotes: Joi.string().min(5).max(500).optional(),
+  amount: Joi.number().min(0).required(),
+  advance: Joi.number().min(0).required(),
+  tin: Joi.string().required(),
+  password: Joi.string().min(6).max(25).optional(),
+  document: Joi.string().optional(),
+  status: Joi.string().valid('active', 'inactive', 'terminated').optional(),
+  floorId: Joi.number().integer().min(0).required(),
+  unitId: Joi.number().integer().min(0).required(),
+
 
     //optional car details
     carPlate: Joi.string().min(3).max(20).optional(),
@@ -292,7 +293,6 @@ const tenantPaymentSchema= Joi.object({
 
 const tenantRentCollectionSchema = Joi.object({
     tenantId: Joi.number().integer().min(0).required(),
-    amountPaid: Joi.number().min(0).required(),
     paymentDate: Joi.date().required(),
     paidDays: Joi.string().optional(),
     paymentMethod: Joi.string().required(),
@@ -361,12 +361,25 @@ const itemAssignmentSchema = Joi.object({
 })
 
 // Define the Joi schema for Maintenance validation
+// const maintenanceValidationSchema = Joi.object({
+//   date: Joi.date().required(),
+//   description: Joi.string().max(255).optional().allow(null),
+//   cost: Joi.number().positive().precision(2).required(),
+//   itemId: Joi.number().integer().required(),
+//   unitId: Joi.number().integer().required(),
+// });
 const maintenanceValidationSchema = Joi.object({
   date: Joi.date().required(),
-  description: Joi.string().max(255).optional().allow(null),
-  cost: Joi.number().positive().precision(2).required(),
-  itemId: Joi.number().integer().required(),
-  unitId: Joi.number().integer().required(),
+  description: Joi.string().required(),
+  cost: Joi.number().required(),
+  isItem: Joi.boolean().required(),
+  itemId: Joi.number().optional(), // Item ID is optional, but required when isItem is true
+  unitId: Joi.number().optional(), // Unit ID is optional
+  name: Joi.string().optional().when('isItem', {
+    is: false, 
+    then: Joi.required(),  // Name is required if isItem is false
+    otherwise: Joi.forbidden()  // Name is forbidden if isItem is true
+  }),
 });
 // Define the Joi schema for Purchase validation
 const purchaseValidationSchema = Joi.object({
@@ -374,7 +387,6 @@ const purchaseValidationSchema = Joi.object({
   amount: Joi.number().positive().precision(2).required(),
   date: Joi.date().required(),
   price: Joi.number().positive().precision(2).required(),
-  totalPrice: Joi.number().positive().precision(2).required(),
   description: Joi.string().optional().allow(null),
   expirationDate: Joi.date().optional().allow(null),
   itemId: Joi.number().integer().required(),
@@ -384,7 +396,6 @@ const purchaseValidationSchema = Joi.object({
 const purchaseRequestValidationSchema = Joi.object({
   itemId: Joi.number().integer().required(),
   requestedBy: Joi.number().integer().required(),
-  status: Joi.string().valid("pending", "approved", "rejected").required(),
   amount: Joi.number().positive().precision(2).required(),
   requestDate: Joi.date().required(),
   reason: Joi.string().optional().allow(null),
@@ -425,6 +436,18 @@ const vendorValidationSchema = Joi.object({
   contractTerms: Joi.string().optional(),
   serviceTypeId: Joi.number().integer().required(),
 });
+const vendorUpdateSchema = Joi.object({
+  fname: Joi.string().min(1).optional(),
+  lname: Joi.string().min(1).optional(),
+  phone: Joi.string().min(1).optional().messages({
+    'string.base': 'Phone must be a string',
+    'string.empty': 'Phone cannot be empty',
+  }),
+  email: Joi.string().email().optional(),
+  address: Joi.string().optional(),
+  contractTerms: Joi.string().optional(),
+  serviceTypeId: Joi.number().integer().optional(),
+}).min(1); // Ensure at least one field is provided
 const inventorySchema = Joi.object({
   tenantId: Joi.number().integer().required(),
   type: Joi.string().valid("move-in", "move-out").required(),
@@ -458,11 +481,34 @@ const letterTypeValidationSchema = Joi.object({
 const letterValidationSchema = Joi.object({
   letterTypeId: Joi.number().integer().required(), 
   tenantId: Joi.number().integer().required(), 
-  Date: Joi.date().required(), 
+  letterDate: Joi.date().required(), 
   description: Joi.string().required(),   
 });
+//orderType validation
+const orderTypeValidationSchema = Joi.object({
+  name: Joi.string().max(255).required(),
+  description: Joi.string().optional().allow(''),
+  price: Joi.number().positive().required(),
+});
+// order validation
+const orderValidationSchema = Joi.object({
+  orderDate: Joi.date().required(),
+  amount: Joi.number().positive().precision(2).required(),
+  status: Joi.string().valid('pending', 'completed', 'canceled').optional(),
+  notes: Joi.string().optional().allow(''),
+  receiptImage: Joi.string().optional().allow(''),
+  orderTypeId: Joi.number().integer().positive().required(),
+});
+
+// { startDate, endDate } validation
+  const dayBetweenQuerySchema = Joi.object({
+    startDate: Joi.date().optional(),
+    endDate: Joi.date().optional().greater(Joi.ref('startDate')),
+  });
+
 
 module.exports = {
+  dayBetweenQuerySchema,
   UpdateinventorySchema,
   inventorySchema,
   stockOutSchema,
@@ -519,7 +565,10 @@ module.exports = {
     serviceTypeValidationSchema,
     returnValidationSchema,
     vendorValidationSchema,
+    vendorUpdateSchema,
     letterTypeValidationSchema,
-    letterValidationSchema
+    letterValidationSchema,
+    orderTypeValidationSchema,
+    orderValidationSchema,
   };
   

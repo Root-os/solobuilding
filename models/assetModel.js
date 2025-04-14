@@ -6,7 +6,7 @@ const AssetType = require('./assetType');
 const AssetAudit = sequelize.define('AssetAudit', {
     item_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       references: {
         model: 'items', // points to the 'items' table
         key: 'id'
@@ -16,7 +16,7 @@ const AssetAudit = sequelize.define('AssetAudit', {
     },
     asset_type_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       references: {
         model: 'asset_types', // points to the 'asset_types' table
         key: 'id'

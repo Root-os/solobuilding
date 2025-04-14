@@ -1,6 +1,8 @@
 const { Letter } = require('../models'); 
 const Tenant = require('../models/tenant');
 const LetterType = require('../models/letterType');
+const Unit = require('../models/unit');
+const Floor = require('../models/floor');
 const {letterValidationSchema} = require('../helpers/schema');
 const sendNotificationHelper= require('../helpers/sendAlert');
 
@@ -12,7 +14,13 @@ exports.createLetter = async (req, res) => {
       return res.status(400).json({ message: error.details[0].message });
     }
 
-    const { letterTypeId, tenantId, Date, description } = req.body;
+    let { letterTypeId, tenantId, letterDate, description } = req.body;
+
+    letterDate = new Date(letterDate);
+
+    if (isNaN(letterDate.getTime())) { 
+      return res.status(400).json({ message: "Invalid date format" });
+    }
 
     const tenant = await Tenant.findByPk(tenantId);
     if (!tenant) {
@@ -27,23 +35,22 @@ exports.createLetter = async (req, res) => {
     const newLetter = await Letter.create({
       letterTypeId,
       tenantId,
-      Date,
+      Date: letterDate,  // Use the renamed letterDate variable here
       description,
       status: "Sent",
     });
 
     let notification;
-    if(newLetter){
+    if (newLetter) {
       const formattedDate = new Date(newLetter.Date).toLocaleDateString();
 
-       notification = await sendNotificationHelper({
+      notification = await sendNotificationHelper({
         adminId: tenant.id,
         title: `Dear ${tenant.fullName} you have New Letter`,
         body: `You have received a new letter from the management on ${formattedDate}. Please check your dashboard for more details.`,
         type: "New Letter",
         receiver_type: "tenant"
-    });
-    
+      });
     }
 
     return res.status(201).json({ message: "Letter created successfully", newLetter, notification });
@@ -51,6 +58,7 @@ exports.createLetter = async (req, res) => {
     return res.status(500).json({ message: "Error creating letter", error: error.message });
   }
 };
+
 
 // Get all Letters
 exports.getAllLetters = async (req, res) => {
@@ -70,7 +78,22 @@ exports.getAllLetters = async (req, res) => {
 exports.getLetterById = async (req, res) => {
   try {
     const letter = await Letter.findByPk(req.params.id,{
-        include: [Tenant, LetterType]
+        include: [
+          {model:Tenant,
+            attributes: ['fullName', 'email', 'phoneNumber'],
+            include: [
+              {
+                model: Floor,attributes:['floorNumber']
+                
+              },
+              {
+                model: Unit,attributes:['unitNumber']
+                
+              }
+            ]
+          },
+           {model:LetterType}
+          ]
     });
     if (!letter) {
       return res.status(404).json({ message: "Letter not found" });
