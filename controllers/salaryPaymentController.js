@@ -242,6 +242,7 @@ exports.deleteSalaryPayment = async (req, res) => {
   }
 };
 
+
 //  Get All Salary Payments (Admin)
 exports.getAllSalaryPayments = async (req, res) => {
   try {
