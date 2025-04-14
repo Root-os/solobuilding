@@ -32,3 +32,6 @@ uploads/
 *.yaml
 package-lock.json
 yarn.lock
+.htaccess
+.pnpm-lock.yaml
+pnpm-lock.yaml.*

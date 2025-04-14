@@ -1,22 +1,25 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/user");
+const { Role, Permission } = require('../models');
+
 const { sendEmail } = require("../middleware/sendEmail");
 const EmployeeDetail =require('../models/employeeDetail')
 /**
  * Helper function to generate JWT token
  */
-const generateToken = (user) => {
+const generateToken = (user, roleName, permissions) => {
   return jwt.sign(
-    { id: user.id, fname: user.fname, lname: user.lname, role: user.role },
+    { id: user.id, fname: user.fname, lname: user.lname, role: roleName, permissions },
     process.env.JWT_SECRET,
-    { expiresIn: "3h" }
+    { expiresIn: process.env.JWT_EXPIRES_IN || "3h" }
   );
 };
 
+
 exports.registerUser = async (req, res) => {
   try {
-    const { fname, lname, email, password, role, phone } = req.body;
+    const { fname, lname, email, password, roleId, phone } = req.body;
 if(!fname || !lname || !email || !password) {
       return res.status(400).json({ success: false, message: "All fields are required fname, lname,email, password" });
     }
@@ -24,9 +27,13 @@ if(!fname || !lname || !email || !password) {
     if (user) {
       return res.status(400).json({ success: false, message: "User with this email already exists." });
     }
-    if (role !== "admin" && role !== "employee") {
-      return res.status(400).json({ success: false, message: "Invalid role, only employee or admin is allowed" });
+    // Check if role exists
+    const role = await Role.findByPk(roleId);
+    if (!role) {
+      return res.status(400).json({ message: 'Invalid role,please correct to the existing on or create this one' });
     }
+
+    // Check if phone number is valid
 if (phone&&phone.length < 10) {
       return res.status(400).json({ success: false, message: "Invalid phone number, it should be between 10 to 13 digits" });
     }
@@ -40,11 +47,11 @@ if (phone&&phone.length < 10) {
       lname,
       email,
       password: hashedPassword,
-      role,
+      roleId,
       phone,
     });
 
-    const token = generateToken(user);
+    const token = generateToken(user, role.name, []);
     res.cookie("authToken", token, { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
     res.status(201).json({ success: true, message: "User registered successfully", token });
   } catch (error) {
@@ -70,14 +77,17 @@ exports.registerUserEmployee = async (req, res) => {
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-
+const role = await Role.findOne({ where: { name: 'employee' } });
+    if (!role) {
+      return res.status(400).json({ message: 'Invalid role please first create role employee' });
+    }
     // Create the user
     user = await User.create({
       fname,
       lname,
       email,
       password: hashedPassword,
-      role: 'employee',
+      roleId: role.id,
       phone,
     });
 
@@ -96,9 +106,9 @@ exports.registerUserEmployee = async (req, res) => {
         bankAccount,
       });
     }
-
+    // const permissions = user.Role.Permissions.map((perm) => perm.name);
     // Generate a token for the user
-    const token = generateToken(user);
+    const token = generateToken(user, role.name, []);
 
     // Set the token in the cookie
     res.cookie("authToken", token, { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
@@ -113,11 +123,9 @@ exports.registerUserEmployee = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
-    const { fname, lname, role,phone } = req.body;
+    const { fname, lname, roleId,phone } = req.body;
     const { id } = req.user;
-    if (role&&(role !== "admin" && role !== "employee")) {
-      return res.status(400).json({ success: false, message: "Invalid role, only employee or admin is allowed" });
-    }
+   
 
     const user = await User.findOne({ where: { id } });
     if (!user) {
@@ -129,10 +137,13 @@ exports.updateUser = async (req, res) => {
     if (phone&&phone.length > 13) {
       return res.status(400).json({ success: false, message: "Invalid phone number, it should be between 10 to 13 digits" });
     }
-
+const role = await Role.findByPk(roleId);
+    if (!role) {
+      return res.status(400).json({ message: 'Invalid role,please correct to the existing on or create this one' });
+    }
     user.fname = fname;
     user.lname = lname;
-    user.role = role;
+    user.roleId = roleId;
     user.phone = phone;
     await user.save();
 
@@ -191,7 +202,12 @@ exports.updateEmployee = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ where: { email },
+      include: {
+        model: Role,
+        include: Permission,
+      }
+      });
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ success: false, message: "Invalid email or password" });
@@ -200,8 +216,10 @@ exports.login = async (req, res) => {
     if (user.status !== "active") {
       return res.status(403).json({ success: false, message: "Your account is inactive. Contact support." });
     }
+    const permissions = user.Role.Permissions.map((perm) => perm.name);
 
-    const token = generateToken(user);
+    const token = generateToken(user, user.Role.name, permissions);
+
     res.cookie("authToken", token, { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
 
     res.status(200).json({ success: true,  token });
@@ -221,9 +239,13 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getAllEmployeeUsers = async (req, res) => {
   try {
+    const role = await Role.findOne({ where: { name: 'employee' } });
+    if (!role) {
+      return res.status(400).json({ message: 'Invalid role please first create role employee' });
+    }
     // Fetch users with the role of 'employee' along with their related employee details
     const users = await User.findAll({
-      where: { role: 'employee' },
+      where: { roleId: role.id },
       attributes: { exclude: ["password"] },
       include: [{
         model: EmployeeDetail,  // Include the EmployeeDetail model
@@ -240,7 +262,12 @@ exports.getAllEmployeeUsers = async (req, res) => {
 
 exports.getUserById = async (req, res) => {
   try {
-    const user = await User.findOne({ where: { id: req.params.id }, attributes: { exclude: ["password"] } });
+    const user = await User.findOne({ 
+      where: { id: req.params.id },  include: {
+      model: Role,
+      include: Permission,
+    },
+    attributes: { exclude: ["password"] } });
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
@@ -315,7 +342,10 @@ exports.changePassword = async (req, res) => {
 
 exports.myProfile = async (req, res) => {
   try {
-    const user = await User.findOne({ where: { id: req.user.id }, attributes: { exclude: ["password"] } });
+    const user = await User.findOne({ 
+      where: { id: req.user.id },
+      expiresIn:Role,
+      attributes: { exclude: ["password"] } });
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
@@ -394,5 +424,44 @@ exports.resetPassword = async (req, res) => {
     res.status(200).json({ success: true, message: "Password reset successful" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to reset password", error: error.message });
+  }
+};
+
+exports.getPermissions= async (req,res)=>{
+  try {
+    const user = await User.findByPk(req.user.id, {
+      include: {
+        model: Role,
+        include: Permission,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const permissions = user.Role.Permissions.map((perm) => perm.name);
+    res.json({ permissions });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+exports.getUsersPermissions= async (req,res)=>{
+  try {
+    const user = await User.findByPk(req.params.id, {
+      include: {
+        model: Role,
+        include: Permission,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const permissions = user.Role.Permissions.map((perm) => perm.name);
+    res.json({ permissions });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
