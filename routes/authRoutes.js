@@ -31,5 +31,7 @@ router.get("/verify-session",adminOrEmployeeAuth, userController.verifySession);
 
 // Permissions
 router.get('/permissions', verifyToken, userController.getPermissions);
+router.get('/permissions/:id', verifyToken, userController.getUsersPermissions);
+
 
 module.exports = router;

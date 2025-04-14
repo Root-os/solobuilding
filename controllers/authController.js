@@ -123,11 +123,9 @@ const role = await Role.findOne({ where: { name: 'employee' } });
 
 exports.updateUser = async (req, res) => {
   try {
-    const { fname, lname, role,phone } = req.body;
+    const { fname, lname, roleId,phone } = req.body;
     const { id } = req.user;
-    if (role&&(role !== "admin" && role !== "employee")) {
-      return res.status(400).json({ success: false, message: "Invalid role, only employee or admin is allowed" });
-    }
+   
 
     const user = await User.findOne({ where: { id } });
     if (!user) {
@@ -139,10 +137,13 @@ exports.updateUser = async (req, res) => {
     if (phone&&phone.length > 13) {
       return res.status(400).json({ success: false, message: "Invalid phone number, it should be between 10 to 13 digits" });
     }
-
+const role = await Role.findByPk(roleId);
+    if (!role) {
+      return res.status(400).json({ message: 'Invalid role,please correct to the existing on or create this one' });
+    }
     user.fname = fname;
     user.lname = lname;
-    user.role = role;
+    user.roleId = roleId;
     user.phone = phone;
     await user.save();
 
@@ -238,9 +239,13 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getAllEmployeeUsers = async (req, res) => {
   try {
+    const role = await Role.findOne({ where: { name: 'employee' } });
+    if (!role) {
+      return res.status(400).json({ message: 'Invalid role please first create role employee' });
+    }
     // Fetch users with the role of 'employee' along with their related employee details
     const users = await User.findAll({
-      where: { role: 'employee' },
+      where: { roleId: role.id },
       attributes: { exclude: ["password"] },
       include: [{
         model: EmployeeDetail,  // Include the EmployeeDetail model
