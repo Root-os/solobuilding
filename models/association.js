@@ -30,10 +30,21 @@ const {
     Return,
     payment,
     LetterType,
-    Letter
+    Letter,
+    Role,
+    Permission,
+    Task,
 } = require('./index');
 
 const defineAssociations = () => {
+  //association for user and role
+  User.belongsTo(Role, { foreignKey: 'roleId' });
+  Role.hasMany(User, { foreignKey: 'roleId' });
+  Role.belongsToMany(Permission, { through: 'RolePermissions', foreignKey: 'roleId' });
+  Permission.belongsToMany(Role, { through: 'RolePermissions', foreignKey: 'permissionId' });
+  User.belongsToMany(Task, { through: 'UserTasks', foreignKey: 'userId' });
+  Task.belongsToMany(User, { through: 'UserTasks', foreignKey: 'taskId' });
+
   // Define Relationships
     Item.belongsTo(ItemCategory, { foreignKey: "itemCategoryId", onDelete: "CASCADE", onUpdate: "CASCADE" });
     ItemCategory.hasMany(Item, { foreignKey: "itemCategoryId", onDelete: "CASCADE", onUpdate: "CASCADE" });

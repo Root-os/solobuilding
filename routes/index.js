@@ -57,6 +57,9 @@ router.use('/order', require('./orderRoute'));
 
 //report
 router.use('/report', require('./reportRoute'));
+router.use('/tasks',require('./taskRoutes'));
+router.use('/permissions',require('./permissionRoutes'));
+router.use('/roles',require('./roleRoutes'));
 
 
 module.exports = router;

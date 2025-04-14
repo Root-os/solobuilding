@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const verifyToken = (req, res) => {
+const verifyToken = (req, res,next) => {
   let token;
 
   // Check for token in cookies
@@ -23,11 +23,10 @@ const verifyToken = (req, res) => {
     const user = jwt.verify(token, process.env.JWT_SECRET);
     console.log('Decoded user:', user);
     req.user = user;
-    return user;
+    next();
   } catch (error) {
     console.log('Invalid token:', error.message);
     res.status(403).json({ success: false, message: 'Invalid token' });
-    return null;
   }
 };
 
@@ -108,4 +107,4 @@ const AdminOrTenantAuth = (req, res, next) => {
   }
   next();
 }
-module.exports = { adminAuth, tenantAuth, employeeAuth, roleAuth,AdminOrTenantAuth, EmployeeOrTenantAuth,adminOrEmployeeAuth };
+module.exports = { verifyToken,adminAuth, tenantAuth, employeeAuth, roleAuth,AdminOrTenantAuth, EmployeeOrTenantAuth,adminOrEmployeeAuth };
