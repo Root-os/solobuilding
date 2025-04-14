@@ -1,6 +1,6 @@
 const Payment = require("../models/payment");
 const Vendor = require("../models/Vendor");
-const Purchase = require("../models/Purchase");
+const Purchase = require("../models/purchase");
 const { paymentValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
 const Joi = require('joi');
