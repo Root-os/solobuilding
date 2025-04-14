@@ -16,8 +16,8 @@ const Floor = sequelize.define('Floor', {
     allowNull: true,
   },
   status: {
-    type: DataTypes.ENUM('available', 'occupied', 'under_maintenance'),
-    defaultValue: 'available',
+    type: DataTypes.ENUM('active', 'inActive', 'under_construction'),
+    defaultValue: 'active',
   },
 }, {
   tableName: 'floors',

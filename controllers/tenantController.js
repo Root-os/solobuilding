@@ -43,6 +43,7 @@ exports.createTenant = async (req, res) => {
       const { 
         unitId, 
         leaseStartDate, 
+        leaseEndDate,
         email,
         fullName, 
         nationalId, 
@@ -50,6 +51,7 @@ exports.createTenant = async (req, res) => {
         tin, 
         floorId, 
         advance, 
+        amount,
         carPlate = null, // Optional
         carName = null,  // Optional
         color = null     // Optional
@@ -99,12 +101,14 @@ exports.createTenant = async (req, res) => {
       const tenantData = {
         unitId,
         leaseStartDate,
+        leaseEndDate,
         email,
         fullName,
         nationalId,
         phoneNumber,
         tin,
         floorId,
+        amount,
         advance,
         document: filePath,
         password: hashedPassword,

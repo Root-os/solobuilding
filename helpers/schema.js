@@ -258,21 +258,22 @@ const settingSchema = Joi.object({
 
 
 const tenatSchema= Joi.object({
-    fullName: Joi.string().min(3).max(50).required(),
-    email: Joi.string().email().required(),
-    phoneNumber: Joi.string().pattern(/^[0-9]+$/).required(),
-    nationalId: Joi.string().required(),
-    leaseStartDate: Joi.date().required(),
-    leaseEndDate: Joi.date().optional(),
-    paymentStatus: Joi.string().valid('paid', 'due', 'overdue').optional(),
-    additionalNotes: Joi.string().min(5).max(500).optional(),
-    advance: Joi.number().min(0).required(),
-    tin: Joi.string().required(),
-    password: Joi.string().min(6).max(25).optional(),
-    document: Joi.string().optional(),
-    status: Joi.string().valid('active', 'inactive').optional(),
-    floorId: Joi.number().integer().min(0).required(),
-    unitId: Joi.number().integer().min(0).required(),
+  fullName: Joi.string().min(3).max(50).required(),
+  email: Joi.string().email().required(),
+  phoneNumber: Joi.string().pattern(/^[0-9]+$/).required(),
+  nationalId: Joi.string().required(),
+  leaseStartDate: Joi.date().required(),
+  leaseEndDate: Joi.date().optional(),
+  additionalNotes: Joi.string().min(5).max(500).optional(),
+  amount: Joi.number().min(0).required(),
+  advance: Joi.number().min(0).required(),
+  tin: Joi.string().required(),
+  password: Joi.string().min(6).max(25).optional(),
+  document: Joi.string().optional(),
+  status: Joi.string().valid('active', 'inactive', 'terminated').optional(),
+  floorId: Joi.number().integer().min(0).required(),
+  unitId: Joi.number().integer().min(0).required(),
+
 
     //optional car details
     carPlate: Joi.string().min(3).max(20).optional(),
@@ -292,7 +293,6 @@ const tenantPaymentSchema= Joi.object({
 
 const tenantRentCollectionSchema = Joi.object({
     tenantId: Joi.number().integer().min(0).required(),
-    amountPaid: Joi.number().min(0).required(),
     paymentDate: Joi.date().required(),
     paidDays: Joi.string().optional(),
     paymentMethod: Joi.string().required(),
