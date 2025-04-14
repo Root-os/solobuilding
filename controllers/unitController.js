@@ -131,7 +131,7 @@ exports.getRentedUnits = async (req, res) => {
     // Find all rented units (occupied units)
     const rentedUnits = await Unit.findAll({
       where: {
-        status: 'occupied',  // Only include units with 'occupied' status
+        status: 'occupied',  
       },
     });
 
@@ -140,6 +140,24 @@ exports.getRentedUnits = async (req, res) => {
     }
 
     res.status(200).json(rentedUnits);  // Return the list of rented units
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Report: Get summary of units by status
+exports.getUnitStatusReport = async (req, res) => {
+  try {
+    const units = await Unit.findAll();
+
+    const statusCounts = {
+      totalUnits: units.length,
+      availableUnits: units.filter(u => u.status === 'available').length,
+      occupiedUnits: units.filter(u => u.status === 'occupied').length,
+      underMaintenanceUnits: units.filter(u => u.status === 'under_maintenance').length,
+    };
+
+    res.status(200).json({ unitsReport: statusCounts });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
