@@ -93,7 +93,7 @@ const { error } = tenantRentCollectionSchema.validate(req.body);
 if (error) {
     return res.status(400).json({ error: error.details[0].message });
 }
-        const { tenantId, amountPaid, paymentDate, paymentMethod, paymentFrequency, nextDueDate, status } = req.body;
+        const { tenantId, paymentDate, paymentMethod, paymentFrequency, nextDueDate, status } = req.body;
 
 // Find the tenant and update their status and leaseEndDate
 const tenant = await Tenant.findByPk(tenantId);
@@ -143,12 +143,11 @@ if (!tenant) {
 
         const rentPayment = await TenantRentCollection.create({
             tenantId,
-            amountPaid,
             paymentDate,
             paymentMethod,
             paymentFrequency,
             nextDueDate,
-            paidDays, // Insert readable format
+            paidDays, 
             status
         });
 
@@ -344,13 +343,24 @@ exports.filterRentCollections = async (req, res) => {
   
       const rentCollections = await TenantRentCollection.findAll({
         where: whereConditions,
-        include: [{ model: Tenant, attributes: ['fullName'] }],
+        include: [{
+          model: Tenant,
+          attributes: ['fullName', 'email', 'phoneNumber'],
+          include: [
+            {
+              model: Unit,
+              attributes: ['unitNumber']
+            },
+            {
+              model: Floor,
+              attributes: ['floorNumber']
+            }
+          ]
+        }],        
       });
-  
       if (!rentCollections.length) {
         return res.status(404).json({ message: 'No rent collections found matching the filters' });
       }
-  
       res.status(200).json(rentCollections);
     } catch (error) {
       res.status(500).json({ message: 'Error fetching rent collections', error: error.message });

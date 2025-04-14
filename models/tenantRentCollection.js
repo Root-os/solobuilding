@@ -17,10 +17,6 @@ const TenantRentCollection = sequelize.define('TenantRentCollection', {
     },
     onDelete: 'CASCADE',
   },
-  amountPaid: {
-    type: DataTypes.FLOAT,
-    allowNull: false,
-  },
   paymentDate: {
     type: DataTypes.DATE,
     allowNull: false,

@@ -55,5 +55,8 @@ router.use('/asset-audits', require('./assetRoutes'));
 router.use('/order-type', require('./orderTypeRoute'));
 router.use('/order', require('./orderRoute'));
 
+//report
+router.use('/report', require('./reportRoute'));
+
 
 module.exports = router;
