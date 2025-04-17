@@ -1,6 +1,7 @@
 const { Op } = require("sequelize");
 const SalaryPayment = require("../models/SalaryPayment");
 const User = require("../models/user");
+const Role = require("../models/role");
 const { salaryPaymentSchema } = require("../helpers/schema");
 const EmployeeDetails = require("../models/employeeDetail");
 const sequelize = require("../config/database");
@@ -21,7 +22,16 @@ exports.paySalary = async (req, res) => {
       }
 
       // Ensure Employee Exists
-      const user = await User.findOne({ where: { id: employeeId, role: "employee" } });
+      const user = await User.findOne({
+        where: { id: employeeId },
+        include: [
+          {
+            model: Role,
+            as: 'Role', // Match alias exactly
+            where: { name: 'employee' },
+          },
+        ],
+      });      
       if (!user) {
           return res.status(404).json({ message: "Employee not found" });
       }
@@ -81,7 +91,7 @@ exports.paySalary = async (req, res) => {
 //  Mass Salary Payment (Admin Only)
 exports.massPaySalaries = async (req, res) => {
   try {
-      const { paymentMethod, paymentToDate, paymentFromDate,status, allowance } = req.body;
+      const { paymentMethod, paymentToDate, paymentFromDate, status, allowance } = req.body;
 
       if (!paymentMethod) {
           return res.status(400).json({ message: "Payment method is required" });
@@ -89,8 +99,14 @@ exports.massPaySalaries = async (req, res) => {
 
       // Fetch all employees with role 'employee' and their salary details
       const employees = await User.findAll({
-          where: { role: "employee" },
-          include: [{ model: EmployeeDetails, attributes: ["salary"], required: true }],
+          include: [
+              {
+                  model: Role,
+                  where: { name: "employee" }, // Only get users with the role 'employee'
+                  required: true, // Ensures it filters based on this condition
+              },
+            
+          ],
       });
 
       if (employees.length === 0) {
@@ -110,37 +126,40 @@ exports.massPaySalaries = async (req, res) => {
               });
               continue;
           }
+
           const fromDate = new Date(paymentFromDate);
-const toDate = new Date(paymentToDate);
+          const toDate = new Date(paymentToDate);
 
-if (isNaN(fromDate) || isNaN(toDate)) {
-    return res.status(400).json({ message: "Invalid date format" });
-}
-
-if (fromDate > toDate) {
-    return res.status(400).json({ message: 'The payment "From Date" must be earlier than or equal to the "To Date".' });
-}
-
-          // Ensure allowance is a valid number (if provided)
-          // Check if there's already a payment for the same employee within the same date range
-          const existingPayment = await SalaryPayment.findOne({
-            where: {
-              employeeId:employee.id,
-              paymentToDate: { [Op.gte]: paymentFromDate },  // payments that overlap on or after the given `paymentFromDate`
-              paymentFromDate: { [Op.lte]: paymentToDate },  // payments that overlap on or before the given `paymentToDate`
-              status: 'Paid',
-            },
-          });
-          
-          if (existingPayment) {
-            return res.status(404).json({message:'Duplicate payment detected within the specified date range.'});
+          if (isNaN(fromDate) || isNaN(toDate)) {
+              return res.status(400).json({ message: "Invalid date format" });
           }
+
+          if (fromDate > toDate) {
+              return res.status(400).json({ message: 'The payment "From Date" must be earlier than or equal to the "To Date".' });
+          }
+
           // Ensure allowance is a valid number (if provided)
           if (allowance && isNaN(allowance)) {
-            return res.status(400).json({ message: "Allowance must be a valid number" });
-        }
-        const validAllowance = parseFloat(allowance) || 0;
-                  // Calculate pension, income tax, and net salary using the salary calculation method
+              return res.status(400).json({ message: "Allowance must be a valid number" });
+          }
+
+          const validAllowance = parseFloat(allowance) || 0;
+
+          // Check if there's already a payment for the same employee within the same date range
+          const existingPayment = await SalaryPayment.findOne({
+              where: {
+                  employeeId: employee.id,
+                  paymentToDate: { [Op.gte]: paymentFromDate },  // payments that overlap on or after the given `paymentFromDate`
+                  paymentFromDate: { [Op.lte]: paymentToDate },  // payments that overlap on or before the given `paymentToDate`
+                  status: 'Paid',
+              },
+          });
+
+          if (existingPayment) {
+              return res.status(404).json({ message: 'Duplicate payment detected within the specified date range.' });
+          }
+
+          // Calculate pension, income tax, and net salary using the salary calculation method
           const { pensionContribution, incomeTax, netSalary } = SalaryPayment.calculateDeductions(employee.EmployeeDetail.salary, validAllowance);
 
           // Add the calculated details to the salary payment record
@@ -148,7 +167,7 @@ if (fromDate > toDate) {
               employeeId: employee.id,
               amount: employee.EmployeeDetail.salary,  // Gross salary from EmployeeDetails
               paymentMethod,
-              paymentFromDate:paymentFromDate,
+              paymentFromDate: paymentFromDate,
               paymentToDate: paymentToDate,
               status: status || "pending",  // Default status to "pending"
               pensionContribution,          // Calculated pension contribution
@@ -173,6 +192,7 @@ if (fromDate > toDate) {
       res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 //  Employee Views Salary Payment History

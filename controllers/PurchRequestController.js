@@ -37,7 +37,14 @@ exports.createPurchaseRequest = async (req, res) => {
       approvedBy,
       vendorId,
     });
-    const admins= await User.findAll({ where: { role: 'admin' } }); // Fetch all admins
+    const admins = await User.findAll({
+      include: [{
+        model: Role,
+        as: 'Role', // match your model alias here
+        where: { name: 'admin' },
+      }],
+    });
+     // Fetch all admins
     if (newRequest && admins.length > 0) {
       // Send notification to each admin
       await Promise.all(

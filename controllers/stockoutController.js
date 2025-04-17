@@ -121,7 +121,21 @@ exports.getStockoutRequestById = async (req, res) => {
     try {
         const { id } = req.params;
         const stockout = await Stockout.findByPk(id, {
-            include: [{ model: Item, attributes: ["itemName"] }, { model: User, as: "requester", attributes: ["fullName"] }]
+            include: [{ model: Item, attributes: ["itemName"] }, { model: User, attributes: ["fullName"] }]
+        });
+
+        if (!stockout) return res.status(404).json({ message: "Stockout request not found" });
+
+        return res.status(200).json(stockout);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+exports.mySetStockoutRequest = async (req, res) => {
+    try {
+        const  id  = req.user.id;
+        const stockout = await Stockout.findAll({where:{requestedBy:id}, 
+            include: [{ model: Item, attributes: ["itemName"] }, { model: User, attributes: ["fname","lname"] }]
         });
 
         if (!stockout) return res.status(404).json({ message: "Stockout request not found" });
