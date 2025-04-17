@@ -63,16 +63,32 @@ exports.createLetter = async (req, res) => {
 // Get all Letters
 exports.getAllLetters = async (req, res) => {
   try {
-    const letters = await Letter.findAll(
+    const letters = await Letter.findAll({
+      include: [
         {
-            include: [Tenant, LetterType]
-        }
-    );
+          model: Tenant,
+          attributes: ['fullName', 'email', 'phoneNumber'],
+          include: [
+            {
+              model: Floor,
+              attributes: ['floorNumber']
+            },
+            {
+              model: Unit,
+              attributes: ['unitNumber']
+            }
+          ]
+        },
+        { model: LetterType }
+      ]
+    });
+
     return res.status(200).json(letters);
   } catch (error) {
     return res.status(500).json({ message: "Error fetching letters", error: error.message });
   }
 };
+
 
 // Get a Letter by ID
 exports.getLetterById = async (req, res) => {

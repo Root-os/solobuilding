@@ -88,86 +88,97 @@ cron.schedule('* * * * *', async () => {
 
 // Create a new rent payment
 exports.createRentPayment = async (req, res) => {
-    try {
-const { error } = tenantRentCollectionSchema.validate(req.body);
-if (error) {
-    return res.status(400).json({ error: error.details[0].message });
-}
-        const { tenantId, paymentDate, paymentMethod, paymentFrequency, nextDueDate, status } = req.body;
-
-// Find the tenant and update their status and leaseEndDate
-const tenant = await Tenant.findByPk(tenantId);
-if (!tenant) {
-    return res.status(404).json({ message: 'Tenant not found' });
-}
-        // Convert paymentDate and nextDueDate to Date objects
-        const paymentDateObj = new Date(paymentDate);
-        const nextDueDateObj = new Date(nextDueDate);
-
-        // Calculate the difference in total days
-        const differenceInTime = paymentDateObj - nextDueDateObj;
-        let totalDays = Math.abs(Math.ceil(differenceInTime / (1000 * 60 * 60 * 24))); // Convert milliseconds to days
-
-        // Convert total days into months and remaining days
-        const months = Math.floor(totalDays / 30);
-        const days = totalDays % 30;
-
-        // Create a readable format: "1 month 3 days"
-        let paidDays = "";
-        if (months > 0) {
-            paidDays += `${months} month${months > 1 ? 's' : ''} `;
-        }
-        if (days > 0) {
-            paidDays += `${days} day${days > 1 ? 's' : ''}`;
-        }
-        paidDays = paidDays.trim(); // Remove extra spaces
-
-        // Create rent payment record
-        const previousPayment = await TenantRentCollection.findOne({
-            where: { tenantId, status: "paid" },
-            order: [['paymentDate', 'DESC']]
-        });
-        if (previousPayment) {
-            // Check if the payment is for the same nextDueDate or if the payment date is earlier than the previous one
-            if (previousPayment.nextDueDate === nextDueDateObj) {
-              return res.status(400).json({ message: 'Tenant has already paid rent for this period' });
-            }
-            if (previousPayment.paymentDate >= paymentDateObj) {
-              return res.status(400).json({ message: 'Payment date cannot be earlier or the same as the previous payment date' });
-            }
-            if (previousPayment.nextDueDate > paymentDateObj) {
-              return res.status(400).json({ message: 'Rent payment date cannot be earlier than the last payment date' });
-            }
-          }
-        
-
-        const rentPayment = await TenantRentCollection.create({
-            tenantId,
-            paymentDate,
-            paymentMethod,
-            paymentFrequency,
-            nextDueDate,
-            paidDays, 
-            status
-        });
-
-        // Update tenant status and leaseEndDate
-        tenant.paymentStatus = "paid";
-        tenant.leaseEndDate = nextDueDate;
-
-        // Save the tenant with updated data
-        await tenant.save();
-
-        return res.status(201).json({
-            message: 'Rent payment recorded successfully',
-            rentPayment
-        });
-
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: 'Server Error', error: error.message });
+  try {
+    const { error } = tenantRentCollectionSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
     }
+
+    const {
+      tenantId,
+      paymentDate,
+      paymentMethod,
+      paymentFrequency,
+      nextDueDate,
+      status
+    } = req.body;
+
+    const tenant = await Tenant.findByPk(tenantId);
+    if (!tenant) {
+      return res.status(404).json({ message: 'Tenant not found' });
+    }
+
+    const paymentDateObj = new Date(paymentDate);
+    const nextDueDateObj = new Date(nextDueDate);
+
+    const previousPayment = await TenantRentCollection.findOne({
+      where: { tenantId, status: "Paid" },
+      order: [['paymentDate', 'DESC']]
+    });
+
+    if (previousPayment) {
+      const previousPaymentDate = new Date(previousPayment.paymentDate);
+      const previousNextDueDate = new Date(previousPayment.nextDueDate);
+
+      // Prevent duplicate period payments
+      if (
+        previousNextDueDate.toDateString() === nextDueDateObj.toDateString()
+      ) {
+        return res.status(400).json({ message: 'Tenant has already paid rent for this period' });
+      }
+
+      // New payment must come after last recorded payment date
+      if (paymentDateObj <= previousPaymentDate) {
+        return res.status(400).json({
+          message: 'Payment date must be later than the previous payment date'
+        });
+      }
+
+      // Do not allow overlapping paid periods
+      if (paymentDateObj < previousNextDueDate) {
+        return res.status(400).json({
+          message: 'New rent payment overlaps with a previously paid period'
+        });
+      }
+    }
+
+    // Calculate paidDays
+    const differenceInTime = nextDueDateObj - paymentDateObj;
+    const totalDays = Math.ceil(differenceInTime / (1000 * 60 * 60 * 24));
+    const months = Math.floor(totalDays / 30);
+    const days = totalDays % 30;
+
+    let paidDays = '';
+    if (months > 0) paidDays += `${months} month${months > 1 ? 's' : ''} `;
+    if (days > 0) paidDays += `${days} day${days > 1 ? 's' : ''}`;
+    paidDays = paidDays.trim();
+
+    const rentPayment = await TenantRentCollection.create({
+      tenantId,
+      paymentDate,
+      paymentMethod,
+      paymentFrequency,
+      nextDueDate,
+      paidDays,
+      status
+    });
+
+    // Update tenant
+    tenant.paymentStatus = "Paid";
+    tenant.leaseEndDate = nextDueDate;
+    await tenant.save();
+
+    return res.status(201).json({
+      message: 'Rent payment recorded successfully',
+      rentPayment
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server Error', error: error.message });
+  }
 };
+
 
 // Get all rent payments
 exports.getAllRentPayments = async (req, res) => {
@@ -176,7 +187,7 @@ exports.getAllRentPayments = async (req, res) => {
             include: [
                 {
                     model: Tenant,
-                    attributes: ['fullName', 'email', 'phoneNumber'],
+                    attributes: ['fullName', 'email', 'phoneNumber', 'amount'],
                     include: [
                         {
                             model: Unit,

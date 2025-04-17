@@ -230,7 +230,14 @@ exports.login = async (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.findAll({ attributes: { exclude: ["password"] } });
+    const users = await User.findAll({ attributes: { exclude: ["password"] },
+      include: [
+        {
+          model: Role,
+          attributes: ["name"], 
+        },
+      ],
+    });
     res.status(200).json({ success: true, users });
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to fetch users", error: error.message });
@@ -247,11 +254,17 @@ exports.getAllEmployeeUsers = async (req, res) => {
     const users = await User.findAll({
       where: { roleId: role.id },
       attributes: { exclude: ["password"] },
-      include: [{
+      include: [
+        {
         model: EmployeeDetail,  // Include the EmployeeDetail model
         required: true,         // Ensures only users with employee details are included
-      }]
-    });
+        },
+        {
+          model: Role,              
+          attributes: ["name"],     
+        }
+       ]
+      });
 
     res.status(200).json({ success: true, users });
   } catch (error) {

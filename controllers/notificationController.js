@@ -12,7 +12,7 @@ const createNotificationForUser = async (req, res) => {
     const { receiver_id, receiver_type,  title, body, type_id } = req.body;
 
     let receiver;
-    if (receiver_type === "staff") {
+    if (receiver_type === "employee") {
       receiver = await User.findByPk(receiver_id);
     } else if (receiver_type === "tenant") {
       receiver = await Tenant.findByPk(receiver_id);

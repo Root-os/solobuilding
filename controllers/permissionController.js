@@ -69,12 +69,22 @@ const removePermissionsFromRole = async (req, res) => {
 
 const getAllPermissions = async (req, res) => {
   try {
-    const permissions = await Permission.findAll();
+    const permissions = await Permission.findAll({
+      include: {
+        model: Role,
+        as: 'Roles', 
+        attributes: ['id', 'name'],
+        through: { attributes: [] }, // to remove the join table details
+      },
+    });
+
     res.json(permissions);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+
 // Update permission (change its name)
 const updatePermission = async (req, res) => {
   try {

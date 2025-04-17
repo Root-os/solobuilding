@@ -6,6 +6,7 @@ const { employeeAuth,adminAuth,adminOrEmployeeAuth } = require("../middleware/au
 router.post("/request", employeeAuth, stockoutController.createStockoutRequest);
 router.put('/approve/:id', adminAuth, stockoutController.approveStockout);
 router.get("/", adminAuth, stockoutController.getStockoutRequests);
+router.get("/my-request", adminOrEmployeeAuth, stockoutController.mySetStockoutRequest);
 router.get("/:id", adminOrEmployeeAuth, stockoutController.getStockoutRequestById);
 router.put("/:id", adminOrEmployeeAuth, stockoutController.updateStockoutRequest);
 router.delete("/:id", adminAuth, stockoutController.deleteStockoutRequest);

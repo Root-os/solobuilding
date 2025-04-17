@@ -22,8 +22,7 @@ const verifyToken = (req, res,next) => {
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);
     console.log('Decoded user:', user);
-    req.user = user;
-    next();
+    return req.user = user;
   } catch (error) {
     console.log('Invalid token:', error.message);
     res.status(403).json({ success: false, message: 'Invalid token' });
@@ -33,10 +32,11 @@ const verifyToken = (req, res,next) => {
  const adminAuth = (req, res, next) => {
   console.log('Admin Auth Middleware: Checking token and role...');
   const user = verifyToken(req, res);
+  console.log('Decoded user:', user);
   if (!user) return;
 
   console.log('User role:', user.role);
-  if (user.role !== "admin") {
+  if (user.role.toLowerCase() !== "admin") {
     console.log('Access denied: User is not an admin');
     return res.status(403).json({ success: false, message: "Access denied. Admins only." });
   }
@@ -60,7 +60,7 @@ const verifyToken = (req, res,next) => {
   const user = verifyToken(req, res);
   if (!user) return; // Stop if token verification fails
 
-  if (user.role !== "employee") {
+  if (user.role.toLowerCase() !== "employee") {
     return res.status(403).json({ success: false, message: "Access denied. Employees only." });
   }
 
@@ -79,9 +79,9 @@ const verifyToken = (req, res,next) => {
  const adminOrEmployeeAuth = (req, res, next) => {
   const user = verifyToken(req, res);
   if (!user) return; // Stop if token verification fails
-
+console.log("user decoded: ",user)
   // Check if the user is either an admin or an employee
-  if (user.role !== "admin" && user.role !== "employee") {
+  if (user.role.toLowerCase() !== "admin" && user.role.toLowerCase() !== "employee") {
     return res.status(403).json({ success: false, message: "Access denied. Admins or employees only." });
   }
 
@@ -92,7 +92,7 @@ const EmployeeOrTenantAuth = (req, res, next) => {
   if (!user) return; // Stop if token verification fails
 
   // Check if the user is either an admin or an employee
-  if (user.role !== "tenant" && user.role !== "employee") {
+  if (user.role.toLowerCase() !== "tenant" && user.role.toLowerCase() !== "employee") {
     return res.status(403).json({ success: false, message: "Access denied. tenant or employee only." });
   }
 
@@ -102,7 +102,7 @@ const AdminOrTenantAuth = (req, res, next) => {
   const user = verifyToken(req, res);
   if (!user) return; // Stop if token verification fails
   // Check if the user is either an admin or a tenant
-  if (user.role!== "admin" && user.role!== "tenant") {
+  if (user.role.toLowerCase()!== "admin" && user.role.toLowerCase()!== "tenant") {
     return res.status(403).json({ success: false, message: "Access denied. Admins or tenants only." });
   }
   next();

@@ -176,12 +176,17 @@ const assignEmployeeToRequest = async (req, res) => {
       return res.status(404).json({ message: "Withdrawal request not found." });
     }
 
-    const employee = await User.findByPk(employeeId);
+    const employee = await User.findByPk(employeeId, {
+      include: {
+        model: Role,
+        attributes: ['name'],
+      },
+    });
     if (!employee) {
       return res.status(404).json({ message: "Employee not found." });
     }
 
-    if (employee.role !== "employee") {
+    if (!employee.Role || employee.Role.name.toLowerCase() !== 'employee') {
       return res.status(400).json({ message: "Only employees can be assigned to requests." });
     }
 

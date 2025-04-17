@@ -2,6 +2,7 @@ const Complaint =require ('../models/complaint.js');
 const Tenant = require('../models/tenant.js');
 const sendNotificationHelper= require('../helpers/sendAlert');
 const User = require('../models/user.js');
+const Role = require('../models/role.js');
 
 // Create a new complaint with multiple image uploads
 const createComplaint = async (req, res) => {
@@ -27,7 +28,12 @@ const createComplaint = async (req, res) => {
       images: imagePaths,
     });
 
-    const admins = await User.findAll({ where: { role: 'admin' } }); // Fetch all admins
+    const admins = await User.findAll({
+      include: [{
+        model: Role,
+        where: { name: 'admin' },
+      }],
+    }); // Fetch all admins
 
     if (complaint && admins.length > 0) {
       // Send notification to each admin
