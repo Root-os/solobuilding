@@ -12,7 +12,7 @@ const createNotificationForUser = async (req, res) => {
     const { receiver_id, receiver_type,  title, body, type_id } = req.body;
 
     let receiver;
-    if (receiver_type === "employee") {
+    if (receiver_type === "staff") {
       receiver = await User.findByPk(receiver_id);
     } else if (receiver_type === "tenant") {
       receiver = await Tenant.findByPk(receiver_id);
@@ -239,6 +239,25 @@ const deleteNotificationAdmin = async (req, res) => {
     return res.status(500).json({ status: "error", message: "Failed to delete notification" });
   }
 }
+const getStaffNotifications = async (req, res) => {
+  try {
+    const {type, isRead } = req.query;
+    const whereClause = { receiver_id: req.user.id, receiver_type: "staff" };
+
+    if (type) whereClause.type_id = type;
+    if (typeof isRead === "boolean") whereClause.isRead = isRead;
+
+    const notifications = await Notification.findAndCountAll({
+      where: whereClause,
+      order: [["createdAt", "DESC"]],
+      include: [{ model: NotificationType, as: "type", attributes: ["id", "name"] }],
+    });
+
+    return res.status(200).json(notifications);
+  } catch (error) {
+    return res.status(500).json({ status: "error", message: "Failed to fetch notifications" });
+  }
+};
 
 module.exports = {
   createNotificationForUser,
@@ -250,4 +269,5 @@ module.exports = {
   getAllNotifications,
   deleteNotification,
   deleteNotificationAdmin,
+  getStaffNotifications,
 };

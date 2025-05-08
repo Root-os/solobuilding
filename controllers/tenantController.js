@@ -10,6 +10,10 @@ const fs = require('fs');
 const sendEmail = require('../middleware/sendEmail');
 const bcrypt = require('bcryptjs');
 const {tenatSchema}=require('../helpers/schema')
+const sendTenantWelcomeEmail=require('../services/sendEmail')
+const { BASE_URL } = require('../config/config');
+
+
 
 // Set up multer storage for file uploads
 const storage = multer.diskStorage({
@@ -51,6 +55,7 @@ exports.createTenant = async (req, res) => {
         tin, 
         floorId, 
         advance, 
+       
         amount,
         carPlate = null, // Optional
         carName = null,  // Optional
@@ -95,6 +100,7 @@ exports.createTenant = async (req, res) => {
 
       // Generate a random password
       const generatedPassword = Math.random().toString(36).slice(-8);
+
       const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
       // Prepare tenant data
@@ -134,9 +140,9 @@ exports.createTenant = async (req, res) => {
       );
 
       // Send email with login credentials
-      const emailSubject = "Your Tenant Portal Login Credentials";
-      const emailBody = `Hello ${fullName},\n\nWelcome! Here are your login credentials:\n\nEmail: ${email}\nPassword: ${generatedPassword}\n\nPlease log in and change your password immediately.\n\nThank you!`;
-      const emailResponse = await sendEmail(email, emailSubject, emailBody);
+
+      const emailResponse = await sendTenantWelcomeEmail({ email, fullName, generatedPassword })
+      //const emailResponse = await sendEmail(email, emailSubject, emailBody);
       if (!emailResponse.success) {
         console.error("Email sending failed:", emailResponse.error);
       }
@@ -195,8 +201,7 @@ exports.getAllTenants = async (req, res) => {
 
     // Map through tenants to add the full document path and date calculations
     const tenantsWithDetails = tenants.map(tenant => {
-      const documentFullPath = tenant.document ? path.join(baseUploadPath, tenant.document) : null;
-
+      const documentFullPath = tenant.document ? `${BASE_URL}${tenant.document}` : null;
       // Convert lease dates to moment objects
       const leaseStartDate = moment(tenant.leaseStartDate);
       const leaseEndDate = moment(tenant.leaseEndDate);
@@ -253,20 +258,29 @@ exports.getTenantById = async (req, res) => {
 exports.updateTenant = async (req, res) => {
   try {
     const id = Number(req.params.id);
-    if(isNaN(id)) {
+    if (isNaN(id)) {
       return res.status(400).json({ error: 'Invalid tenant ID' });
     }
-    const tenant = await Tenant.findOne({ where: { id:id} });
+    const tenant = await Tenant.findOne({ where: { id: id } });
 
     if (!tenant) {
       return res.status(404).json({ message: 'Tenant not found' });
     }
 
     // Check if status is being updated to "inactive"
-    if (req.body.status && req.body.status === 'inactive') {
+    if (req.body.status === 'inactive') {
       // Update unit status to "available" and set vacatedDate to current date
       await Unit.update(
         { status: 'available', vacatedDate: new Date() },
+        { where: { id: tenant.unitId } }
+      );
+    }
+    console.log(tenant.unitId);
+    console.log(req.body.status);
+    if (req.body.status === 'active') {
+      // Update unit status to "available" and set vacatedDate to current date
+      await Unit.update(
+        { status: 'occupied' },
         { where: { id: tenant.unitId } }
       );
     }
@@ -293,7 +307,6 @@ exports.updateTenant = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // Delete tenant by ID
 exports.deleteTenant = async (req, res) => {
@@ -346,40 +359,36 @@ exports.getTenantsByFloorId = async (req, res) => {
   }
 };
 
-
 exports.filterTenants = async (req, res) => {
   try {
-    const { paymentStatus, leaseStartDateFrom, leaseStartDateTo, leaseEndDateFrom, leaseEndDateTo, status, unitId, floorId } = req.body;
+    const {
+      paymentStatus,
+      leaseStartDateFrom,
+      leaseStartDateTo,
+      leaseEndDateFrom,
+      leaseEndDateTo,
+      status,
+      unitId,
+      floorId
+    } = req.body;
 
     let whereConditions = {};
 
-    if (paymentStatus) {
-      whereConditions.paymentStatus = paymentStatus;
-    }
-
-    if (status) {
-      whereConditions.status = status;
-    }
-
-    if (unitId) {
-      whereConditions.unitId = unitId;
-    }
-
-    if (floorId) {
-      whereConditions.floorId = floorId;
-    }
-
+    if (paymentStatus) whereConditions.paymentStatus = paymentStatus;
+    if (status) whereConditions.status = status;
+    if (unitId) whereConditions.unitId = unitId;
+    if (floorId) whereConditions.floorId = floorId;
     if (leaseStartDateFrom && leaseStartDateTo) {
       whereConditions.leaseStartDate = {
         [Op.between]: [leaseStartDateFrom, leaseStartDateTo],
       };
     }
-
     if (leaseEndDateFrom && leaseEndDateTo) {
       whereConditions.leaseEndDate = {
         [Op.between]: [leaseEndDateFrom, leaseEndDateTo],
       };
     }
+
     const tenants = await Tenant.findAll({
       where: whereConditions,
       include: [
@@ -398,9 +407,23 @@ exports.filterTenants = async (req, res) => {
       return res.status(404).json({ message: 'No tenants found with the given filters' });
     }
 
-    res.status(200).json(processTenantDetails(tenants));
+    const tenantsWithDetails = tenants.map(tenant => {
+      const leaseStartDate = moment(tenant.leaseStartDate);
+      const leaseEndDate = moment(tenant.leaseEndDate);
+      const currentDate = moment();
 
+      const monthsPaid = leaseEndDate.diff(leaseStartDate, 'months');
+      const remainingDays = leaseEndDate.diff(currentDate, 'days');
 
+      return {
+        ...tenant.toJSON(),
+        documentUrl: tenant.document ? `${BASE_URL}/${tenant.document}` : null,
+        monthsPaid,
+        remainingDays: remainingDays > 0 ? remainingDays : 0,
+      };
+    });
+
+    res.status(200).json(tenantsWithDetails);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -439,7 +462,6 @@ exports.getTenantsWithExpiringLease = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 const processTenantDetails = (tenants) => {
   const baseUploadPath = path.join(__dirname, '../uploads'); 
