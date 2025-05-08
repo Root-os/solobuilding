@@ -46,6 +46,7 @@ exports.createSetting = async (req, res) => {
                         'postOfficeAddress', 'logos', 'seal', 'chargingCost', 'parkingCost', 
                         'createdAt', 'updatedAt']
         });
+        console.log("BASE_URL:", process.env.BASE_URL);  // Log the value of BASE_URL
 
         res.status(201).json(fullSetting);
     } catch (error) {
@@ -105,9 +106,6 @@ exports.updateSetting = async (req, res) => {
         res.status(500).json({ message: "Error updating setting", error: error.message });
     }
 };
-
-
-
 // Get All Settings
 exports.getAllSettings = async (req, res) => {
     try {
@@ -121,7 +119,6 @@ exports.getAllSettings = async (req, res) => {
         res.status(500).json({ message: "Error retrieving settings", error: error.message });
     }
 };
-
 
 // Get Setting by ID
 exports.getSettingById = async (req, res) => {

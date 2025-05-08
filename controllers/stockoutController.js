@@ -135,7 +135,7 @@ exports.mySetStockoutRequest = async (req, res) => {
     try {
         const  id  = req.user.id;
         const stockout = await Stockout.findAll({where:{requestedBy:id}, 
-            include: [{ model: Item, attributes: ["itemName"] }, { model: User, attributes: ["fname","lname"] }]
+            include: [{ model: Item, attributes: ["itemName"] }, { model: User,  attributes: ["fname","lname"] }]
         });
 
         if (!stockout) return res.status(404).json({ message: "Stockout request not found" });
@@ -145,6 +145,7 @@ exports.mySetStockoutRequest = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
 exports.cancelStockoutRequest = async (req, res) => {
     try {
         const { id } = req.params;

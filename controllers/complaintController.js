@@ -3,6 +3,7 @@ const Tenant = require('../models/tenant.js');
 const sendNotificationHelper= require('../helpers/sendAlert');
 const User = require('../models/user.js');
 const Role = require('../models/role.js');
+const { BASE_URL } = require('../config/config');
 
 // Create a new complaint with multiple image uploads
 const createComplaint = async (req, res) => {
@@ -56,7 +57,6 @@ const createComplaint = async (req, res) => {
   }
 };
 
-
 // Get all complaints (admin view)
 const getAllComplaints = async (req, res) => {
   try {
@@ -67,14 +67,32 @@ const getAllComplaints = async (req, res) => {
           attributes: ['fullName', 'email', 'phoneNumber'],
         },
         {
-          model: User, // Including the assigned employee
-          attributes: ['fname', 'lname'], // Fetch 'fname' and 'lname' from the 'User' model
-          as: 'assignedEmployee', // Alias to link with the assigned employee
+          model: User,
+          attributes: ['fname', 'lname'],
+          as: 'assignedEmployee',
         },
       ],
     });
 
-    res.status(200).json(complaints);
+    const complaintsWithFullImageUrls = complaints.map(complaint => {
+      let imageUrls = [];
+
+      try {
+        const imagePaths = JSON.parse(complaint.images || '[]');
+        imageUrls = imagePaths.map(img =>
+          `${BASE_URL}/${img.replace(/\\\\/g, '/')}` // Normalize path
+        );
+      } catch (err) {
+        imageUrls = [];
+      }
+
+      return {
+        ...complaint.toJSON(),
+        images: imageUrls,
+      };
+    });
+
+    res.status(200).json(complaintsWithFullImageUrls);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching complaints', error: error.message });
   }
@@ -166,7 +184,6 @@ const assignComplaint = async (req, res) => {
   }
 };
 
-
 // Confirm or reopen a complaint (tenant feedback)
  const confirmComplaintResolution = async (req, res) => {
   try {
@@ -208,6 +225,7 @@ const deleteComplaint = async (req, res) => {
     res.status(500).json({ message: 'Error deleting complaint', error: error.message });
   }
 };
+
 const getSingleComplaint = async (req, res) => {
   try {
     const { complaintId } = req.params;
@@ -224,18 +242,45 @@ const getSingleComplaint = async (req, res) => {
     res.status(500).json({ message: 'Error fetching complaint', error: error.message });
   }
 }
+
 const getTenantComplaints = async (req, res) => {
   try {
     const { tenantId } = req.params;
-    const complaints = await Complaint.findAll({ where: { tenantId } }
-      , { include: { model: Tenant,attributes: ['fullName', 'email', 'phoneNumber'] } }
-    );
+    const complaints = await Complaint.findAll({
+      where: { tenantId },
+      include: {
+        model: Tenant,
+        attributes: ['fullName', 'email', 'phoneNumber']
+      }
+    });
 
-    res.status(200).json(complaints);
+    const updatedComplaints = complaints.map((complaint) => {
+      let parsedImages = [];
+
+      try {
+        // Safely parse images if they are stored as JSON string
+        parsedImages = complaint.images ? JSON.parse(complaint.images) : [];
+      } catch (err) {
+        console.error('Invalid image JSON:', complaint.images);
+      }
+
+      const fullImageUrls = parsedImages.map((imgPath) =>
+        `${BASE_URL}/${imgPath.replace(/\\/g, '/')}`
+      );
+
+      return {
+        ...complaint.toJSON(),
+        images: fullImageUrls,
+      };
+    });
+
+    res.status(200).json(updatedComplaints);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Error fetching complaints', error: error.message });
   }
 };
+
 const getAssignedComplaints = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -254,7 +299,26 @@ const getAssignedComplaints = async (req, res) => {
       ],
     });
 
-    res.status(200).json(complaints);
+    // Add full URL for images
+    const complaintsWithFullImageUrls = complaints.map(complaint => {
+      let imageUrls = [];
+
+      try {
+        const imagePaths = JSON.parse(complaint.images || '[]'); // Parse images if stored as JSON
+        imageUrls = imagePaths.map(img =>
+          `${BASE_URL}/${img.replace(/\\/g, '/')}` // Normalize path and prepend BASE_URL
+        );
+      } catch (err) {
+        imageUrls = [];
+      }
+
+      return {
+        ...complaint.toJSON(),
+        images: imageUrls,
+      };
+    });
+
+    res.status(200).json(complaintsWithFullImageUrls);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching complaints', error: error.message });
   }

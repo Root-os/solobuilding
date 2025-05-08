@@ -65,7 +65,7 @@ const getReport = async (req, res) => {
           attributes: ['amount'],
         },
       ],
-      attributes: ['id', 'paymentDate', 'tenantId'],
+      attributes: ['id', 'paymentDate', 'tenantId', 'amountPaid'],
     });
 
     // Fetch individual records for outcomes
@@ -109,11 +109,10 @@ const getReport = async (req, res) => {
 
     // Aggregate rent collection income by summing the `amount` from Tenant
     const totalRentCollection = rentCollectionRecords.reduce((sum, record) => {
-      return sum + (record.Tenant ? record.Tenant.amount : 0);
+      return sum + (parseFloat(record.amountPaid) || 0);
     }, 0);
-
+    
    
-
     // Aggregate outcomes
     const totalBillPayments = await BillPayment.sum('amount', {
       where: createdAtFilter,
@@ -127,16 +126,13 @@ const getReport = async (req, res) => {
     const totalPayments = await Payment.sum('price', {
       where: createdAtFilter,
     });
-    const totalPurchases = await Purchase.sum('totalPrice', {
-      where: createdAtFilter,
-    });
     const totalSalaryPayments = await SalaryPayment.sum('amount', {
       where: createdAtFilter,
     });
 
     // Calculate totals safely
     const income = (totalCharging || 0) + (totalParking || 0) + (totalRentCollection || 0) + (totalOrder || 0);
-    const outcome = (totalBillPayments || 0) + (totalExpenses || 0) + (totalMaintenance || 0) + (totalPayments || 0) + (totalPurchases || 0) + (totalSalaryPayments || 0);
+    const outcome = (totalBillPayments || 0) + (totalExpenses || 0) + (totalMaintenance || 0) + (totalPayments || 0) + (totalSalaryPayments || 0);
     const netIncome = income - outcome;
 
     // Prepare detailed report
@@ -166,15 +162,13 @@ const getReport = async (req, res) => {
         rentCollection: {
           totalRent: totalRentCollection || 0,
           records: rentCollectionRecords.map(record => ({
-            amount: record.Tenant ? record.Tenant.amount : 0,
+            amount: parseFloat(record.amountPaid) || 0,
             date: record.paymentDate,
             tenantId: record.tenantId,
-          })),
+          }))          
         },
         totalIncome: income,
       },
-
-      
       outcomes: {
         billPayments: {
           totalBillPayments: totalBillPayments || 0,
@@ -201,13 +195,6 @@ const getReport = async (req, res) => {
           totalPayments: totalPayments || 0,
           records: paymentRecords.map(record => ({
             amount: record.price,
-            date: record.createdAt,
-          })),
-        },
-        purchases: {
-          totalPurchases: totalPurchases || 0,
-          records: purchaseRecords.map(record => ({
-            amount: record.totalPrice,
             date: record.createdAt,
           })),
         },

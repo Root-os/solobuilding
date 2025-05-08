@@ -99,6 +99,36 @@ exports.getPurchaseById = async (req, res) => {
   }
 };
 
+// Get a purchase by ID (Only display totalPrice)
+exports.getPurchaseByVenderId = async (req, res) => {
+  try {
+   
+    const purchase = await Purchase.findOne({
+      where: { vendorId: req.params.vendorId },
+      attributes: ["id", "totalPrice", "description"],
+      include: [
+        {
+          model: Item,
+          attributes: ["itemName"], // Only return the item name
+        },
+        {
+          model: ItemType,
+          attributes: ["categoryName"], // Only return the itemType name
+        },
+      ],
+    });
+
+    if (!purchase) {
+      return res.status(404).json({ message: "Purchase not found" });
+    }
+
+    res.status(200).json(purchase);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 // Update a purchase by ID (Recalculate totalPrice if amount or price changes)
 exports.updatePurchase = async (req, res) => {
   try {

@@ -1,6 +1,7 @@
 const WithdrawalRequest = require('../models/withdrawal');
 const Tenant=require('../models/tenant');
 const User = require('../models/user');
+const Role = require('../models/role');
 const {refundStatusSchema} = require('../helpers/schema');
 
 const sendNotificationHelper = async ({ adminId, title, body, type, receiver_type }) => {
@@ -30,7 +31,15 @@ const createWithdrawalRequest = async (req, res) => {
     }
 
     const request = await WithdrawalRequest.create({ tenantId, terminationDate, reason });
-    const admins = await User.findAll({ where: { role: 'admin' } });
+
+    // Include Role model to filter admins
+    const admins = await User.findAll({
+      include: {
+        model: Role,
+        where: { name: 'admin' }, // Filter by role name
+        attributes: [] // Exclude Role attributes from the result
+      }
+    });
 
     if (request && admins.length > 0) {
       await Promise.all(
@@ -171,26 +180,32 @@ const assignEmployeeToRequest = async (req, res) => {
   try {
     const { requestId, employeeId } = req.body;
 
+    // Fetch the withdrawal request by its ID
     const request = await WithdrawalRequest.findByPk(requestId);
     if (!request) {
       return res.status(404).json({ message: "Withdrawal request not found." });
     }
 
+    // Fetch the employee with their role included
     const employee = await User.findByPk(employeeId, {
       include: {
-        model: Role,
-        attributes: ['name'],
+        model: Role, // Ensure Role is properly included
+        attributes: ['name'], // Fetch only the 'name' of the role
       },
     });
+    
+
+    // Handle case if employee is not found
     if (!employee) {
       return res.status(404).json({ message: "Employee not found." });
     }
 
-    if (!employee.Role || employee.Role.name.toLowerCase() !== 'employee') {
+    // Check if the employee's role is 'employee'
+    if (!employee.Role || employee.Role.name === 'admin') {
       return res.status(400).json({ message: "Only employees can be assigned to requests." });
     }
 
-    // Update request status
+    // Update the request status and assign the employee to the request
     request.status = "in_progress";
     request.assignedEmployeeId = employeeId;
     await request.save();
@@ -227,11 +242,14 @@ const assignEmployeeToRequest = async (req, res) => {
       // Continue execution even if notifications fail
     }
 
+    // Return the updated request
     res.status(200).json({ message: "Employee assigned successfully.", request });
   } catch (error) {
+    // Handle errors and return the appropriate response
     res.status(500).json({ message: "Error assigning employee.", error: error.message });
   }
 };
+
   
 const myAssignedRequests=async(req,res)=>{
     try {

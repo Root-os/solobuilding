@@ -2,6 +2,7 @@ const Order = require('../models/order');
 const OrderType = require('../models/orderType');
 const Tenant = require('../models/tenant');
 const { orderValidationSchema, paramsSchema } = require('../helpers/schema');
+const { BASE_URL } = require('../config/config');
 
 // Create Order
 exports.createOrder = async (req, res) => {
@@ -56,7 +57,14 @@ exports.getAllOrders = async (req, res) => {
         { model: OrderType }, // Include order type details
       ],
     });
-    res.status(200).json(orders);
+
+    // Add full URL for receiptImage
+    const ordersWithFullUrl = orders.map(order => ({
+      ...order.toJSON(),
+      receiptImage: order.receiptImage ? `${BASE_URL}/${order.receiptImage}` : null,
+    }));
+
+    res.status(200).json(ordersWithFullUrl);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -104,7 +112,13 @@ exports.getOrdersByTenantId = async (req, res) => {
       return res.status(404).json({ message: 'No orders found for this tenant' });
     }
 
-    res.status(200).json(orders);
+    // Add full URL for receiptImage
+    const ordersWithFullUrl = orders.map(order => ({
+      ...order.toJSON(),
+      receiptImage: order.receiptImage ? `${BASE_URL}/${order.receiptImage}` : null,
+    }));
+
+    res.status(200).json(ordersWithFullUrl);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -115,12 +129,14 @@ exports.getOrdersForCurrentTenant = async (req, res) => {
   try {
     const tenantId = req.user.id;
     if (!tenantId) {
-        return res.status(401).json({ message: "Unauthorized: Tenant ID missing" });
-      }
-      const tenant = await Tenant.findByPk(tenantId);
-      if (!tenant) {
-        return res.status(404).json({ message: "Tenant not found" });
-      }
+      return res.status(401).json({ message: "Unauthorized: Tenant ID missing" });
+    }
+
+    const tenant = await Tenant.findByPk(tenantId);
+    if (!tenant) {
+      return res.status(404).json({ message: "Tenant not found" });
+    }
+
     const orders = await Order.findAll({
       where: { tenantId },
       include: [
@@ -132,7 +148,13 @@ exports.getOrdersForCurrentTenant = async (req, res) => {
       return res.status(404).json({ message: 'No orders found for this tenant' });
     }
 
-    res.status(200).json(orders);
+    // Add full URL for receiptImage
+    const ordersWithFullUrl = orders.map(order => ({
+      ...order.toJSON(),
+      receiptImage: order.receiptImage ? `${BASE_URL}/${order.receiptImage}` : null,
+    }));
+
+    res.status(200).json(ordersWithFullUrl);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

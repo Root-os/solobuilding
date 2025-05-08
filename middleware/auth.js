@@ -1,4 +1,7 @@
 const jwt = require('jsonwebtoken');
+const Role =require('../models/role')
+
+
 const verifyToken = (req, res,next) => {
   let token;
 
@@ -56,16 +59,30 @@ const verifyToken = (req, res,next) => {
   next();
 };
 
- const employeeAuth = (req, res, next) => {
+const employeeAuth = async (req, res, next) => {
   const user = verifyToken(req, res);
-  if (!user) return; // Stop if token verification fails
+  if (!user) return;
 
-  if (user.role.toLowerCase() !== "employee") {
-    return res.status(403).json({ success: false, message: "Access denied. Employees only." });
+  const roleName = user.role.toLowerCase();
+
+  if (roleName === 'admin' || roleName === 'tenant') {
+    return res.status(403).json({ success: false, message: 'Access denied. Admins and tenants are not allowed here.' });
   }
 
-  next();
+  try {
+    const roleExists = await Role.findOne({ where: { name: user.role } });
+
+    if (!roleExists) {
+      return res.status(403).json({ success: false, message: 'Access denied. Role not recognized.' });
+    }
+
+    next(); // ✅ Valid employee-like role (finance, hr, etc.)
+  } catch (err) {
+    console.error('Role DB check failed:', err.message);
+    return res.status(500).json({ success: false, message: 'Internal server error while checking role' });
+  }
 };
+
  const roleAuth = (role) => (req, res, next) => {
   const user = verifyToken(req, res);
   if (!user) return; // Stop if token verification fails
@@ -76,28 +93,63 @@ const verifyToken = (req, res,next) => {
 
   next();
 };
- const adminOrEmployeeAuth = (req, res, next) => {
+const adminOrEmployeeAuth = async (req, res, next) => {
   const user = verifyToken(req, res);
-  if (!user) return; // Stop if token verification fails
-console.log("user decoded: ",user)
-  // Check if the user is either an admin or an employee
-  if (user.role.toLowerCase() !== "admin" && user.role.toLowerCase() !== "employee") {
-    return res.status(403).json({ success: false, message: "Access denied. Admins or employees only." });
+  if (!user) return;
+
+  const roleName = user.role.toLowerCase();
+
+  if (roleName === 'admin') {
+    return next(); // ✅ Admin allowed
   }
 
-  next();
-};
-const EmployeeOrTenantAuth = (req, res, next) => {
-  const user = verifyToken(req, res);
-  if (!user) return; // Stop if token verification fails
-
-  // Check if the user is either an admin or an employee
-  if (user.role.toLowerCase() !== "tenant" && user.role.toLowerCase() !== "employee") {
-    return res.status(403).json({ success: false, message: "Access denied. tenant or employee only." });
+  if (roleName === 'tenant') {
+    return res.status(403).json({ success: false, message: 'Access denied. Tenants are not allowed here.' });
   }
 
-  next();
+  try {
+    const roleExists = await Role.findOne({ where: { name: user.role } });
+    if (!roleExists) {
+      return res.status(403).json({ success: false, message: 'Access denied. Role not recognized.' });
+    }
+
+    next(); // ✅ Valid employee-like role (not admin, not tenant)
+  } catch (err) {
+    console.error('Role DB check failed:', err.message);
+    return res.status(500).json({ success: false, message: 'Internal server error while checking role' });
+  }
 };
+
+const EmployeeOrTenantAuth = async (req, res, next) => {
+  const user = verifyToken(req, res);
+  if (!user) return;
+
+  const roleName = user.role.toLowerCase();
+
+  // ❌ Explicitly block admin
+  if (roleName === 'admin') {
+    return res.status(403).json({ success: false, message: 'Access denied. Admins are not allowed here.' });
+  }
+
+  // ✅ Allow 'tenant' even though it's not in the Role table
+  if (roleName === 'tenant') {
+    return next();
+  }
+
+  try {
+    // ✅ Dynamically check if the role exists in the DB for employee-like roles
+    const roleExists = await Role.findOne({ where: { name: user.role } });
+    if (!roleExists) {
+      return res.status(403).json({ success: false, message: 'Access denied. Role not recognized.' });
+    }
+
+    next(); // ✅ Valid non-admin, non-tenant role
+  } catch (err) {
+    console.error('Role DB check failed:', err.message);
+    return res.status(500).json({ success: false, message: 'Internal server error while checking role' });
+  }
+};
+
 const AdminOrTenantAuth = (req, res, next) => {
   const user = verifyToken(req, res);
   if (!user) return; // Stop if token verification fails

@@ -62,17 +62,29 @@ exports.createVendor = async (req, res) => {
     }
   }
 };
-// Get All Vendors
+const BASE_URL = process.env.BASE_URL;
+
 exports.getAllVendors = async (req, res) => {
   try {
     const vendors = await Vendor.findAll({
       include: [ServiceType],
     });
-    res.status(200).json(vendors);
+
+    // Transform contractTerms path to full URL
+    const transformedVendors = vendors.map(vendor => {
+      const vendorData = vendor.toJSON();
+      if (vendorData.contractTerms) {
+        vendorData.contractTerms = `${BASE_URL}/${vendorData.contractTerms.replace(/\\/g, '/')}`;
+      }
+      return vendorData;
+    });
+
+    res.status(200).json(transformedVendors);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // Get Vendor by ID
 exports.getVendorById = async (req, res) => {
