@@ -38,6 +38,14 @@ const Payment = sequelize.define('Payment', {
     allowNull: false,
     defaultValue: 0,
   },
+  description: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  item: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
 }, {
   tableName: 'payments',
   timestamps: true,

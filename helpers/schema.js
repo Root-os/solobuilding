@@ -409,7 +409,10 @@ const paymentValidationSchema = Joi.object({
   paymentMethod: Joi.string().valid('cash', 'credit', 'bank transfer', 'other').required(),
   paymentDate: Joi.date().optional(),
   status: Joi.string().valid('complete', 'partial', 'pending').required(),
+  item: Joi.string().optional(), // <-- added
+  description: Joi.string().optional() // <-- added
 });
+
 const serviceTypeValidationSchema = Joi.object({
   name: Joi.string().max(255).required(),
   description: Joi.string().optional().allow(''),
