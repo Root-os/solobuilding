@@ -9,80 +9,91 @@ const sequelize = require("../config/database");
 //  Pay Salary
 exports.paySalary = async (req, res) => {
   try {
-      const { error } = salaryPaymentSchema.validate(req.body);
-      if (error) {
-          return res.status(400).json({ message: error.details[0].message });
-      }
-
-      const { employeeId, paymentMethod, paymentFromDate,paymentToDate ,status, allowance } = req.body;
-
-      // Validate required fields
-      if (!employeeId || !paymentMethod) {
-          return res.status(400).json({ message: "Employee ID and payment method are required" });
-      }
-
-      // Ensure Employee Exists
-      const user = await User.findOne({
-        where: { id: employeeId },
-        include: [
-          {
-            model: Role,
-            as: 'Role', // Match alias exactly
-            where: { name: 'employee' },
-          },
-        ],
-      });      
-      if (!user) {
-          return res.status(404).json({ message: "Employee not found" });
-      }
-
-      // Fetch Employee Salary
-      const employeeDetails = await EmployeeDetails.findOne({ where: { userId: employeeId } });
-      if (!employeeDetails || employeeDetails.salary == null) {
-          return res.status(404).json({ message: "Employee salary details not found" });
-      }
-      if (new Date(paymentFromDate) > new Date(paymentToDate)) {
-        throw new Error('The payment "From Date" must be earlier than or equal to the "To Date".');
-      }
-      // Ensure allowance is a valid number (if provided)
-      // Check if there's already a payment for the same employee within the same date range
-      const existingPayment = await SalaryPayment.findOne({
-        where: {
-          employeeId,
-          paymentToDate: { [Op.gte]: paymentFromDate },  // payments that overlap on or after the given `paymentFromDate`
-          paymentFromDate: { [Op.lte]: paymentToDate },  // payments that overlap on or before the given `paymentToDate`
-          status: 'Paid',
-        },
-      });
-      
-      if (existingPayment) {
-        return res.status(404).json({message:'Duplicate payment detected within the specified date range.'});
-      }
-      if (allowance && isNaN(allowance)) {
-        return res.status(400).json({ message: "Allowance must be a valid number" });
+    const { error } = salaryPaymentSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
     }
+
+    const { employeeId, paymentMethod, paymentFromDate, paymentToDate, status, allowance } = req.body;
+
+    if (!employeeId || !paymentMethod) {
+      return res.status(400).json({ message: "Employee ID and payment method are required" });
+    }
+
+    // Check if user exists and is not admin
+    const user = await User.findOne({
+      where: {
+        id: employeeId,
+      },
+      include: [
+        {
+          model: Role,
+          attributes: ['name'],
+          where: {
+            name: { [Op.ne]: 'admin' },
+          },
+        },
+      ],
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "Employee not found or is an admin" });
+    }
+
+    // Check salary info
+    const employeeDetails = await EmployeeDetails.findOne({ where: { userId: employeeId } });
+    if (!employeeDetails || employeeDetails.salary == null) {
+      return res.status(404).json({ message: "Employee salary details not found" });
+    }
+
+    if (new Date(paymentFromDate) > new Date(paymentToDate)) {
+      return res.status(400).json({ message: 'The payment "From Date" must be earlier than or equal to the "To Date".' });
+    }
+
+    if (allowance && isNaN(allowance)) {
+      return res.status(400).json({ message: "Allowance must be a valid number" });
+    }
+
     const validAllowance = parseFloat(allowance) || 0;
-          // Calculate pension, tax, and net salary using the salary calculation method
-      const { pensionContribution, incomeTax, netSalary } = SalaryPayment.calculateDeductions(employeeDetails.salary, validAllowance);
 
-      // Create Salary Payment Record
-      const salaryPayment = await SalaryPayment.create({
-          employeeId,
-          amount: employeeDetails.salary,  // Gross salary from EmployeeDetails
-          paymentMethod,
-          paymentFromDate: paymentFromDate,
-          paymentToDate:paymentToDate,
-          status: status|| "pending", 
-          pensionContribution,          // Calculated pension contribution
-          incomeTax,                    // Calculated income tax
-          netSalary,                   
-          allowance: validAllowance, 
-      });
+    // Check for duplicate payments
+    const existingPayment = await SalaryPayment.findOne({
+      where: {
+        employeeId,
+        paymentToDate: { [Op.gte]: paymentFromDate },
+        paymentFromDate: { [Op.lte]: paymentToDate },
+        status: 'Paid',
+      },
+    });
 
-      res.status(201).json({ message: "Salary payment recorded successfully", data: salaryPayment });
+    if (existingPayment) {
+      return res.status(409).json({ message: 'Duplicate payment detected within the specified date range.' });
+    }
+
+    // Calculate salary deductions
+    const { pensionContribution, incomeTax, netSalary } =
+      SalaryPayment.calculateDeductions(employeeDetails.salary, validAllowance);
+
+    const salaryPayment = await SalaryPayment.create({
+      employeeId,
+      amount: employeeDetails.salary,
+      paymentMethod,
+      paymentFromDate,
+      paymentToDate,
+      status: status || "pending",
+      pensionContribution,
+      incomeTax,
+      netSalary,
+      allowance: validAllowance,
+    });
+
+    return res.status(201).json({
+      message: "Salary payment recorded successfully",
+      data: salaryPayment,
+    });
   } catch (error) {
-      console.error("Error processing salary payment:", error);
-      res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error processing salary payment:", error);
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
