@@ -5,6 +5,94 @@ const Role = require("../models/role");
 const { salaryPaymentSchema } = require("../helpers/schema");
 const EmployeeDetails = require("../models/employeeDetail");
 const sequelize = require("../config/database");
+const cron = require('node-cron');
+const sendNotificationHelper = require('../helpers/sendAlert');
+
+cron.schedule("0 8 * * *", async () => {
+  try {
+    const today = new Date();
+    console.log(`Current Date: ${today.toISOString()}`);
+
+    // Calculate the dates 2 and 10 days from now
+    const twoDaysFromNow = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const tenDaysFromNow = new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000);
+    console.log("10 Days From Now:", tenDaysFromNow.toISOString());
+    console.log("2 Days From Now:", twoDaysFromNow.toISOString());
+
+    // Debug: Log the SalaryPayment model attributes
+    console.log("SalaryPayment Model Attributes:", Object.keys(SalaryPayment.rawAttributes));
+
+    // Find salary payments due between today and 10 days from now
+    const salaryPayments = await SalaryPayment.findAll({
+      where: {
+        paymentToDate: {
+          [Op.gte]: today,
+          [Op.lte]: tenDaysFromNow,
+        },
+        status: "Pending",
+        // notificationSent: false, // Uncomment after adding this field to the model
+      },
+      include: [
+        {
+          model: User,
+          attributes: ["fname", "lname", "email", "id"],
+        },
+      ],
+    });
+
+    console.log("Fetched salary payments: ", JSON.stringify(salaryPayments, null, 2));
+
+    if (salaryPayments.length === 0) {
+      console.log("No salary payments due soon.");
+      return; // Exit if no payments found
+    }
+
+    // Notify admins if salary payments are due
+    const admins = await User.findAll({ where: { roleId: 1 } }); // Assuming roleId 1 is for admins
+    if (admins.length === 0) {
+      console.log("No admins found to send notifications.");
+      return;
+    }
+
+    for (const payment of salaryPayments) {
+      const user = payment.User;
+      if (!user) {
+        console.log(`No user associated with payment ID: ${payment.id}`);
+        continue;
+      }
+      const paymentDueDate = new Date(payment.paymentToDate);
+      const remainingDays = Math.floor(
+        (paymentDueDate - today) / (1000 * 60 * 60 * 24)
+      );
+
+      console.log(
+        `Processing salary payment for ${user.fname} ${user.lname}, due in ${remainingDays} days (Due Date: ${paymentDueDate.toISOString()}).`
+      );
+
+      await Promise.all(
+        admins.map((admin) => {
+          const message = `Salary payment for employee ${user.fname} ${user.lname} is due in ${remainingDays} days.`;
+          console.log(`Sending notification to admin: ${admin.id}`);
+          return sendNotificationHelper({
+            adminId: admin.id,
+            title: `Salary Due in ${remainingDays} Days`,
+            body: message,
+            type: "Salary Payment Due",
+            receiver_type: "staff",
+          });
+        })
+      );
+
+      // Mark the payment as notified (uncomment after adding notificationSent field)
+      // await payment.update({ notificationSent: true });
+    }
+
+    console.log("Salary payment due notifications sent successfully to admins.");
+  } catch (error) {
+    console.error("Error during salary due notification cron job:", error.message);
+    console.error(error.stack);
+  }
+});
 
 //  Pay Salary
 exports.paySalary = async (req, res) => {
@@ -96,8 +184,6 @@ exports.paySalary = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
-
 
 //  Mass Salary Payment (Admin Only)
 exports.massPaySalaries = async (req, res) => {
@@ -204,8 +290,6 @@ exports.massPaySalaries = async (req, res) => {
   }
 };
 
-
-
 //  Employee Views Salary Payment History
 exports.getEmployeeSalaryHistory = async (req, res) => {
   try {
@@ -272,7 +356,6 @@ exports.deleteSalaryPayment = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
 
 //  Get All Salary Payments (Admin)
 exports.getAllSalaryPayments = async (req, res) => {
