@@ -5,7 +5,7 @@ const Unit = require('../models/unit');
 const { Op } = require('sequelize');
 const {tenantRentCollectionSchema} = require('../helpers/schema');
 const cron = require('node-cron');
-
+const sendNotificationHelper=require('../helpers/sendAlert');
 //* * * * * to test evey minute
 //schedule a task to run every day at midnight (0 0 * * *)
 cron.schedule('0 0 * * *', async () => {
@@ -117,14 +117,14 @@ if (!tenant) {
 
         // Create a readable format: "1 month 3 days"
        // Create a readable format: "1 month 3 days"
-let paidDays = "";
-if (months > 0) {
-    paidDays += `${months} month${months > 1 ? 's' : ''} `;
-}
-if (days > 0) {
-    paidDays += `${days} day${days > 1 ? 's' : ''}`;
-}
-paidDays = paidDays.trim(); // Remove extra spaces
+        let paidDays = "";
+        if (months > 0) {
+            paidDays += `${months} month${months > 1 ? 's' : ''} `;
+        }
+        if (days > 0) {
+            paidDays += `${days} day${days > 1 ? 's' : ''}`;
+        }
+        paidDays = paidDays.trim(); // Remove extra spaces
 
 
         // Create rent payment record
