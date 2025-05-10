@@ -13,25 +13,12 @@ cron.schedule("0 8 * * *", async () => {
     const today = new Date();
     console.log(`Current Date: ${today.toISOString()}`);
 
-    // Calculate the dates 2 and 10 days from now
+    // Calculate the date 2 days from now to define the notification window
     const twoDaysFromNow = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000);
-    const tenDaysFromNow = new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000);
-    console.log("10 Days From Now:", tenDaysFromNow.toISOString());
     console.log("2 Days From Now:", twoDaysFromNow.toISOString());
 
-    // Debug: Log the SalaryPayment model attributes
-    console.log("SalaryPayment Model Attributes:", Object.keys(SalaryPayment.rawAttributes));
-
-    // Find salary payments due between today and 10 days from now
+    // Fetch all salary payments (both Pending and Paid)
     const salaryPayments = await SalaryPayment.findAll({
-      where: {
-        paymentToDate: {
-          [Op.gte]: today,
-          [Op.lte]: tenDaysFromNow,
-        },
-        status: "Pending",
-        // notificationSent: false, // Uncomment after adding this field to the model
-      },
       include: [
         {
           model: User,
@@ -40,56 +27,74 @@ cron.schedule("0 8 * * *", async () => {
       ],
     });
 
-    console.log("Fetched salary payments: ", JSON.stringify(salaryPayments, null, 2));
-
     if (salaryPayments.length === 0) {
-      console.log("No salary payments due soon.");
-      return; // Exit if no payments found
+      console.log("No salary payments found.");
+      return;
     }
 
-    // Notify admins if salary payments are due
-    const admins = await User.findAll({ where: { roleId: 1 } }); // Assuming roleId 1 is for admins
+    // Fetch admins
+    const admins = await User.findAll({ where: { roleId: 1 } });
     if (admins.length === 0) {
       console.log("No admins found to send notifications.");
       return;
     }
 
+    // Process each payment to determine the next payment date
     for (const payment of salaryPayments) {
       const user = payment.User;
       if (!user) {
         console.log(`No user associated with payment ID: ${payment.id}`);
         continue;
       }
-      const paymentDueDate = new Date(payment.paymentToDate);
-      const remainingDays = Math.floor(
-        (paymentDueDate - today) / (1000 * 60 * 60 * 24)
-      );
 
-      console.log(
-        `Processing salary payment for ${user.fname} ${user.lname}, due in ${remainingDays} days (Due Date: ${paymentDueDate.toISOString()}).`
-      );
+      // Extract the day of the month from paymentToDate
+      const paymentDate = new Date(payment.paymentToDate);
+      const paymentDay = paymentDate.getDate(); // e.g., 12 for 2025-05-12
 
-      await Promise.all(
-        admins.map((admin) => {
-          const message = `Salary payment for employee ${user.fname} ${user.lname} is due in ${remainingDays} days.`;
-          console.log(`Sending notification to admin: ${admin.id}`);
-          return sendNotificationHelper({
-            adminId: admin.id,
-            title: `Salary Due in ${remainingDays} Days`,
-            body: message,
-            type: "Salary Payment Due",
-            receiver_type: "staff",
-          });
-        })
-      );
+      // Calculate the next payment date
+      let nextPaymentDate = new Date(today.getFullYear(), today.getMonth(), paymentDay);
+      if (nextPaymentDate < today) {
+        // If the payment date for this month has passed, move to next month
+        nextPaymentDate = new Date(today.getFullYear(), today.getMonth() + 1, paymentDay);
+      }
 
-      // Mark the payment as notified (uncomment after adding notificationSent field)
-      // await payment.update({ notificationSent: true });
+      // Reset notificationSent if we're in a new month
+      const lastNotificationMonth = payment.notificationSentAt ? new Date(payment.notificationSentAt).getMonth() : null;
+      if (lastNotificationMonth !== null && lastNotificationMonth !== today.getMonth()) {
+        await payment.update({ notificationSent: false });
+      }
+
+      // Only notify if we haven't sent a notification this month and the date is within 2 days
+      if (!payment.notificationSent && nextPaymentDate <= twoDaysFromNow && nextPaymentDate >= today) {
+        const daysUntilPayment = Math.floor(
+          (nextPaymentDate - today) / (1000 * 60 * 60 * 24)
+        );
+        const message = `Salary payment for employee ${user.fname} ${user.lname} is scheduled for ${nextPaymentDate.toISOString().split('T')[0]}, in ${daysUntilPayment} days.`;
+        console.log(
+          `Processing salary payment for ${user.fname} ${user.lname} (Payment Day: ${paymentDay}), next payment on ${nextPaymentDate.toISOString()}, in ${daysUntilPayment} days.`
+        );
+
+        await Promise.all(
+          admins.map((admin) => {
+            console.log(`Sending notification to admin: ${admin.id}`);
+            return sendNotificationHelper({
+              adminId: admin.id,
+              title: `Upcoming Salary Payment in ${daysUntilPayment} Days`,
+              body: message,
+              type: "Salary Payment Reminder",
+              receiver_type: "staff",
+            });
+          })
+        );
+
+        // Mark as notified
+        await payment.update({ notificationSent: true, notificationSentAt: today });
+      }
     }
 
-    console.log("Salary payment due notifications sent successfully to admins.");
+    console.log("Salary payment notifications sent successfully to admins.");
   } catch (error) {
-    console.error("Error during salary due notification cron job:", error.message);
+    console.error("Error during salary payment notification cron job:", error.message);
     console.error(error.stack);
   }
 });
