@@ -1,11 +1,82 @@
 const { Op } = require("sequelize");
-
 const BillPayment = require("../models/billPayment");
 const BillType = require("../models/billType");
 const  Expense  = require('../models/expense');
 const ExpenseType = require('../models/expenseType')
+const User = require('../models/user');
+const Role = require('../models/role');
+const moment = require('moment');
+const sendNotificationHelper = require('../helpers/sendAlert');
+const cron = require('node-cron');
 
-
+cron.schedule('0 8 * * *', async () => {
+    try {
+      const today = moment().startOf('day');
+      console.log(`Running bill payment due reminder job for date: ${today.toISOString()}`);
+  
+      const billPayments = await BillPayment.findAll({
+        where: {
+          status: 'Paid',
+          endDate: {
+            [Op.lte]: today.clone().add(2, 'days').toDate()
+          }
+        },
+        include: [
+          {
+            model: BillType,
+            attributes: ['typeName'],
+          }
+        ]
+      });
+  
+      if (!billPayments.length) {
+        console.log("No government bill payments due soon.");
+        return;
+      }
+  
+      // Fetch admin users by role name
+      const adminRole = await Role.findOne({ where: { name: 'admin' } });
+      const admins = await User.findAll({ where: { roleId: adminRole.id } });
+  
+      for (const payment of billPayments) {
+        const endDate = moment(payment.endDate);
+        const diffInDays = today.diff(endDate, 'days');
+        const formattedDate = endDate.format('YYYY-MM-DD');
+        const billTypeName = payment.BillType?.typeName || 'Unknown Bill';
+  
+        let message = '';
+  
+        if (diffInDays < 0 && Math.abs(diffInDays) <= 2) {
+          message = `Payment for ${billTypeName} is due in ${Math.abs(diffInDays)} day(s), on ${formattedDate}.`;
+        } else if (diffInDays === 0) {
+          message = `Payment for ${billTypeName} is due today (${formattedDate}).`;
+        } else if (diffInDays > 0 && diffInDays <= 2) {
+          message = `Payment for ${billTypeName} was due on ${formattedDate} and is now ${diffInDays} day(s) overdue.`;
+        } else {
+          continue; // skip irrelevant dates
+        }
+  
+        console.log(`Notification content: ${message}`);
+  
+        await Promise.all(
+          admins.map((admin) =>
+            sendNotificationHelper({
+              adminId: admin.id,
+              title: `${billTypeName} Payment Reminder`,
+              body: message,
+              type: 'Bill Payment Reminder',
+              receiver_type: 'staff',
+            })
+          )
+        );
+      }
+  
+    } catch (error) {
+      console.error("Error sending bill payment due notifications:", error.message);
+      console.error(error.stack);
+    }
+  });
+  
 exports.createBillPayment = async (req, res) => {
   try {
     const {billTypeId, amount, startDate, endDate, status, paymentMethod, description} = req.body;
