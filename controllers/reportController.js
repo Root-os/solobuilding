@@ -58,7 +58,10 @@ const getReport = async (req, res) => {
 
     // Fetch TenantRentCollection records with associated Tenant data
     const rentCollectionRecords = await TenantRentCollection.findAll({
-      where: paymentDateFilter, // Use the separate paymentDateFilter
+      where: {
+        ...paymentDateFilter,
+        status: 'paid', 
+      }, 
       include: [
         {
           model: Tenant,
@@ -70,7 +73,10 @@ const getReport = async (req, res) => {
 
     // Fetch individual records for outcomes
     const billPaymentRecords = await BillPayment.findAll({
-      where: createdAtFilter,
+      where: {
+        ...createdAtFilter,
+        status: 'paid',
+      },
       attributes: ['id', 'amount', 'createdAt'],
     });
     const expenseRecords = await Expense.findAll({
@@ -82,7 +88,10 @@ const getReport = async (req, res) => {
       attributes: ['id', 'cost', 'createdAt'],
     });
     const paymentRecords = await Payment.findAll({
-      where: createdAtFilter,
+      where: {
+        ...createdAtFilter,
+        status: 'complete', 
+      },
       attributes: ['id', 'price', 'createdAt'],
     });
     const purchaseRecords = await Purchase.findAll({
@@ -90,7 +99,10 @@ const getReport = async (req, res) => {
       attributes: ['id', 'totalPrice', 'createdAt'],
     });
     const salaryPaymentRecords = await SalaryPayment.findAll({
-      where: createdAtFilter,
+      where: {
+        ...createdAtFilter,
+        status: 'paid',
+      },
       attributes: ['id', 'amount', 'createdAt'],
     });
 
