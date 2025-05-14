@@ -16,6 +16,7 @@ cron.schedule("0 8 * * *", async () => {
     // Normalize 'today' to midnight (00:00:00) of the current day
     today.setHours(0, 0, 0, 0); 
 
+    
     // Calculate the date 2 days from now to define the notification window
     const twoDaysFromNow = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000);
     console.log("2 Days From Now:", twoDaysFromNow.toISOString());
