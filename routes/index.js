@@ -28,6 +28,7 @@ router.use('/item-types', require('./itemCategory'));
 router.use('/items', require('./itemRoutes'));
 router.use('/setting', require('./settingRoutes'));
 router.use('/charging', require('./chargingRoute'));
+router.use('/building-law', require('./buildingLawRoutes'));
 
 //purchases
 router.use('/purchases', require('./purchaseRoute'));

@@ -85,7 +85,6 @@ cron.schedule('0 0 * * *', async () => {
     }
   });
   
-
 // Create a new rent payment
 exports.createRentPayment = async (req, res) => {
     try {

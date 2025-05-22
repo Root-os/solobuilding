@@ -16,7 +16,7 @@ cron.schedule("0 8 * * *", async () => {
     // Normalize 'today' to midnight (00:00:00) of the current day
     today.setHours(0, 0, 0, 0); 
 
-    
+
     // Calculate the date 2 days from now to define the notification window
     const twoDaysFromNow = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000);
     console.log("2 Days From Now:", twoDaysFromNow.toISOString());
@@ -105,8 +105,6 @@ cron.schedule("0 8 * * *", async () => {
     console.error(error.stack);
   }
 });
-
-
 
 //  Pay Salary
 exports.paySalary = async (req, res) => {
@@ -209,15 +207,17 @@ exports.massPaySalaries = async (req, res) => {
       }
 
       // Fetch all employees with role 'employee' and their salary details
-      const employees = await User.findAll({
-          include: [
-              {
-                  model: Role,
-                  where: { name: "employee" }, // Only get users with the role 'employee'
-                  required: true, // Ensures it filters based on this condition
-              },
-            
-          ],
+     const employees = await User.findAll({
+        include: [
+          {
+            model: Role,
+            required: true, // Must have *some* role (any name)
+          },
+          {
+            model: EmployeeDetails,
+            required: true, 
+          },
+        ],
       });
 
       if (employees.length === 0) {

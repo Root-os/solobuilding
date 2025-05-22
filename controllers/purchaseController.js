@@ -1,18 +1,21 @@
 const Purchase = require("../models/purchase");
 const Item = require("../models/item");
-const ItemType = require("../models/itemCategory");
+const ItemCategory = require("../models/itemCategory");
 const { Sequelize } = require("sequelize");
 const { purchaseValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
 const Vendor = require("../models/Vendor");
 
 exports.createPurchase = async (req, res) => {
+  const t = await Purchase.sequelize.transaction(); // Start a transaction
   try {
     const { error } = purchaseValidationSchema.validate(req.body);
-    if (error)
+    if (error) {
       return res
         .status(400)
         .json({ message: "Validation error", error: error.details[0].message });
+    }
+
     const {
       vendorId,
       amount,
@@ -20,24 +23,41 @@ exports.createPurchase = async (req, res) => {
       description,
       expirationDate,
       itemId,
-      itemTypeId,
+      ItemCategoryId ,
     } = req.body;
-
+console.log(req.body);
     const totalPrice = amount * price;
 
-    const newPurchase = await Purchase.create({
-      vendorId,
-      amount,
-      price,
-      totalPrice,
-      description,
-      expirationDate,
-      itemId,
-      itemTypeId,
-    });
+    // 1. Create purchase record
+    const newPurchase = await Purchase.create(
+      {
+        vendorId,
+        amount,
+        price,
+        totalPrice,
+        description,
+        expirationDate,
+        itemId,
+        ItemCategoryId,
+      },
+      { transaction: t }
+    );
 
+    // 2. Update item stock (itemAmount)
+    const item = await Item.findByPk(itemId, { transaction: t });
+    if (!item) {
+      await t.rollback();
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    // Update the itemAmount
+    item.itemAmount = parseFloat(item.itemAmount) + parseFloat(amount);
+    await item.save({ transaction: t });
+
+    await t.commit();
     res.status(201).json(newPurchase);
   } catch (error) {
+    await t.rollback();
     res.status(500).json({ error: error.message });
   }
 };
@@ -46,7 +66,7 @@ exports.createPurchase = async (req, res) => {
 exports.getAllPurchases = async (req, res) => {
   try {
     const purchases = await Purchase.findAll({
-      include: [Item, ItemType, Vendor],
+      include: [Item, ItemCategory, Vendor],
     
       attributes: [
         "id",
@@ -77,7 +97,7 @@ exports.getPurchaseById = async (req, res) => {
         .json({ message: "Validation error", error: error.details[0].message });
     }
     const purchase = await Purchase.findByPk(req.params.id, {
-      include: [Item, ItemType],
+      include: [Item, ItemCategory],
       attributes: [
         "id",
         "vendorId",
@@ -112,8 +132,8 @@ exports.getPurchaseByVenderId = async (req, res) => {
           attributes: ["itemName"], // Only return the item name
         },
         {
-          model: ItemType,
-          attributes: ["categoryName"], // Only return the itemType name
+          model: ItemCategory,
+          attributes: ["categoryName"], // Only return the itemCategory name
         },
       ],
     });
@@ -127,7 +147,6 @@ exports.getPurchaseByVenderId = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // Update a purchase by ID (Recalculate totalPrice if amount or price changes)
 exports.updatePurchase = async (req, res) => {
@@ -204,14 +223,9 @@ exports.deletePurchase = async (req, res) => {
   }
 };
 
-// Generate report based on vendourName, startDate, endDate, and itemTypeId
+// Generate report based on vendourName, startDate, endDate, and itemCategoryId
 exports.generatePurchaseReport = async (req, res) => {
-  const error = purchaseValidationSchema.validate(req.body);
-  // if (error)
-  //   return res
-  //     .status(400)
-  //     .json({ message: "Validation error", error: error.details[0].message });
-  const { vendorId, startDate, endDate, ItemCategoryId } = req.body;
+  const { vendorId, startDate, endDate, itemCategoryId } = req.body;
 
   try {
     const whereConditions = {};
@@ -220,24 +234,47 @@ exports.generatePurchaseReport = async (req, res) => {
       whereConditions.vendorId = { [Sequelize.Op.like]: `%${vendorId}%` };
     }
 
+    // Date range filtering
     if (startDate && endDate) {
       whereConditions.date = {
         [Sequelize.Op.between]: [new Date(startDate), new Date(endDate)],
       };
     }
 
-    if (ItemCategoryId) {
-      whereConditions.ItemCategoryId = ItemCategoryId;
+    // Build item include
+    const itemInclude = {
+      model: Item,
+      required: true,
+      include: [
+        {
+          model: ItemCategory,
+          required: true,
+        }
+      ]
+    };
+
+    // Add category filter if specified
+    if (itemCategoryId) {
+      itemInclude.include[0].where = { id: itemCategoryId };
     }
 
+    // Run query
     const report = await Purchase.findAll({
       where: whereConditions,
-      include: [Item, ItemType, Vendor],
+      include: [
+        itemInclude,
+        Vendor
+      ],
       order: [["date", "ASC"]],
     });
 
+    // Respond with result
     res.status(200).json(report);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+
+

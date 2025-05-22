@@ -79,45 +79,59 @@ cron.schedule('0 8 * * *', async () => {
   
 exports.createBillPayment = async (req, res) => {
   try {
-    const {billTypeId, amount, startDate, endDate, status, paymentMethod, description} = req.body;
+    const { billTypeId, amount, startDate, endDate, status, paymentMethod, description } = req.body;
+
     const billType = await BillType.findByPk(billTypeId);
     if (!billType) {
       return res.status(404).json({ message: "Bill type not found" });
     }
-    if(!amount || !startDate || !endDate || !status || !paymentMethod || !description) {
+
+    if (!amount || !startDate || !endDate || !status || !paymentMethod || !description) {
       return res.status(400).json({ message: "Please provide all required fields" });
     }
-    if(amount <= 0) {
+
+    if (amount <= 0) {
       return res.status(400).json({ message: "Amount must be greater than 0" });
     }
-    if(new Date(startDate) > new Date(endDate)) {
+
+    if (new Date(startDate) > new Date(endDate)) {
       return res.status(400).json({ message: "Start date cannot be greater than end date" });
     }
+
     // Create the BillPayment
     const billPayment = await BillPayment.create(req.body);
 
-    const type = billType.typeName;
-    
-    let expenseType= await ExpenseType.findOne({ where: { name: type } });
-    if (!expenseType) {
+    let expense = null;
+
+    // Only create Expense if the bill payment status is "paid"
+    if (status.toLowerCase() === 'paid') {
+      const type = billType.typeName;
+
+      let expenseType = await ExpenseType.findOne({ where: { name: type } });
+      if (!expenseType) {
         expenseType = await ExpenseType.create({ name: type, description: `Expense type for ${type}` });
-        console.log(`Created new notification type: ${type}`);
+        console.log(`Created new expense type: ${type}`);
       }
-    // Create the corresponding Expense
-    const expense = await Expense.create({
-      amount, 
-       date: new Date(),  
-      description: `Bill payment for ${description}`,
-      expenseTypeId: expenseType.id,
-    });
-    
+
+      expense = await Expense.create({
+        amount,
+        date: new Date(),
+        description: `Bill payment for ${description}`,
+        expenseTypeId: expenseType.id,
+      });
+    }
+
     return res.status(201).json({
-      message: "Bill payment and corresponding expense created successfully",
+      message: "Bill payment created successfully" + (expense ? " and expense recorded" : ""),
       billPayment,
-      expense
+      ...(expense && { expense }) // Only include expense if it was created
     });
+
   } catch (error) {
-    return res.status(500).json({ message: "Error creating bill payment and expense", error: error.message });
+    return res.status(500).json({
+      message: "Error creating bill payment and expense",
+      error: error.message
+    });
   }
 };
 

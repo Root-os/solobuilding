@@ -3,6 +3,7 @@ const PurchaseRequest = require("../models/purchaseRequest");
 const User = require("../models/user");
 const Item = require("../models/item");
 const Vendor = require("../models/Vendor");
+const Role = require("../models/role");
 const { purchaseRequestValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
 const sendNotificationHelper= require('../helpers/sendAlert');
@@ -88,6 +89,38 @@ exports.getAllPurchaseRequests = async (req, res) => {
         }
       ],
     });
+    res.status(200).json(purchaseRequests);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getPurchaseRequestsByUser = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const purchaseRequests = await PurchaseRequest.findAll({
+      where: { requestedBy: userId },
+      include: [
+        { model: Item, as: "item" },
+        {
+          model: User,
+          as: "requestedby",
+          attributes: ["id", "fname", "lname", "email"],
+        },
+        {
+          model: User,
+          as: "approvedby",
+          attributes: ["id", "fname", "lname", "email"],
+        },
+        {
+          model: Vendor,
+          as: "vendor",
+          attributes: ["id", "fname", "lname", "email", "phone", "address"],
+        },
+      ],
+    });
+
     res.status(200).json(purchaseRequests);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -215,8 +248,6 @@ exports.updatePurchaseRequest = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-
 
 // Delete a PurchaseRequest by ID
 exports.deletePurchaseRequest = async (req, res) => {
