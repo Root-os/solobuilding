@@ -340,6 +340,7 @@ exports.getAllUsers = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch users", error: error.message });
   }
 };
+
 const { Op } = require('sequelize');
 exports.getAllEmployeeUsers = async (req, res) => {
   try {

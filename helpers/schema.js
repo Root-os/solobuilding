@@ -254,6 +254,13 @@ const settingSchema = Joi.object({
     value: Joi.string().required(),
     unit: Joi.string().optional(),
     description: Joi.string().optional(),
+    phoneNumber: Joi.string()
+  .pattern(/^(09|07)\d{8}$/)
+  .required()
+  .messages({
+    'string.pattern.base': 'Phone number must start with 09 or 07 and be exactly 10 digits long',
+    'string.empty': 'Phone number is required',
+  })
 });
 
 
@@ -401,6 +408,7 @@ const purchaseRequestValidationSchema = Joi.object({
   reason: Joi.string().optional().allow(null),
   approvedBy: Joi.number().integer().optional().allow(null),
   vendorId: Joi.number().integer().optional().allow(null),
+  status: Joi.string().valid('pending', 'approved', 'rejected').optional(),
 });
 // Define the Joi schema for Payment validation
 const paymentValidationSchema = Joi.object({

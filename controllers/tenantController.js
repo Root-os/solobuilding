@@ -98,8 +98,10 @@ exports.createTenant = async (req, res) => {
         return res.status(400).json({ error: errorMessage });
       }
 
-      // Generate a random password
-      const generatedPassword = Math.random().toString(36).slice(-8);
+      
+      // Generate a 4-digit numeric password
+     const generatedPassword = Math.floor(1000 + Math.random() * 9000).toString();
+
 
       const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
@@ -317,12 +319,27 @@ exports.deleteTenant = async (req, res) => {
       return res.status(404).json({ message: 'Tenant not found' });
     }
 
+    // Mark the associated unit as 'available' if tenant has one
+    if (tenant.unitId) {
+      await Unit.update(
+        { 
+          status: 'available',
+          vacatedDate: new Date() // optional: update vacatedDate as well
+        },
+        { where: { id: tenant.unitId } }
+      );
+    }
+
+    // Delete the tenant
     await tenant.destroy();
-    res.status(200).json({ message: 'Tenant deleted successfully' });
+
+    res.status(200).json({ message: 'Tenant deleted and unit marked as available' });
   } catch (error) {
+    console.error('Error deleting tenant:', error);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // Get tenants by unitId
 exports.getTenantsByUnitId = async (req, res) => {
@@ -362,7 +379,6 @@ exports.getTenantsByFloorId = async (req, res) => {
 exports.filterTenants = async (req, res) => {
   try {
     const {
-      paymentStatus,
       leaseStartDateFrom,
       leaseStartDateTo,
       leaseEndDateFrom,
@@ -374,7 +390,6 @@ exports.filterTenants = async (req, res) => {
 
     let whereConditions = {};
 
-    if (paymentStatus) whereConditions.paymentStatus = paymentStatus;
     if (status) whereConditions.status = status;
     if (unitId) whereConditions.unitId = unitId;
     if (floorId) whereConditions.floorId = floorId;

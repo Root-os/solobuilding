@@ -8,6 +8,8 @@ router.get('/:id', PurchRequestController.getPurchaseRequestById);
 router.put('/:id', PurchRequestController.updatePurchaseRequest);
 router.delete('/:id', PurchRequestController.deletePurchaseRequest);
 router.post('/report', PurchRequestController.generatePurchaseRequestReport);
+router.get('/user/:userId', PurchRequestController.getPurchaseRequestsByUser);
+
 
 
 module.exports = router;

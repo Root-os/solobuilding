@@ -54,7 +54,6 @@ exports.createSetting = async (req, res) => {
     }
 };
 
-
 // Update Setting
 exports.updateSetting = async (req, res) => {
     try {
