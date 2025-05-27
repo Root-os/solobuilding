@@ -10,11 +10,8 @@ const BuildingRule = sequelize.define('BuildingRule', {
   description: {
     type: DataTypes.TEXT,
     allowNull: false,
+    unique: true,
   },
-  image : {
-    type: DataTypes.STRING,
-    allowNull: true,
-  }
 }, {
   timestamps: true,
   tableName: 'building_rules',

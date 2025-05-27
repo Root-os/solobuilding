@@ -108,7 +108,6 @@ exports.createPayment = async (req, res) => {
   }
 };
 
-
 // Get all tenant payments
 exports.getAllPayments = async (req, res) => {
   try {
@@ -214,7 +213,6 @@ exports.getAllPaymentByDate = async (req, res) => {
   }
 };
 
-
 // Get a specific payment by ID
 exports.getPaymentByTenantId = async (req, res) => {
   try {
@@ -236,7 +234,6 @@ exports.getPaymentByTenantId = async (req, res) => {
     res.status(500).json({ message: 'Error fetching payment', error: error.message });
   }
 };
-
 
 // Update a tenant payment
 exports.updatePayment = async (req, res) => {

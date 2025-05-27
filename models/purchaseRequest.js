@@ -26,6 +26,10 @@ const PurchaseRequest = sequelize.define(
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
+     approvedAmount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+    },
     requestDate: {
       type: DataTypes.DATE,
       allowNull: false,

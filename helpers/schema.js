@@ -409,7 +409,9 @@ const purchaseRequestValidationSchema = Joi.object({
   approvedBy: Joi.number().integer().optional().allow(null),
   vendorId: Joi.number().integer().optional().allow(null),
   status: Joi.string().valid('pending', 'approved', 'rejected').optional(),
+  approvedAmount: Joi.number().positive().precision(2).optional().allow(null),
 });
+
 // Define the Joi schema for Payment validation
 const paymentValidationSchema = Joi.object({
   vendorId: Joi.number().integer().required(),
@@ -505,7 +507,7 @@ const orderTypeValidationSchema = Joi.object({
 const orderValidationSchema = Joi.object({
   orderDate: Joi.date().required(),
   amount: Joi.number().positive().precision(2).required(),
-  status: Joi.string().valid('pending', 'completed', 'canceled').optional(),
+  status: Joi.string().valid('pending', 'completed', 'canceled', 'ready', 'approved').optional(),
   notes: Joi.string().optional().allow(''),
   receiptImage: Joi.string().optional().allow(''),
   orderTypeId: Joi.number().integer().positive().required(),

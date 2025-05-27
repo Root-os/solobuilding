@@ -162,33 +162,64 @@ const assignComplaint = async (req, res) => {
 };
  
 // Update complaint status
- const updateComplaintStatus = async (req, res) => {
+const updateComplaintStatus = async (req, res) => {
   try {
     const { complaintId, status } = req.body;
-    const complaint = await Complaint.findByPk(complaintId);
+    console.log('Received request to update complaint:', complaintId, 'to status:', status);
 
+    const complaint = await Complaint.findByPk(complaintId);
     if (!complaint) {
+      console.log('Complaint not found with ID:', complaintId);
       return res.status(404).json({ message: 'Complaint not found' });
     }
 
     if (!['pending', 'in_progress', 'resolved'].includes(status)) {
+      console.log('Invalid status provided:', status);
       return res.status(400).json({ message: 'Invalid status' });
     }
 
     complaint.status = status;
     await complaint.save();
+    console.log('Complaint status updated in DB');
+
+    const tenant = await Tenant.findByPk(complaint.tenantId);
+    if (!tenant) {
+      console.log('Tenant not found with ID:', complaint.tenantId);
+      return res.status(404).json({ message: 'Tenant not found' });
+    }
+
+    console.log('Sending notification to tenant:', tenant.id, tenant.fullName);
+    await sendNotificationHelper({
+      adminId: tenant.id,
+      title: 'Complaint Status Update',
+      body: `Your complaint status has been updated to ${status}. Please check the complaints page for more details.`,
+      type: 'Complaint Status Update',
+      receiver_type: 'tenant',
+    });
+
+    console.log('Notification sent successfully');
 
     res.status(200).json({ message: 'Complaint status updated successfully', complaint });
   } catch (error) {
+    console.error('Error updating complaint status:', error.message);
     res.status(500).json({ message: 'Error updating complaint status', error: error.message });
   }
 };
 
+
 // Confirm or reopen a complaint (tenant feedback)
- const confirmComplaintResolution = async (req, res) => {
+const confirmComplaintResolution = async (req, res) => {
   try {
     const { complaintId, feedback } = req.body;
-    const complaint = await Complaint.findByPk(complaintId);
+      const complaint = await Complaint.findByPk(complaintId, {
+      include: [
+        {
+          model: User,
+          as: 'assignedEmployee',
+          attributes: ['id', 'fname', 'lname'],
+        }
+      ]
+    });
 
     if (!complaint) {
       return res.status(404).json({ message: 'Complaint not found' });
@@ -204,11 +235,32 @@ const assignComplaint = async (req, res) => {
     }
     await complaint.save();
 
-    res.status(200).json({ message: 'Complaint feedback submitted successfully', complaint });
+    // ✅ Process image paths into full URLs
+    let imageUrls = [];
+    try {
+      const imagePaths = JSON.parse(complaint.images || '[]');
+      imageUrls = imagePaths.map(img =>
+        `${BASE_URL}/${img.replace(/\\\\/g, '/')}` // Normalize path
+      );
+    } catch (err) {
+      imageUrls = [];
+    }
+
+    const updatedComplaint = {
+      ...complaint.toJSON(),
+      images: imageUrls,
+    };
+
+    res.status(200).json({
+      message: 'Complaint feedback submitted successfully',
+      complaint: updatedComplaint,
+    });
+
   } catch (error) {
     res.status(500).json({ message: 'Error updating complaint feedback', error: error.message });
   }
 };
+
 
 const deleteComplaint = async (req, res) => {
   try {
@@ -248,17 +300,23 @@ const getTenantComplaints = async (req, res) => {
     const { tenantId } = req.params;
     const complaints = await Complaint.findAll({
       where: { tenantId },
-      include: {
-        model: Tenant,
-        attributes: ['fullName', 'email', 'phoneNumber']
-      }
+      include: [
+        {
+          model: Tenant,
+          attributes: ['fullName', 'email', 'phoneNumber'],
+        },
+        {
+          model: User,
+          as: 'assignedEmployee',
+          attributes: ['id', 'fname', 'lname'],
+        }
+      ]
     });
 
     const updatedComplaints = complaints.map((complaint) => {
       let parsedImages = [];
 
       try {
-        // Safely parse images if they are stored as JSON string
         parsedImages = complaint.images ? JSON.parse(complaint.images) : [];
       } catch (err) {
         console.error('Invalid image JSON:', complaint.images);
@@ -280,6 +338,7 @@ const getTenantComplaints = async (req, res) => {
     res.status(500).json({ message: 'Error fetching complaints', error: error.message });
   }
 };
+
 
 const getAssignedComplaints = async (req, res) => {
   try {

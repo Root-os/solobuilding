@@ -59,15 +59,26 @@ const receiptStorage = multer.diskStorage({
 
 const receiptUpload = multer({ storage: receiptStorage });
 
-//Rule image upload
-const dirs = {
-  ruleImages: './uploads',
-};
-const ruleImageStorage = multer.diskStorage({
-  destination: dirs.ruleImages,
-  filename: (req, file, cb) =>
-    cb(null, `rule-${Date.now()}${path.extname(file.originalname)}`),
-});
-const ruleImageUpload = multer({ storage: ruleImageStorage, fileFilter: imageFileFilter });
+const responseUploadDir = './uploads/responses';
+if (!fs.existsSync(responseUploadDir)) {
+  fs.mkdirSync(responseUploadDir, { recursive: true });
+}
 
-module.exports = {upload,receiptUpload,ruleImageUpload};
+const responseStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, responseUploadDir);  
+  },
+  filename: (req, file, cb) => {
+    cb(null, `response-${Date.now()}${path.extname(file.originalname)}`);
+  },
+});
+
+const responseUpload = multer({
+  storage: responseStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: imageFileFilter,
+});
+
+
+
+module.exports = {upload,receiptUpload,responseUpload};
