@@ -3,17 +3,8 @@ const Tenant=require('../models/tenant');
 const User = require('../models/user');
 const Role = require('../models/role');
 const {refundStatusSchema} = require('../helpers/schema');
+const sendNotificationHelper= require('../helpers/sendAlert');
 
-const sendNotificationHelper = async ({ adminId, title, body, type, receiver_type }) => {
-  try {
-    console.log(`Notification to ${receiver_type} (ID: ${adminId}): ${title} - ${body} [Type: ${type}]`);
-    // Replace this with your actual notification logic (e.g., email, push notification, etc.)
-    // Example: await sendPushNotification(adminId, title, body);
-  } catch (error) {
-    console.error(`Failed to send notification to ${adminId}:`, error.message);
-    throw error; // Optional: rethrow if you want the caller to handle it
-  }
-};
 
 // Create a new withdrawal request
 const createWithdrawalRequest = async (req, res) => {
@@ -40,8 +31,11 @@ const createWithdrawalRequest = async (req, res) => {
         attributes: [] // Exclude Role attributes from the result
       }
     });
+    console.log(`Admins found: ${admins.length}`); // Debugging log
+    console.log(`Request created: ${JSON.stringify(request)}`); // Debugging log
 
     if (request && admins.length > 0) {
+      console.log(`Sending notifications to ${admins.length} admins.`); // Debugging log
       await Promise.all(
         admins.map((admin) =>
           sendNotificationHelper({
@@ -90,8 +84,6 @@ const getAllWithdrawalRequests = async (req, res) => {
   }
 };
 
-
-
 const getMyWithdrawalRequests = async (req, res) => {
     try {
         const { id } = req.user;
@@ -109,7 +101,6 @@ const getMyWithdrawalRequests = async (req, res) => {
         res.status(500).json({ message: "Error fetching withdrawal requests.", error: error.message });
     }
 };
-
 
 // Admin reviews and updates withdrawal request status
 const reviewWithdrawalRequest = async (req, res) => {
@@ -175,6 +166,7 @@ const deleteWithdrawalRequest = async (req, res) => {
         res.status(500).json({ message: "Error deleting withdrawal request.", error: error.message });
     }
 }
+
 // Assign an employee to handle the exit process
 const assignEmployeeToRequest = async (req, res) => {
   try {
@@ -193,8 +185,6 @@ const assignEmployeeToRequest = async (req, res) => {
         attributes: ['name'], // Fetch only the 'name' of the role
       },
     });
-    
-
     // Handle case if employee is not found
     if (!employee) {
       return res.status(404).json({ message: "Employee not found." });
@@ -204,7 +194,6 @@ const assignEmployeeToRequest = async (req, res) => {
     if (!employee.Role || employee.Role.name === 'admin') {
       return res.status(400).json({ message: "Only employees can be assigned to requests." });
     }
-
     // Update the request status and assign the employee to the request
     request.status = "in_progress";
     request.assignedEmployeeId = employeeId;
@@ -250,7 +239,6 @@ const assignEmployeeToRequest = async (req, res) => {
   }
 };
 
-  
 const myAssignedRequests=async(req,res)=>{
     try {
         const employeeId = req.user.id;
@@ -292,7 +280,6 @@ const finalizeWithdrawalProcess = async (req, res) => {
         if (error) {
             return res.status(400).json({ message: error.details[0].message });
         }
-
         const { requestId, depositRefundStatus } = req.body;
 
         const request = await WithdrawalRequest.findByPk(requestId);
@@ -309,6 +296,21 @@ const finalizeWithdrawalProcess = async (req, res) => {
         request.processedAt = new Date();
 
         await request.save();
+        // Fetch tenant details
+        const tenant = await Tenant.findByPk(request.tenantId, {
+            attributes: ['id', 'fullName', 'email', 'phoneNumber'],
+        }); 
+        if (!tenant) {
+            return res.status(404).json({ message: "Tenant not found." });
+        }
+        // Send notification to tenant about the finalized process
+        await sendNotificationHelper({
+            adminId: tenant.id,
+            title: 'Withdrawal Process Finalized',
+            body: `Your withdrawal process has been finalized. The deposit refund status is ${depositRefundStatus}.`,
+            type: 'Withdrawal Process Finalized',
+            receiver_type: 'tenant',
+        });
 
         res.status(200).json({ message: "Withdrawal process finalized successfully.", request });
     } catch (error) {

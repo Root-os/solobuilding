@@ -251,7 +251,6 @@ exports.getRentPaymentHistoryByTenantId = async (req, res) => {
 };
 
 
-
 // Update a rent payment
 exports.updateRentPayment = async (req, res) => {
     try {

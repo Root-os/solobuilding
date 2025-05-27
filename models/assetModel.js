@@ -24,10 +24,6 @@ const AssetAudit = sequelize.define('AssetAudit', {
       onDelete: 'SET NULL',
       onUpdate: 'CASCADE'
     },
-    asset_name: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
     date: {
       type: DataTypes.DATE,
       allowNull: false

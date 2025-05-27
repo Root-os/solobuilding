@@ -19,7 +19,7 @@ const Item = sequelize.define(
       allowNull: true, // Optional field
     },
     itemAmount: {
-      type: DataTypes.DECIMAL(10, 2),
+      type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0, // Default value is 0
     },

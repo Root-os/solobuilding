@@ -309,8 +309,9 @@ exports.getEmployeeSalaryHistory = async (req, res) => {
   try {
     const { id: employeeId, role } = req.user;
 
-    if (role !== "employee") {
-      return res.status(403).json({ message: "Only employees can access this" });
+    // Only admin should be restricted
+    if (role === "admin") {
+      return res.status(403).json({ message: "Admins are not allowed to access this" });
     }
 
     const salaryPayments = await SalaryPayment.findAll({

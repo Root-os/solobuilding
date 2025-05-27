@@ -4,14 +4,10 @@ const  User  = require("../models/user");
 const { itemAssignmentSchema } = require("../helpers/schema"); // Adjust path if necessary
 const {paramsSchema} = require("../helpers/schema");
 
-
-
 // CREATE ItemAssignment
 exports.createItemAssignment = async (req, res) => {
   try {
-    // Validate the incoming request body using Joi schema
     const { error } = itemAssignmentSchema.validate(req.body);
-
     if (error) {
       return res.status(400).json({
         message: "Validation error",
@@ -21,7 +17,23 @@ exports.createItemAssignment = async (req, res) => {
 
     const { itemId, assignedId, assignType, assignDate, amount, description } = req.body;
 
-    // Create a new ItemAssignment record
+    const item = await Item.findByPk(itemId);
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    console.log("Initial itemAmount:", item.itemAmount);
+
+    if (parseFloat(item.itemAmount) < parseFloat(amount)) {
+      return res.status(400).json({ message: "Insufficient item amount" });
+    }
+
+    // Deduct from itemAmount
+    item.itemAmount = parseFloat(item.itemAmount) - parseFloat(amount);
+    await item.save();
+
+    console.log("Updated itemAmount after deduction:", item.itemAmount);
+
     const newAssignment = await ItemAssignment.create({
       itemId,
       assignedId,
@@ -36,14 +48,13 @@ exports.createItemAssignment = async (req, res) => {
       data: newAssignment,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error in createItemAssignment:", error);
     return res.status(500).json({
       message: "Error creating ItemAssignment",
       error: error.message,
     });
   }
 };
-
 
 // GET all ItemAssignments
  exports.getAllItemAssignments = async (req, res) => {
@@ -123,9 +134,8 @@ exports.createItemAssignment = async (req, res) => {
 };
 
 // UPDATE an ItemAssignment
- exports.updateItemAssignment = async (req, res) => {
+exports.updateItemAssignment = async (req, res) => {
   try {
-    // Validate the incoming request body using Joi schema
     const { error } = itemAssignmentSchema.validate(req.body);
     if (error) {
       return res.status(400).json({
@@ -134,7 +144,7 @@ exports.createItemAssignment = async (req, res) => {
       });
     }
 
-    const {erroId} = paramsSchema.validate(req.params);
+    const { erroId } = paramsSchema.validate(req.params);
     if (erroId) {
       return res.status(400).json({
         message: "Validation error",
@@ -142,28 +152,44 @@ exports.createItemAssignment = async (req, res) => {
       });
     }
 
-
     const { id } = req.params;
     const { assignType, assignDate, amount, description } = req.body;
 
-    const [updated] = await ItemAssignment.update(
+    const existingAssignment = await ItemAssignment.findByPk(id);
+    if (!existingAssignment) {
+      return res.status(404).json({ message: "ItemAssignment not found" });
+    }
+
+    const item = await Item.findByPk(existingAssignment.itemId);
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    // Restore previous amount
+    item.itemAmount = parseFloat(item.itemAmount) + parseFloat(existingAssignment.amount);
+
+    // Deduct new amount
+    if (parseFloat(item.itemAmount) < parseFloat(amount)) {
+      return res.status(400).json({ message: "Insufficient item amount for update" });
+    }
+
+    item.itemAmount = parseFloat(item.itemAmount) - parseFloat(amount);
+    await item.save();
+
+    // Update the assignment
+    await ItemAssignment.update(
       { assignType, assignDate, amount, description },
       { where: { id } }
     );
 
-    if (updated) {
-      const updatedAssignment = await ItemAssignment.findOne({ where: { id } });
-      return res.status(200).json({
-        message: "ItemAssignment updated successfully",
-        data: updatedAssignment,
-      });
-    }
+    const updatedAssignment = await ItemAssignment.findByPk(id);
 
-    return res.status(404).json({
-      message: "ItemAssignment not found",
+    return res.status(200).json({
+      message: "ItemAssignment updated and itemAmount adjusted",
+      data: updatedAssignment,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error in updateItemAssignment:", error);
     return res.status(500).json({
       message: "Error updating ItemAssignment",
       error: error.message,
@@ -172,7 +198,7 @@ exports.createItemAssignment = async (req, res) => {
 };
 
 // DELETE an ItemAssignment
- exports.deleteItemAssignment = async (req, res) => {
+exports.deleteItemAssignment = async (req, res) => {
   try {
     const { error } = paramsSchema.validate(req.params);
     if (error) {
@@ -184,19 +210,27 @@ exports.createItemAssignment = async (req, res) => {
 
     const { id } = req.params;
 
-    const deleted = await ItemAssignment.destroy({ where: { id } });
-
-    if (deleted) {
-      return res.status(200).json({
-        message: "ItemAssignment deleted successfully",
-      });
+    const assignment = await ItemAssignment.findByPk(id);
+    if (!assignment) {
+      return res.status(404).json({ message: "ItemAssignment not found" });
     }
 
-    return res.status(404).json({
-      message: "ItemAssignment not found",
+    const item = await Item.findByPk(assignment.itemId);
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    // Restore the amount
+    item.itemAmount = parseFloat(item.itemAmount) + parseFloat(assignment.amount);
+    await item.save();
+
+    await ItemAssignment.destroy({ where: { id } });
+
+    return res.status(200).json({
+      message: "ItemAssignment deleted and itemAmount restored",
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error in deleteItemAssignment:", error);
     return res.status(500).json({
       message: "Error deleting ItemAssignment",
       error: error.message,

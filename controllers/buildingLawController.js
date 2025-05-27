@@ -1,23 +1,19 @@
 const BuildingRule = require('../models/buildingLaw');
-const fs = require('fs');
-const path = require('path');
 
 // Create a new building rule
-
 exports.createRule = async (req, res) => {
   try {
     const { description } = req.body;
-    const image = req.file ? req.file.path : null;
-
     if (!description) {
       return res.status(400).json({ error: 'Description is required' });
     }
 
-    const rule = await BuildingRule.create({
-      description,
-      image,
-    });
+    const existing = await BuildingRule.findOne({ where: { description } });
+    if (existing) {
+      return res.status(409).json({ error: 'This rule already exists.' });
+    }
 
+    const rule = await BuildingRule.create({ description });
     res.status(201).json({ message: 'Rule created', rule });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create rule', details: error.message });
@@ -28,22 +24,11 @@ exports.createRule = async (req, res) => {
 exports.getAllRules = async (req, res) => {
   try {
     const rules = await BuildingRule.findAll({
-      attributes: ['id', 'description', 'image', 'createdAt', 'updatedAt'],
+      attributes: ['id', 'description', 'createdAt', 'updatedAt'],
       order: [['id', 'ASC']]
     });
 
-    const rulesWithFullImageUrl = rules.map(rule => {
-      const cleanPath = rule.image?.replace(/\\/g, '/').replace(/^.*[\\/]/, '');
-      return {
-        id: rule.id,
-        description: rule.description,
-        image: rule.image ? `${req.protocol}://${req.get('host')}/uploads/${cleanPath}` : null,
-        createdAt: rule.createdAt,
-        updatedAt: rule.updatedAt
-      };
-    });
-
-    res.json(rulesWithFullImageUrl);
+    res.json(rules);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -63,25 +48,21 @@ exports.getRuleById = async (req, res) => {
 // Update a rule
 exports.updateRule = async (req, res) => {
   try {
-    const { ruleNumber, description } = req.body;
+    const { description } = req.body;
     const rule = await BuildingRule.findByPk(req.params.id);
     if (!rule) return res.status(404).json({ error: 'Rule not found' });
 
-    let updatedData = { ruleNumber, description };
-
-    // Check if a new image was uploaded
-    if (req.file) {
-      updatedData.image = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    const duplicate = await BuildingRule.findOne({ where: { description, id: { [Op.ne]: req.params.id } } });
+    if (duplicate) {
+      return res.status(409).json({ error: 'Another rule with the same description already exists.' });
     }
 
-    await rule.update(updatedData);
-
+    await rule.update({ description });
     res.json({ message: 'Rule updated', rule });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // Delete a rule
 exports.deleteRule = async (req, res) => {

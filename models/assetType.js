@@ -26,7 +26,19 @@ const AssetType = sequelize.define("AssetType", {
           msg: 'Description cannot exceed 200 characters'
         }
       }
+    },
+    amount: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    validate: {
+      isInt: { msg: 'Amount must be a valid integer' },
+      min: {
+        args: [0],
+        msg: 'Amount cannot be negative'
+      }
     }
+  }
+
   }, {
     timestamps: true,
     tableName: 'asset_types'

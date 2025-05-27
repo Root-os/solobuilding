@@ -34,6 +34,7 @@ const {
     Role,
     Permission,
     Task,
+    LetterResponse,
 } = require('./index');
 
 const defineAssociations = () => {
@@ -196,6 +197,12 @@ Notification.belongsTo(Tenant, {
     purchaseRequest.belongsTo(Vendor, { foreignKey: 'vendorId',as:"vendor", onDelete: "CASCADE" });
     Vendor.hasMany(purchaseRequest, { foreignKey: 'vendorId',as:"vendor", onDelete: "CASCADE" });
 
+
+    LetterResponse.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "CASCADE" });
+    Tenant.hasMany(LetterResponse, { foreignKey: "tenantId", onDelete: "CASCADE" });
+
+    LetterResponse.belongsTo(Letter, { foreignKey: "letterId", onDelete: "CASCADE" });
+    Letter.hasMany(LetterResponse, { foreignKey: "letterId", onDelete: "CASCADE" });
     
 };
 

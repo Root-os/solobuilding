@@ -6,12 +6,11 @@ const { Op } = require('sequelize');
 
 exports.createAssetAudit = async (req, res) => {
   try {
-    const { item_id, asset_type_id, asset_name, date, existing_amount, damaged_amount, lost_amount, status } = req.body;
+    const { item_id, asset_type_id, date, existing_amount, damaged_amount, lost_amount, status } = req.body;
 
     const assetAudit = await AssetAudit.create({
       item_id,
       asset_type_id,
-      asset_name,
       date,
       existing_amount,
       damaged_amount,
@@ -83,7 +82,7 @@ exports.getAssetAudit = async (req, res) => {
 
 exports.updateAssetAudit = async (req, res) => {
   try {
-    const { item_id, asset_type_id, asset_name, date, existing_amount, damaged_amount, lost_amount, status } = req.body;
+    const { item_id, asset_type_id, date, existing_amount, damaged_amount, lost_amount, status } = req.body;
 
     const assetAudit = await AssetAudit.findByPk(req.params.id);
     if (!assetAudit) {
@@ -96,7 +95,6 @@ exports.updateAssetAudit = async (req, res) => {
     await assetAudit.update({
       item_id,
       asset_type_id,
-      asset_name,
       date,
       existing_amount,
       damaged_amount,
