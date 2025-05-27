@@ -222,17 +222,30 @@ const itemSchema = Joi.object({
     itemDetails: Joi.string().min(10).max(500).optional(),
 });
 const parkingSchema = Joi.object({
-    parkingSpaceId: Joi.number().integer().min(0).optional(),
-    carPlate: Joi.string().min(3).max(20).optional(),
-    carName: Joi.string().min(3).max(20).optional(),
-    driverName: Joi.string().min(3).max(30).optional(),
-    driverPhone: Joi.string().pattern(/^[0-9]+$/).optional(),
-    tenantId: Joi.number().integer().min(0).optional(),
-    timeIn: Joi.date().required(),
-    timeOut: Joi.date().optional(),
-    price: Joi.string().optional(),
-    isTenant: Joi.boolean().optional(),
-    status: Joi.string().valid('completed', 'onparking', 'ready to out').optional(),
+  parkingSpaceId: Joi.number().integer().min(0).optional(),
+  carPlate: Joi.string().min(3).max(20).optional(),
+  carName: Joi.string().min(3).max(20).optional(),
+  tenantId: Joi.number().integer().min(0).optional(),
+  timeIn: Joi.date().required(),
+  timeOut: Joi.date().optional(),
+  price: Joi.string().optional(),
+  isTenant: Joi.boolean().required(), // Make this required so conditional logic works
+
+  status: Joi.string()
+    .valid('completed', 'onparking', 'ready to out')
+    .optional(),
+
+  driverName: Joi.when('isTenant', {
+    is: false,
+    then: Joi.string().min(3).max(30).required(),
+    otherwise: Joi.string().allow('').optional()
+  }),
+
+  driverPhone: Joi.when('isTenant', {
+    is: false,
+    then: Joi.string().pattern(/^[0-9]+$/).required(),
+    otherwise: Joi.string().allow('').optional()
+  }),
 });
 
 const paymentRequestSchema = Joi.object({
