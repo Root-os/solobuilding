@@ -137,6 +137,7 @@ exports.deleteAssetAudit = async (req, res) => {
     });
   }
 };
+
 exports.getAssetAuditsByDate = async (req, res) => {
     try {
       const { date } = req.body; 
@@ -191,6 +192,7 @@ exports.getAssetAuditsByDate = async (req, res) => {
       });
     }
   };
+  
  exports.getAssetAuditsByStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -248,87 +250,74 @@ exports.getAssetAuditsByDate = async (req, res) => {
 
 exports.getAssetAuditsByStatusAndDateRange = async (req, res) => {
   try {
-    const { status, startDate, endDate } = req.body;
+    const { status, startDate, endDate, itemId, assetTypeId } = req.body;
 
-    // Log incoming request data
-    // console.log('Received parameters:', { status, startDate, endDate });
+    const whereClause = {};
 
-    // Validate input
-    if (!status || !startDate || !endDate) {
-      console.log('Missing parameters in request body');
-      return res.status(400).json({
-        success: false,
-        message: 'Status, startDate, and endDate are required fields in the request body.'
-      });
+    if (status) {
+      const validStatuses = ['confirmed', 'to_be_checked', 'fail'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid status. Valid statuses are: ${validStatuses.join(', ')}.`
+        });
+      }
+      whereClause.status = status;
     }
 
-    const validStatuses = ['confirmed', 'to_be_checked', 'fail'];
-    if (!validStatuses.includes(status)) {
-      console.log('Invalid status received:', status);
-      return res.status(400).json({
-        success: false,
-        message: `Invalid status. Valid statuses are: ${validStatuses.join(', ')}.`
-      });
+    if (startDate || endDate) {
+      const parsedStartDate = startDate ? new Date(startDate) : null;
+      const parsedEndDate = endDate ? new Date(endDate) : null;
+
+      if ((parsedStartDate && isNaN(parsedStartDate)) || (parsedEndDate && isNaN(parsedEndDate))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid date format. Please ensure dates are in YYYY-MM-DD format.'
+        });
+      }
+
+      whereClause.date = {};
+      if (parsedStartDate) whereClause.date[Op.gte] = parsedStartDate;
+      if (parsedEndDate) whereClause.date[Op.lte] = parsedEndDate;
     }
 
-    // Parse dates
-    const parsedStartDate = new Date(startDate);
-    const parsedEndDate = new Date(endDate);
-
-    if (isNaN(parsedStartDate) || isNaN(parsedEndDate)) {
-      console.log('Invalid date format');
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid date format. Please ensure startDate and endDate are in YYYY-MM-DD format.'
-      });
+    if (itemId) {
+      whereClause.itemId = itemId;
     }
 
-    // Log the query filter values
-    console.log('Filtering by status:', status);
-    console.log('Date range:', { startDate: parsedStartDate, endDate: parsedEndDate });
+    if (assetTypeId) {
+      whereClause.assetTypeId = assetTypeId;
+    }
 
-    // Query the database for asset audits by status and date range
     const assetAudits = await AssetAudit.findAll({
-      where: {
-        status: status,
-        date: {
-          [Op.gte]: parsedStartDate,  // greater than or equal to startDate
-          [Op.lte]: parsedEndDate     // less than or equal to endDate
-        }
-      },
+      where: whereClause,
       include: [
         { model: Item, attributes: ['id', 'itemName'] },
         { model: AssetType, attributes: ['id', 'name'] }
       ]
     });
 
-    // Log the result of the query
-    console.log('Asset audits retrieved:', assetAudits);
-
     if (assetAudits.length === 0) {
-      console.log('No asset audits found for the given criteria');
       return res.status(404).json({
         success: false,
-        message: `No asset audits found for the status '${status}' within the given date range.`
+        message: `No asset audits found for the given criteria.`
       });
     }
 
-    // Respond with the results
     res.status(200).json({
       success: true,
       count: assetAudits.length,
       data: assetAudits
     });
   } catch (error) {
-    // Log any error that occurs during the process
     console.error('Error occurred while fetching asset audits:', error);
-
     res.status(500).json({
       success: false,
       message: error.message
     });
   }
 };
+
    
   
   

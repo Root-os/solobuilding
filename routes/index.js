@@ -22,7 +22,7 @@ router.use('/dashboard', require('./dashboardRoutes'));
 router.use('/withdrawal-request', require('./withdrawalRequestRoutes'));
 router.use('/email', require('./emailRoutes'));
 router.use('/auth', require('./authRoutes'));
-
+router.use('/share', require('./shareReceipt'));
 // Inventory
 router.use('/item-types', require('./itemCategory'));
 router.use('/items', require('./itemRoutes'));

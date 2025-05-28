@@ -4,21 +4,23 @@ const Item = require('./item');
 const AssetType = require('./assetType'); 
 
 const AssetAudit = sequelize.define('AssetAudit', {
-    item_id: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      references: {
-        model: 'items', // points to the 'items' table
-        key: 'id'
-      },
-      onDelete: 'SET NULL',
-      onUpdate: 'CASCADE'
+    itemId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    field: 'item_id', // maps to DB column
+    references: {
+      model: 'items',
+      key: 'id'
     },
-    asset_type_id: {
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE'
+    },
+    assetTypeId: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      field: 'asset_type_id', // maps to DB column
       references: {
-        model: 'asset_types', // points to the 'asset_types' table
+        model: 'asset_types',
         key: 'id'
       },
       onDelete: 'SET NULL',

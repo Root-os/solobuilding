@@ -6,6 +6,7 @@ const { BASE_URL } = require('../config/config');
 const sendNotificationHelper= require('../helpers/sendAlert');
 const Role = require('../models/role');
 const User = require('../models/user');
+const sendEmailMessage = require('../services/sendEmailMessage');
 
 // Create Order
 exports.createOrder = async (req, res) => {
@@ -291,11 +292,14 @@ exports.approveOrder = async (req, res) => {
   await sendNotificationHelper({
     adminId: tenant.id, // Using adminId field based on helper signature
     title: `Order ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-    body: `Your order (ID: ${order.id}) for ${order.amount} × ${orderTypeName} has been marked as ${status}.`,
+    body: `Your order (ID: ${order.id}) for ${order.amount} has been marked as ${status}.`,
     type: 'Order Status Update',
     receiver_type: 'tenant',
   });
 }
+
+
+
 
 
     // Include tenant and order type in the response
