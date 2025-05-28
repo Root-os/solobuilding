@@ -380,27 +380,32 @@ const itemAssignmentSchema = Joi.object({
   assignedId: Joi.number().integer().min(1).required(), // assignedId must exist and be a positive integer
 })
 
-// Define the Joi schema for Maintenance validation
-// const maintenanceValidationSchema = Joi.object({
-//   date: Joi.date().required(),
-//   description: Joi.string().max(255).optional().allow(null),
-//   cost: Joi.number().positive().precision(2).required(),
-//   itemId: Joi.number().integer().required(),
-//   unitId: Joi.number().integer().required(),
-// });
+
 const maintenanceValidationSchema = Joi.object({
   date: Joi.date().required(),
   description: Joi.string().required(),
   cost: Joi.number().required(),
   isItem: Joi.boolean().required(),
-  itemId: Joi.number().optional(), // Item ID is optional, but required when isItem is true
-  unitId: Joi.number().optional(), // Unit ID is optional
-  name: Joi.string().optional().when('isItem', {
-    is: false, 
-    then: Joi.required(),  // Name is required if isItem is false
-    otherwise: Joi.forbidden()  // Name is forbidden if isItem is true
+
+  itemId: Joi.number().when('isItem', {
+    is: true,
+    then: Joi.required(),
+    otherwise: Joi.forbidden()
+  }),
+
+  unitId: Joi.number().when('isItem', {
+    is: true,
+    then: Joi.optional(),      // Not required when isItem is true
+    otherwise: Joi.required()  // Required when isItem is false
+  }),
+
+  name: Joi.string().when('isItem', {
+    is: false,
+    then: Joi.required(),
+    otherwise: Joi.forbidden()
   }),
 });
+
 // Define the Joi schema for Purchase validation
 const purchaseValidationSchema = Joi.object({
   vendorId: Joi.number().integer().required(),

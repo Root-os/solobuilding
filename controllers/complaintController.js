@@ -4,6 +4,7 @@ const sendNotificationHelper= require('../helpers/sendAlert');
 const User = require('../models/user.js');
 const Role = require('../models/role.js');
 const { BASE_URL } = require('../config/config');
+const sendEmailMessage = require('../services/sendEmailMessage');
 
 // Create a new complaint with multiple image uploads
 const createComplaint = async (req, res) => {
@@ -195,6 +196,14 @@ const updateComplaintStatus = async (req, res) => {
       body: `Your complaint status has been updated to ${status}. Please check the complaints page for more details.`,
       type: 'Complaint Status Update',
       receiver_type: 'tenant',
+    });
+
+    // Send email notification to tenant
+    const emailResponse = await sendEmailMessage({
+      email: tenant.email,
+      fullName: tenant.fullName,
+      title: 'Complaint Status Update',
+      body: `Dear ${tenant.fullName},<br><br>Your complaint status has been updated to <strong>${status}</strong>. Please check the complaints page for more details.<br><br>Regards,<br>Apartment Management Team`,
     });
 
     console.log('Notification sent successfully');

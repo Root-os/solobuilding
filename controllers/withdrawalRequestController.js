@@ -4,6 +4,8 @@ const User = require('../models/user');
 const Role = require('../models/role');
 const {refundStatusSchema} = require('../helpers/schema');
 const sendNotificationHelper= require('../helpers/sendAlert');
+const sendEmailMessage = require('../services/sendEmailMessage');
+
 
 
 // Create a new withdrawal request
@@ -310,6 +312,13 @@ const finalizeWithdrawalProcess = async (req, res) => {
             body: `Your withdrawal process has been finalized. The deposit refund status is ${depositRefundStatus}.`,
             type: 'Withdrawal Process Finalized',
             receiver_type: 'tenant',
+        });
+        // Send email notification to tenant
+        await sendEmailMessage({
+            email: tenant.email,
+            fullName: tenant.fullName,
+            title: 'Withdrawal Process Finalized',
+            body: `Dear ${tenant.fullName},\n\nYour withdrawal process has been finalized. The deposit refund status is ${depositRefundStatus}.\n\nThank you for being a valued tenant.\n\nBest regards,\nApartment Management Team`
         });
 
         res.status(200).json({ message: "Withdrawal process finalized successfully.", request });
