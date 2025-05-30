@@ -109,6 +109,8 @@ if (phone&&phone.length < 10) {
 
 
 exports.registerUserEmployee = async (req, res) => {
+
+   
   // Validate the request body against the schema
   const { error } = employeeRegistrationSchema.validate(req.body, { abortEarly: false });
   if (error) {
@@ -125,15 +127,12 @@ exports.registerUserEmployee = async (req, res) => {
     if (!fname || !lname || !email || !password || !salary || !position || !hireDate || !department) {
       return res.status(400).json({ success: false, message: "All fields are required: fname, lname, email, password, salary, position, hireDate, department" });
     }
-    const normalizedEmail = email.trim().toLowerCase();
-
-    // Check if the user already exists
-    let user;
-    user = await User.findOne({ where: { email:normalizedEmail } });
+    
+ let user;
+    user = await User.findOne({ where: { email } });
     if (user) {
       return res.status(400).json({ success: false, message: "User with this email already exists." });
     }
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     if (!roleId) {
@@ -181,12 +180,7 @@ const role = await Role.findByPk(roleId);
     if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
       return res.status(400).json({
         success: false,
-        message: 'Database validation error',
-        errors: error.errors.map(err => ({
-          message: err.message,
-          field: err.path,
-          value: err.value,
-        })),
+        message: error.errors[0].message==='email must be unique' ? 'User with this email already exists' : error.errors[0].message
       });
     }
     res.status(500).json({

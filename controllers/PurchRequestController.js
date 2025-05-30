@@ -7,6 +7,7 @@ const Role = require("../models/role");
 const { purchaseRequestValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
 const sendNotificationHelper= require('../helpers/sendAlert');
+const sendEmailMessage = require('../services/sendEmailMessage');
 
 
 // Create a new PurchaseRequest
@@ -175,6 +176,21 @@ exports.updatePurchaseRequest = async (req, res) => {
       type: 'Purchase Request Update',
       receiver_type: 'staff', 
     });
+
+    // Send email notification to the user
+    const user = await User.findByPk(requestedBy, {
+      attributes: ['fname', 'lname', 'email'],
+    });
+    if (user) {
+      const fullName = `${user.fname} ${user.lname}`;
+      const emailBody = `Hello ${fullName},\n\nYour purchase request for ${itemName} has been updated to ${status}.\n\nThank you,\nYour Team`;
+      await sendEmailMessage({
+        email: user.email,
+        fullName,
+        title: 'Purchase Request Update',
+        body: emailBody,
+      });
+    }
 
     // Fetch the updated purchase request with the related data (Item, requestedBy, approvedBy, vendor)
     const updatedRequest = await PurchaseRequest.findByPk(req.params.id, {

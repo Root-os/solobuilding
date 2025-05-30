@@ -8,6 +8,7 @@ const { format } = require("fast-csv");
 const generatePDF = require("../helpers/createPdf");
 const generateExcel = require("../helpers/createExcel");
 const sendNotificationHelper= require('../helpers/sendAlert');
+const sendEmailMessage = require('../services/sendEmailMessage');
 const Role = require('../models/role');
 
 
@@ -58,6 +59,7 @@ exports.createStockoutRequest = async (req, res) => {
 
 exports.approveStockout = async (req, res) => {
   try {
+    // Validate request params
     const { error } = paramsSchema.validate(req.params);
     if (error) {
       return res.status(400).json({ message: error.details[0].message });
@@ -67,12 +69,18 @@ exports.approveStockout = async (req, res) => {
     const approvedBy = req.user.id;
     const { status, approvedQuantity, approvalReason } = req.body;
 
+    // Find the stockout request
     const stockout = await Stockout.findByPk(id);
-    if (!stockout) return res.status(404).json({ message: "Stockout request not found" });
+    if (!stockout) {
+      return res.status(404).json({ message: "Stockout request not found" });
+    }
 
     if (stockout.status !== 'pending') {
       return res.status(400).json({ message: "Stockout request has already been processed" });
     }
+
+    // Get the requester details
+    const requester = await User.findByPk(stockout.requestedBy);
 
     // Handle rejection
     if (status === 'rejected') {
@@ -86,69 +94,95 @@ exports.approveStockout = async (req, res) => {
       stockout.approvedQuantity = 0;
       stockout.approvalReason = approvalReason;
       await stockout.save();
-// Send notification to requester
-const requester = await User.findByPk(stockout.requestedBy);
+
+      // Send in-app notification to requester
       if (requester) {
         sendNotificationHelper({
           adminId: requester.id,
-          title: `Stockout Request ${status}`,
-          body: `Your stockout request for has been ${status}. Reason: ${approvalReason}`,
+          title: `Stockout Request Rejected`,
+          body: `Your stockout request has been rejected. Reason: ${approvalReason}`,
           type: "Stockout Request",
           receiver_type: "staff"
         });
       }
+
+      // Send email to requester
+      if (requester && requester.email) {
+        await sendEmailMessage({
+          email: requester.email,
+          fullName: requester.fullName || 'Requester',
+          title: `Stockout Request Rejected`,
+          body: `Your stockout request has been rejected. Reason: ${approvalReason}`
+        });
+      }
+
       return res.status(200).json({ message: "Stockout request rejected successfully", stockout });
     }
 
-    // Handle approval
+    // Handle approval: Validate approved quantity
     if (!approvedQuantity || approvedQuantity <= 0) {
       return res.status(400).json({ message: "Approved quantity is required and must be greater than zero" });
     }
 
+    // Find the item and check stock
     const item = await Item.findByPk(stockout.itemId);
-    if (!item) return res.status(404).json({ message: "Item not found" });
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
 
     if (Number(approvedQuantity) > Number(item.itemAmount)) {
-        console.log(`receivedQuantity${approvedQuantity}`, `current amount ${item.itemAmount}` );
+      console.log(`Received approved quantity: ${approvedQuantity}, current stock: ${item.itemAmount}`);
       return res.status(400).json({ message: "Insufficient stock for approval" });
     }
 
+    // Update item stock
     item.itemAmount -= approvedQuantity;
-
     let isStockLow = false;
     let itemLeft;
     if (item.itemAmount < item.min_amount) {
       isStockLow = true;
       itemLeft = item.itemAmount;
 
+      // Notify low stock alert
       sendNotificationHelper({
         adminId: req.user.id,
         title: "Low Stock Alert!",
         body: `Stock of ${item.itemName} is running low. Only ${itemLeft} left, consider restocking.`
       });
     }
-
     await item.save();
 
+    // Update stockout request with approved details
     stockout.approvedQuantity = approvedQuantity;
     stockout.approvedBy = approvedBy;
     stockout.approvedAt = new Date();
     stockout.status = 'approved';
     stockout.approvalReason = approvalReason;
     await stockout.save();
-    // Send notification to requester
-      const requester = await User.findByPk(stockout.requestedBy);
-      if (requester) {
-        sendNotificationHelper({
-          adminId: requester.id,
-          title: `Stockout Request ${status}`,
-          body: `Your stockout request for has been ${status}. Reason: ${approvalReason}`,
-          type: "Stockout Request",
-          receiver_type: "staff"
-        });
-      }
-    return res.status(200).json({ message: "Stockout approved successfully", stockout });
 
+    // Send in-app notification to requester for approval
+    if (requester) {
+      sendNotificationHelper({
+        adminId: requester.id,
+        title: `Stockout Request Approved`,
+        body: `Your stockout request for ${item.itemName} has been approved. Approved Quantity: ${approvedQuantity}. Reason: ${approvalReason || 'No reason provided'}`,
+        type: "Stockout Request",
+        receiver_type: "staff"
+      });
+    }
+   const requesterName = `${requester.fname} ${requester.lname}`;
+
+    // Send email notification to requester for approval
+    if (requester && requester.email) {
+      await sendEmailMessage({
+        email: requester.email,
+        fullName: requesterName,
+        title: `Stockout Request Approved`,
+        body: `Your stockout request for ${item.itemName} has been approved. Approved Quantity: ${approvedQuantity}. Reason: ${approvalReason || 'No reason provided'}.`
+      });
+    }
+
+    return res.status(200).json({ message: "Stockout approved successfully", stockout });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

@@ -79,6 +79,7 @@ exports.getAllLetters = async (req, res) => {
             }
           ]
         },
+        {model: LetterResponse, attributes: ['id','message']},
         { model: LetterType }
       ]
     });
