@@ -132,7 +132,6 @@ exports.updateResponse = async (req, res) => {
   }
 };
 
-
 // 5. Delete
 exports.deleteResponse = async (req, res) => {
   try {
@@ -160,13 +159,27 @@ exports.getResponsesByLetter = async (req, res) => {
     const responses = await LetterResponse.findAll({
       where: { letterId },
       include: [{ model: Tenant, attributes: ["fullName", "email"] }],
+      include: [{ model: Letter, attributes: ["description"] }],
       order: [["createdAt", "DESC"]],
     });
-    res.status(200).json({ message: "Responses retrieved", data: responses });
+
+    const formattedResponses = responses.map((response) => {
+      const image = response.image
+        ? `${req.protocol}://${req.get("host")}/${response.image.replace(/^\/+/, "")}`
+        : null;
+
+      return {
+        ...response.toJSON(),
+        image,
+      };
+    });
+
+    res.status(200).json({ message: "Responses retrieved", data: formattedResponses });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 // 7. Admin: Accept / Reject
 exports.updateStatus = async (req, res) => {
@@ -182,8 +195,20 @@ exports.updateStatus = async (req, res) => {
     if (!response) return res.status(404).json({ message: "Response not found" });
 
     await response.update({ status });
-    res.status(200).json({ message: "Status updated", data: response });
+
+    const image = response.image
+      ? `${req.protocol}://${req.get("host")}/${response.image.replace(/^\/+/, "")}`
+      : null;
+
+    res.status(200).json({
+      message: "Status updated",
+      data: {
+        ...response.toJSON(),
+        image,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+

@@ -75,7 +75,6 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-
 // Get All Orders
 exports.getAllOrders = async (req, res) => {
   try {
@@ -247,31 +246,22 @@ exports.updateOrder = async (req, res) => {
 // Approve Order
 exports.approveOrder = async (req, res) => {
   try {
-    // Ensure the user is an admin (or adjust based on your logic)
     if (req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Unauthorized: Only admins can approve orders' });
     }
 
-    // Extract order ID from URL params and status from the request body
     const { id } = req.params;
     const { status } = req.body;
 
-    // Validate the incoming status to ensure it's one of the allowed values
-    if (!status || !['pending', 'completed', 'canceled','ready','approved'].includes(status)) {
-      return res.status(400).json({ message: 'Invalid status value. Allowed values are "pending", "completed", "canceled".' });
+    if (!status || !['pending', 'completed', 'canceled', 'ready', 'approved'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status value. Allowed values are "pending", "completed", "canceled", "ready", "approved".' });
     }
 
-    // Find the order by ID
     const order = await Order.findByPk(id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
 
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
-
-    // Update the order's status
     order.status = status;
 
-    // Recalculate totalPrice if necessary (based on your logic)
     if (order.amount || order.orderTypeId) {
       const orderType = await OrderType.findByPk(order.orderTypeId);
       if (orderType) {
@@ -279,30 +269,31 @@ exports.approveOrder = async (req, res) => {
       }
     }
 
-    // Save the updated order
     await order.save();
 
-    // Notify the tenant about the order approval
     const tenant = await Tenant.findByPk(order.tenantId);
-    console.log('Tenant:', tenant.id);
     if (tenant) {
-  const orderType = await OrderType.findByPk(order.orderTypeId);
-  const orderTypeName = orderType ? orderType.name : 'your service';
+      const orderType = await OrderType.findByPk(order.orderTypeId);
+      const orderTypeName = orderType ? orderType.name : 'your service';
 
-  await sendNotificationHelper({
-    adminId: tenant.id, // Using adminId field based on helper signature
-    title: `Order ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-    body: `Your order (ID: ${order.id}) for ${order.amount} has been marked as ${status}.`,
-    type: 'Order Status Update',
-    receiver_type: 'tenant',
-  });
-}
+      // ✅ Send in-app notification
+      await sendNotificationHelper({
+        adminId: tenant.id,
+        title: `Order ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        body: `Your order (ID: ${order.id}) for ${orderTypeName} has been marked as ${status}.`,
+        type: 'Order Status Update',
+        receiver_type: 'tenant',
+      });
 
+      // ✅ Send email
+      await sendEmailMessage({
+        email: tenant.email,
+        fullName: tenant.fullName,
+        title: `Your Order is ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        body: `Your order (ID: ${order.id}) for ${orderTypeName} has been marked as <b>${status}</b>.`,
+      });
+    }
 
-
-
-
-    // Include tenant and order type in the response
     const updatedOrder = await Order.findByPk(order.id, {
       include: [
         { model: Tenant },
@@ -316,6 +307,7 @@ exports.approveOrder = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // Delete Order
 exports.deleteOrder = async (req, res) => {

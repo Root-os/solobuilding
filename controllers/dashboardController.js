@@ -298,7 +298,7 @@ exports.getDashboardStats = async (req, res) => {
       parking: { totalParking, onParking, readyToOut, completed },
       expenses: { totalExpenses },
       items: { totalItems, totalPurchasedItems, totalExistedItems,alertNumberOfItems },
-      TenantWithdrawalRequests: { totalWithdrawals, pendingWithdrawals, approvedWithdrawals, rejectedWithdrawals, processedWithdrawals },
+      ExistingRequests: { totalWithdrawals, pendingWithdrawals, approvedWithdrawals, rejectedWithdrawals, processedWithdrawals },
       emails: { totalEmails, sentEmails },
       employees: { totalEmployees },
       EmployeeSalaries: { totalSalaries, pendingSalaries, paidSalaries },
