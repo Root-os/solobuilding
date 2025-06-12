@@ -7,13 +7,14 @@ createNotificationForUser,
  updateNotification,
  createNotificationForGroup,
  getMyNotifications,
+ getStaffNotifications,
   markAsRead,
   getAllNotifications,
   deleteNotification,
   deleteNotificationAdmin,
   fetchNotificationById,
 } = require("../controllers/notificationController");
-const { adminAuth,EmployeeOrTenantAuth, } = require("../middleware/auth");
+const { adminAuth,EmployeeOrTenantAuth,adminOrEmployeeAuth,tenantAuth } = require("../middleware/auth");
 
 // Create notification for user
 router.post("/create", adminAuth, createNotificationForUser);
@@ -28,10 +29,10 @@ router.put(
 router.post("/group", adminAuth, createNotificationForGroup);
 
 // Get my notifications with pagination and filters
-router.get("/my-notification",EmployeeOrTenantAuth,getMyNotifications);
+router.get("/my-notification",tenantAuth,getMyNotifications);
 
 // Mark notification as read
-router.put("/mark-as-read/:id",EmployeeOrTenantAuth, markAsRead);
+router.put("/mark-as-read/:id",tenantAuth, markAsRead);
 
 // Get all notifications (admin only)
 router.get("/all", adminAuth,getAllNotifications);
@@ -40,6 +41,11 @@ router.get("/all", adminAuth,getAllNotifications);
 router.delete("/delete/:id",EmployeeOrTenantAuth,deleteNotification);
 router.delete("/delete-admin/:id",adminAuth,  deleteNotificationAdmin);
 router.get("/get-by-id/:id",fetchNotificationById);
+
+//staff notification
+router.delete("/staff-delete/:id",adminOrEmployeeAuth,deleteNotification);
+router.get("/staff-notification",adminOrEmployeeAuth,getStaffNotifications);
+router.put("/staff-mark-as-read/:id",adminOrEmployeeAuth, markAsRead);
 
 
 module.exports = router;

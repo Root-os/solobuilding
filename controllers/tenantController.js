@@ -10,7 +10,7 @@ const fs = require('fs');
 const sendEmail = require('../middleware/sendEmail');
 const bcrypt = require('bcryptjs');
 const {tenatSchema}=require('../helpers/schema')
-
+const sendTenantWelcomeEmail=require('../services/sendEmail')
 // Set up multer storage for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -51,6 +51,7 @@ exports.createTenant = async (req, res) => {
         tin, 
         floorId, 
         advance, 
+       
         amount,
         carPlate = null, // Optional
         carName = null,  // Optional
@@ -95,6 +96,7 @@ exports.createTenant = async (req, res) => {
 
       // Generate a random password
       const generatedPassword = Math.random().toString(36).slice(-8);
+
       const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
       // Prepare tenant data
@@ -134,9 +136,9 @@ exports.createTenant = async (req, res) => {
       );
 
       // Send email with login credentials
-      const emailSubject = "Your Tenant Portal Login Credentials";
-      const emailBody = `Hello ${fullName},\n\nWelcome! Here are your login credentials:\n\nEmail: ${email}\nPassword: ${generatedPassword}\n\nPlease log in and change your password immediately.\n\nThank you!`;
-      const emailResponse = await sendEmail(email, emailSubject, emailBody);
+
+      const emailResponse = await sendTenantWelcomeEmail({ email, fullName, generatedPassword })
+      //const emailResponse = await sendEmail(email, emailSubject, emailBody);
       if (!emailResponse.success) {
         console.error("Email sending failed:", emailResponse.error);
       }
@@ -253,20 +255,29 @@ exports.getTenantById = async (req, res) => {
 exports.updateTenant = async (req, res) => {
   try {
     const id = Number(req.params.id);
-    if(isNaN(id)) {
+    if (isNaN(id)) {
       return res.status(400).json({ error: 'Invalid tenant ID' });
     }
-    const tenant = await Tenant.findOne({ where: { id:id} });
+    const tenant = await Tenant.findOne({ where: { id: id } });
 
     if (!tenant) {
       return res.status(404).json({ message: 'Tenant not found' });
     }
 
     // Check if status is being updated to "inactive"
-    if (req.body.status && req.body.status === 'inactive') {
+    if (req.body.status === 'inactive') {
       // Update unit status to "available" and set vacatedDate to current date
       await Unit.update(
         { status: 'available', vacatedDate: new Date() },
+        { where: { id: tenant.unitId } }
+      );
+    }
+    console.log(tenant.unitId);
+    console.log(req.body.status);
+    if (req.body.status === 'active') {
+      // Update unit status to "available" and set vacatedDate to current date
+      await Unit.update(
+        { status: 'occupied' },
         { where: { id: tenant.unitId } }
       );
     }

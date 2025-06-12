@@ -56,7 +56,7 @@ const Stockout = sequelize.define('Stockout', {
     }
 }, { 
     tableName: "stockouts",
-    timestamps: false,
+    timestamps: true,
     charset: 'utf8', 
     collate: 'utf8_general_ci',
 });

@@ -123,35 +123,59 @@ const role = await Role.findOne({ where: { name: 'employee' } });
 
 exports.updateUser = async (req, res) => {
   try {
-    const { fname, lname, roleId,phone } = req.body;
+    const { fname, lname, roleId, phone } = req.body;
     const { id } = req.user;
-   
 
     const user = await User.findOne({ where: { id } });
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-    if (phone&&phone.length < 10) {
-      return res.status(400).json({ success: false, message: "Invalid phone number, it should be between 10 to 13 digits" });
+
+    // Update only provided fields
+    if (fname !== undefined) {
+      user.fname = fname;
     }
-    if (phone&&phone.length > 13) {
-      return res.status(400).json({ success: false, message: "Invalid phone number, it should be between 10 to 13 digits" });
+
+    if (lname !== undefined) {
+      user.lname = lname;
     }
-const role = await Role.findByPk(roleId);
-    if (!role) {
-      return res.status(400).json({ message: 'Invalid role,please correct to the existing on or create this one' });
+
+    if (phone !== undefined) {
+      if (phone.length < 10 || phone.length > 13) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid phone number, it should be between 10 to 13 digits",
+        });
+      }
+      user.phone = phone;
     }
-    user.fname = fname;
-    user.lname = lname;
-    user.roleId = roleId;
-    user.phone = phone;
+
+    if (roleId !== undefined) {
+      const role = await Role.findByPk(roleId);
+      if (!role) {
+        return res.status(400).json({
+          message: "Invalid role. Please correct it to an existing one or create it first.",
+        });
+      }
+      user.roleId = roleId;
+    }
+
     await user.save();
 
-    res.status(200).json({ success: true, message: "User updated successfully", user });
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      user,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "User update failed", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "User update failed",
+      error: error.message,
+    });
   }
 };
+
 
 exports.updateEmployee = async (req, res) => {
   try {
