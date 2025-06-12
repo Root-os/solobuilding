@@ -107,10 +107,7 @@ if (phone&&phone.length < 10) {
   }
 };
 
-
 exports.registerUserEmployee = async (req, res) => {
-
-   
   // Validate the request body against the schema
   const { error } = employeeRegistrationSchema.validate(req.body, { abortEarly: false });
   if (error) {
@@ -193,7 +190,6 @@ const role = await Role.findByPk(roleId);
   }
 };
 
-
 exports.updateUser = async (req, res) => {
   try {
     const { fname, lname, roleId, phone } = req.body;
@@ -248,7 +244,6 @@ exports.updateUser = async (req, res) => {
     });
   }
 };
-
 
 exports.updateEmployee = async (req, res) => {
   try {
@@ -465,7 +460,6 @@ exports.myProfile = async (req, res) => {
   }
 };
 
-
 exports.verifySession = async (req, res) => {
   try {
     return res.status(200).json({ success: true,user:req.user, message: "Session is valid" });
@@ -505,6 +499,7 @@ exports.forgotPassword = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to send password reset email", error: error.message });
   }
 };
+
 exports.resetPassword = async (req, res) => {
   try {
     const { token } = req.params;

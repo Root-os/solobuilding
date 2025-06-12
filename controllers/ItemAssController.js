@@ -242,14 +242,6 @@ exports.deleteItemAssignment = async (req, res) => {
 exports.generateReport = async (req, res) => {
     try {
 
-      // const { error } = itemAssignmentSchema.validate(req.body);
-      // if (error) {
-      //   return res.status(400).json({
-      //     message: "Validation error",
-      //     error: error.details[0].message,
-      //   });
-      // }
-      
       const { itemId, assignDate, assignType } = req.body;
   
       const whereConditions = {};
@@ -275,9 +267,7 @@ exports.generateReport = async (req, res) => {
       });
   
       if (report.length === 0) {
-        return res.status(404).json({
-          message: "No ItemAssignments found for the provided criteria",
-        });
+       return res.status(200).json([]);
       }
   
       return res.status(200).json({

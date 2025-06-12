@@ -166,9 +166,6 @@ exports.getPaymentsReport = async (req, res) => {
       startDate: Joi.date().iso().optional(),
       endDate: Joi.date().iso().greater(Joi.ref('startDate')).optional()
     });
-
-   
-
     const { vendorId, status, startDate, endDate } = req.body;
 
     // Define query conditions
@@ -188,7 +185,6 @@ exports.getPaymentsReport = async (req, res) => {
         [Op.lte]: new Date(endDate), // Less than or equal to endDate
       };
     }
-
     // Fetch payments based on conditions
     const payments = await Payment.findAll({
       where: whereConditions,
@@ -196,9 +192,7 @@ exports.getPaymentsReport = async (req, res) => {
     });
 
     if (payments.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No payments found with the given criteria" });
+      return res.status(200).json([]);
     }
 
     res.status(200).json(payments);

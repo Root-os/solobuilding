@@ -217,11 +217,9 @@ exports.getMyLetters = async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
-    if (!letters.length) {
-      return res.status(404).json({ message: 'No letters found for this tenant' });
-    }
+    // Always respond with 200 and an array (empty or not)
+    return res.status(200).json({ data: letters });
 
-    return res.status(200).json({ message: 'Letters retrieved successfully', data: letters });
   } catch (error) {
     console.error('Error retrieving tenant letters:', error);
     return res.status(500).json({ message: 'Server error', error: error.message });
