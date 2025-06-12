@@ -8,7 +8,7 @@ const cron = require('node-cron');
 
 //* * * * * to test evey minute
 //schedule a task to run every day at midnight (0 0 * * *)
-cron.schedule('* * * * *', async () => {
+cron.schedule('0 0 * * *', async () => {
     try {
       const today = new Date();
       console.log(`Current Date: ${today.toISOString()}`);
@@ -103,7 +103,9 @@ if (!tenant) {
         // Convert paymentDate and nextDueDate to Date objects
         const paymentDateObj = new Date(paymentDate);
         const nextDueDateObj = new Date(nextDueDate);
-
+         const rentAmount=tenant.amount;
+         const dailyRate = rentAmount / 30; // assume 30-day month
+         
         // Calculate the difference in total days
         const differenceInTime = paymentDateObj - nextDueDateObj;
         let totalDays = Math.abs(Math.ceil(differenceInTime / (1000 * 60 * 60 * 24))); // Convert milliseconds to days
@@ -111,16 +113,19 @@ if (!tenant) {
         // Convert total days into months and remaining days
         const months = Math.floor(totalDays / 30);
         const days = totalDays % 30;
+        const amountPaid = dailyRate * totalDays;
 
         // Create a readable format: "1 month 3 days"
-        let paidDays = "";
-        if (months > 0) {
-            paidDays += `${months} month${months > 1 ? 's' : ''} `;
-        }
-        if (days > 0) {
-            paidDays += `${days} day${days > 1 ? 's' : ''}`;
-        }
-        paidDays = paidDays.trim(); // Remove extra spaces
+       // Create a readable format: "1 month 3 days"
+let paidDays = "";
+if (months > 0) {
+    paidDays += `${months} month${months > 1 ? 's' : ''} `;
+}
+if (days > 0) {
+    paidDays += `${days} day${days > 1 ? 's' : ''}`;
+}
+paidDays = paidDays.trim(); // Remove extra spaces
+
 
         // Create rent payment record
         const previousPayment = await TenantRentCollection.findOne({
@@ -148,6 +153,8 @@ if (!tenant) {
             paymentFrequency,
             nextDueDate,
             paidDays, 
+            amountPaid,
+            
             status
         });
 

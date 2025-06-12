@@ -29,6 +29,10 @@ const TenantRentCollection = sequelize.define('TenantRentCollection', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  amountPaid: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   paymentFrequency: {
     type: DataTypes.ENUM('Monthly', 'Quarterly', 'Yearly'),
     allowNull: false,
