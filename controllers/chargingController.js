@@ -163,61 +163,50 @@ exports.getAllChargingSessions = async (req, res) => {
     }
 };
 
-
 // 6. Generate a report of all charging sessions (with optional filters)
 exports.generateReport = async (req, res) => {
     try {
-        const { carPlate, carName, driverName, status, dateRange } = req.body;
-
-        // Initialize filters object
+        const { carPlate, carName, driverName, status, dateRange, tenantId } = req.body;
+        // Initialize filters
         let filter = {};
 
-        // Apply filter by car plate
         if (carPlate) {
             filter.carPlate = { [Op.like]: `%${carPlate}%` };
         }
-
-        // Apply filter by car name
         if (carName) {
             filter.carName = { [Op.like]: `%${carName}%` };
         }
-
-        // Apply filter by driver name
         if (driverName) {
             filter.driverName = { [Op.like]: `%${driverName}%` };
         }
 
-        // Apply filter by charging status
         if (status) {
             filter.status = status;
         }
 
-        // Apply date range filter (if provided)
         if (dateRange) {
             const [startDate, endDate] = dateRange.split(',');
             filter.chargingStartTime = {
                 [Op.between]: [new Date(startDate), new Date(endDate)],
             };
         }
+        // Include tenant filter if tenantId is provided
+        const includeOptions = {
+            model: Tenant,
+            attributes: ['FullName']
+        };
 
-        // Fetch the charging sessions based on the filters
+        if (tenantId) {
+            includeOptions.where = { id: tenantId };
+        }
         const chargingSessions = await ElectricCarCharging.findAll({
             where: filter,
-            include: [
-                { model: Tenant, attributes: ['FullName'] }, // Include tenant details
-            ],
+            include: [includeOptions],
         });
-
-        // If no records found
-        if (chargingSessions.length === 0) {
-            return res.status(404).json({ message: 'No charging sessions found matching the criteria.' });
-        }
-
-        // Return the filtered charging sessions as a report
-        res.status(200).json({
-            message: 'Charging sessions report generated successfully.',
+        return res.status(200).json({
             data: chargingSessions,
         });
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error generating charging sessions report.', error });

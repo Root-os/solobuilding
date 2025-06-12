@@ -63,7 +63,7 @@ const defineAssociations = () => {
     User.hasMany(Complaint, { foreignKey: "assignedEmployeeId" });
 
     Email.belongsTo(User, { as: "sender", foreignKey: "senderId", onDelete: "CASCADE" });
-    Email.belongsTo(User, { as: "receiver", foreignKey: "receiverId", onDelete: "CASCADE" });
+    Email.belongsTo(Tenant, { as: "receiver", foreignKey: "receiverId", onDelete: "CASCADE" });
 
     Expense.belongsTo(ExpenseType, { foreignKey: "expenseTypeId", as: "expenseType", onDelete: "CASCADE" });
     ExpenseType.hasMany(Expense, { foreignKey: "expenseTypeId", as: "expenses", onDelete: "CASCADE" });
