@@ -1,18 +1,12 @@
 const WithdrawalRequest = require('../models/withdrawal');
 const Tenant=require('../models/tenant');
 const User = require('../models/user');
+const Role = require('../models/role');
 const {refundStatusSchema} = require('../helpers/schema');
+const sendNotificationHelper= require('../helpers/sendAlert');
+const sendEmailMessage = require('../services/sendEmailMessage');
 
-const sendNotificationHelper = async ({ adminId, title, body, type, receiver_type }) => {
-  try {
-    console.log(`Notification to ${receiver_type} (ID: ${adminId}): ${title} - ${body} [Type: ${type}]`);
-    // Replace this with your actual notification logic (e.g., email, push notification, etc.)
-    // Example: await sendPushNotification(adminId, title, body);
-  } catch (error) {
-    console.error(`Failed to send notification to ${adminId}:`, error.message);
-    throw error; // Optional: rethrow if you want the caller to handle it
-  }
-};
+
 
 // Create a new withdrawal request
 const createWithdrawalRequest = async (req, res) => {
@@ -30,9 +24,20 @@ const createWithdrawalRequest = async (req, res) => {
     }
 
     const request = await WithdrawalRequest.create({ tenantId, terminationDate, reason });
-    const admins = await User.findAll({ where: { role: 'admin' } });
+
+    // Include Role model to filter admins
+    const admins = await User.findAll({
+      include: {
+        model: Role,
+        where: { name: 'admin' }, // Filter by role name
+        attributes: [] // Exclude Role attributes from the result
+      }
+    });
+    console.log(`Admins found: ${admins.length}`); // Debugging log
+    console.log(`Request created: ${JSON.stringify(request)}`); // Debugging log
 
     if (request && admins.length > 0) {
+      console.log(`Sending notifications to ${admins.length} admins.`); // Debugging log
       await Promise.all(
         admins.map((admin) =>
           sendNotificationHelper({
@@ -81,8 +86,6 @@ const getAllWithdrawalRequests = async (req, res) => {
   }
 };
 
-
-
 const getMyWithdrawalRequests = async (req, res) => {
     try {
         const { id } = req.user;
@@ -100,7 +103,6 @@ const getMyWithdrawalRequests = async (req, res) => {
         res.status(500).json({ message: "Error fetching withdrawal requests.", error: error.message });
     }
 };
-
 
 // Admin reviews and updates withdrawal request status
 const reviewWithdrawalRequest = async (req, res) => {
@@ -166,26 +168,35 @@ const deleteWithdrawalRequest = async (req, res) => {
         res.status(500).json({ message: "Error deleting withdrawal request.", error: error.message });
     }
 }
+
 // Assign an employee to handle the exit process
 const assignEmployeeToRequest = async (req, res) => {
   try {
     const { requestId, employeeId } = req.body;
 
+    // Fetch the withdrawal request by its ID
     const request = await WithdrawalRequest.findByPk(requestId);
     if (!request) {
       return res.status(404).json({ message: "Withdrawal request not found." });
     }
 
-    const employee = await User.findByPk(employeeId);
+    // Fetch the employee with their role included
+    const employee = await User.findByPk(employeeId, {
+      include: {
+        model: Role, // Ensure Role is properly included
+        attributes: ['name'], // Fetch only the 'name' of the role
+      },
+    });
+    // Handle case if employee is not found
     if (!employee) {
       return res.status(404).json({ message: "Employee not found." });
     }
 
-    if (employee.role !== "employee") {
+    // Check if the employee's role is 'employee'
+    if (!employee.Role || employee.Role.name === 'admin') {
       return res.status(400).json({ message: "Only employees can be assigned to requests." });
     }
-
-    // Update request status
+    // Update the request status and assign the employee to the request
     request.status = "in_progress";
     request.assignedEmployeeId = employeeId;
     await request.save();
@@ -222,12 +233,14 @@ const assignEmployeeToRequest = async (req, res) => {
       // Continue execution even if notifications fail
     }
 
+    // Return the updated request
     res.status(200).json({ message: "Employee assigned successfully.", request });
   } catch (error) {
+    // Handle errors and return the appropriate response
     res.status(500).json({ message: "Error assigning employee.", error: error.message });
   }
 };
-  
+
 const myAssignedRequests=async(req,res)=>{
     try {
         const employeeId = req.user.id;
@@ -269,7 +282,6 @@ const finalizeWithdrawalProcess = async (req, res) => {
         if (error) {
             return res.status(400).json({ message: error.details[0].message });
         }
-
         const { requestId, depositRefundStatus } = req.body;
 
         const request = await WithdrawalRequest.findByPk(requestId);
@@ -286,6 +298,28 @@ const finalizeWithdrawalProcess = async (req, res) => {
         request.processedAt = new Date();
 
         await request.save();
+        // Fetch tenant details
+        const tenant = await Tenant.findByPk(request.tenantId, {
+            attributes: ['id', 'fullName', 'email', 'phoneNumber'],
+        }); 
+        if (!tenant) {
+            return res.status(404).json({ message: "Tenant not found." });
+        }
+        // Send notification to tenant about the finalized process
+        await sendNotificationHelper({
+            adminId: tenant.id,
+            title: 'Withdrawal Process Finalized',
+            body: `Your withdrawal process has been finalized. The deposit refund status is ${depositRefundStatus}.`,
+            type: 'Withdrawal Process Finalized',
+            receiver_type: 'tenant',
+        });
+        // Send email notification to tenant
+        await sendEmailMessage({
+            email: tenant.email,
+            fullName: tenant.fullName,
+            title: 'Withdrawal Process Finalized',
+            body: `Dear ${tenant.fullName},\n\nYour withdrawal process has been finalized. The deposit refund status is ${depositRefundStatus}.\n\nThank you for being a valued tenant.\n\nBest regards,\nApartment Management Team`
+        });
 
         res.status(200).json({ message: "Withdrawal process finalized successfully.", request });
     } catch (error) {

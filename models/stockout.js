@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 const Item = require('./item');
-const User=require('./user')
+const User = require('./user');
 
 const Stockout = sequelize.define('Stockout', {
     id: {
@@ -17,7 +17,7 @@ const Stockout = sequelize.define('Stockout', {
             key: 'id'
         }
     },
-    source:{ 
+    source: { 
         type: DataTypes.ENUM("store", "warehouse", "supplier"), 
         allowNull: false 
     },
@@ -56,26 +56,24 @@ const Stockout = sequelize.define('Stockout', {
     }
 }, { 
     tableName: "stockouts",
-    timestamps: true,
+    timestamps: true, // Sequelize will auto-generate and manage createdAt & updatedAt
     charset: 'utf8', 
     collate: 'utf8_general_ci',
 });
-Stockout.belongsTo(Item, { 
+
+// Associations
+Stockout.belongsTo(Item, { foreignKey: 'itemId' });
+Item.hasMany(Stockout, {
     foreignKey: 'itemId',
-});
-Item.hasMany(Stockout, { 
-    foreignKey: 'itemId',
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE',
-});
-Stockout.belongsTo(User, { 
-    foreignKey: 'requestedBy',
-});
-User.hasMany(Stockout, { 
-    foreignKey: 'requestedBy',
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
 });
 
+Stockout.belongsTo(User, { foreignKey: 'requestedBy' });
+User.hasMany(Stockout, {
+    foreignKey: 'requestedBy',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+});
 
 module.exports = Stockout;

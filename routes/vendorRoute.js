@@ -6,7 +6,7 @@ const fileUpload = require("../middleware/fileUpload");
 router.post("/",fileUpload, vendorController.createVendor); // Create vendor
 router.get("/", vendorController.getAllVendors); // Get all vendors
 router.get("/:id", vendorController.getVendorById); // Get vendor by ID
-router.put("/:id", vendorController.updateVendor); // Update vendor
+router.put("/:id", fileUpload, vendorController.updateVendor); // Update vendor
 router.delete("/:id", vendorController.deleteVendor); // Delete vendor
 
 

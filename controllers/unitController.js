@@ -9,14 +9,24 @@ exports.createUnit = async (req, res) => {
     if (error) {
       return res.status(400).json({ error: error.details[0].message });
     }
+
     const existingUnit = await Unit.findOne({ where: { unitNumber: req.body.unitNumber } });
     if (existingUnit) {
       return res.status(400).json({ error: "Unit number must be unique." });
     }
+
     const floor = await Floor.findByPk(req.body.floorId);
     if (!floor) {
       return res.status(404).json({ error: "Floor not found." });
-    } 
+    }
+
+    // Count how many units are already registered on this floor
+    const currentUnitCount = await Unit.count({ where: { floorId: req.body.floorId } });
+
+    // Check if max number of units has been reached
+    if (floor.noUnits && currentUnitCount >= parseInt(floor.noUnits)) {
+      return res.status(400).json({ error: "Maximum number of units for this floor has been reached." });
+    }
 
     const unit = await Unit.create(req.body);
     res.status(201).json(unit);
@@ -131,7 +141,7 @@ exports.getRentedUnits = async (req, res) => {
     // Find all rented units (occupied units)
     const rentedUnits = await Unit.findAll({
       where: {
-        status: 'occupied',  // Only include units with 'occupied' status
+        status: 'occupied',  
       },
     });
 

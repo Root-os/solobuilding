@@ -10,6 +10,10 @@ const SalaryPayment = require('../models/SalaryPayment');
 const TenantRentCollection = require('../models/tenantRentCollection');
 const Tenant = require('../models/tenant');
 const Order = require('../models/order');
+const User = require('../models/user');
+const EmployeeDetail = require('../models/employeeDetail');
+const OrderType = require('../models/orderType');
+const Vendor = require('../models/Vendor');
 
 const getReport = async (req, res) => {
   const { startDate, endDate } = req.query;
@@ -53,46 +57,78 @@ const getReport = async (req, res) => {
     });
     const orderRecords = await Order.findAll({  
       where: createdAtFilter,
+       include: [
+        {
+          model: OrderType,
+          attributes: ['name'], 
+        },
+      ],
       attributes: ['id', 'totalprice', 'createdAt'],
     });
 
     // Fetch TenantRentCollection records with associated Tenant data
     const rentCollectionRecords = await TenantRentCollection.findAll({
-      where: paymentDateFilter, // Use the separate paymentDateFilter
+      where: {
+        ...paymentDateFilter,
+        status: 'paid', 
+      }, 
       include: [
         {
           model: Tenant,
-          attributes: ['amount'],
+          attributes: ['amount', 'fullName'],
         },
       ],
-      attributes: ['id', 'paymentDate', 'tenantId'],
+      attributes: ['id', 'paymentDate', 'tenantId', 'amountPaid'],
     });
 
     // Fetch individual records for outcomes
-    const billPaymentRecords = await BillPayment.findAll({
-      where: createdAtFilter,
-      attributes: ['id', 'amount', 'createdAt'],
-    });
+    // const billPaymentRecords = await BillPayment.findAll({
+    //   where: {
+    //     ...createdAtFilter,
+    //     status: 'paid',
+    //   },
+    //   attributes: ['id', 'amount', 'createdAt'],
+    // });
     const expenseRecords = await Expense.findAll({
       where: createdAtFilter,
-      attributes: ['id', 'amount', 'createdAt'],
+      attributes: ['id', 'amount', 'createdAt', 'description'],
     });
     const maintenanceRecords = await Maintenance.findAll({
       where: createdAtFilter,
-      attributes: ['id', 'cost', 'createdAt'],
+      attributes: ['id', 'cost', 'createdAt', 'description'],
     });
     const paymentRecords = await Payment.findAll({
-      where: createdAtFilter,
-      attributes: ['id', 'price', 'createdAt'],
+      where: {
+        ...createdAtFilter,
+        status: 'complete', 
+      },
+      include: [
+        {
+          model: Vendor,
+          attributes: ['fname', 'lname'],
+        },
+      ],
+      attributes: ['id', 'price', 'createdAt', 'item'],
+       
     });
     const purchaseRecords = await Purchase.findAll({
       where: createdAtFilter,
       attributes: ['id', 'totalPrice', 'createdAt'],
     });
     const salaryPaymentRecords = await SalaryPayment.findAll({
-      where: createdAtFilter,
-      attributes: ['id', 'amount', 'createdAt'],
-    });
+    where: {
+      ...createdAtFilter,
+      status: 'paid',
+    },
+    include: [
+      {
+        model: User,
+        as: 'User', // must match the alias in your association
+        attributes: ['fname', 'lname', 'email'],
+      },
+    ],
+    attributes: ['id', 'netSalary', 'allowance', 'createdAt'],
+  });
 
 
     // Aggregate income sources
@@ -109,15 +145,13 @@ const getReport = async (req, res) => {
 
     // Aggregate rent collection income by summing the `amount` from Tenant
     const totalRentCollection = rentCollectionRecords.reduce((sum, record) => {
-      return sum + (record.Tenant ? record.Tenant.amount : 0);
+      return sum + (parseFloat(record.amountPaid) || 0);
     }, 0);
-
-   
-
+    
     // Aggregate outcomes
-    const totalBillPayments = await BillPayment.sum('amount', {
-      where: createdAtFilter,
-    });
+    // const totalBillPayments = await BillPayment.sum('amount', {
+    //   where: createdAtFilter,
+    // });
     const totalExpenses = await Expense.sum('amount', {
       where: createdAtFilter,
     });
@@ -127,16 +161,27 @@ const getReport = async (req, res) => {
     const totalPayments = await Payment.sum('price', {
       where: createdAtFilter,
     });
-    const totalPurchases = await Purchase.sum('totalPrice', {
-      where: createdAtFilter,
+
+    const totalNetSalary = await SalaryPayment.sum('netSalary', {
+      where: {
+        ...createdAtFilter,
+        status: 'paid',
+      },
     });
-    const totalSalaryPayments = await SalaryPayment.sum('amount', {
-      where: createdAtFilter,
+
+    const totalAllowance = await SalaryPayment.sum('allowance', {
+      where: {
+        ...createdAtFilter,
+        status: 'paid',
+      },
     });
+
+    const totalSalaryPayments = (totalNetSalary || 0) + (totalAllowance || 0);
+
 
     // Calculate totals safely
     const income = (totalCharging || 0) + (totalParking || 0) + (totalRentCollection || 0) + (totalOrder || 0);
-    const outcome = (totalBillPayments || 0) + (totalExpenses || 0) + (totalMaintenance || 0) + (totalPayments || 0) + (totalPurchases || 0) + (totalSalaryPayments || 0);
+    const outcome =  (totalExpenses || 0) + (totalMaintenance || 0) + (totalPayments || 0) + (totalSalaryPayments || 0);
     const netIncome = income - outcome;
 
     // Prepare detailed report
@@ -159,6 +204,7 @@ const getReport = async (req, res) => {
         orders: {
           totalOrder: totalOrder || 0,
           records: orderRecords.map(record => ({
+            orderType: record.OrderType?.name || '',
             amount: record.totalprice,
             date: record.createdAt,
           })),
@@ -166,26 +212,20 @@ const getReport = async (req, res) => {
         rentCollection: {
           totalRent: totalRentCollection || 0,
           records: rentCollectionRecords.map(record => ({
-            amount: record.Tenant ? record.Tenant.amount : 0,
+            tenant: `${record.Tenant?.fullName || ''}`,
+            amount: parseFloat(record.amountPaid) || 0,
             date: record.paymentDate,
-            tenantId: record.tenantId,
-          })),
+            
+          }))          
         },
         totalIncome: income,
       },
-
-      
       outcomes: {
-        billPayments: {
-          totalBillPayments: totalBillPayments || 0,
-          records: billPaymentRecords.map(record => ({
-            amount: record.amount,
-            date: record.createdAt,
-          })),
-        },
+       
         expenses: {
           totalExpenses: totalExpenses || 0,
           records: expenseRecords.map(record => ({
+            description: record.description || '',
             amount: record.amount,
             date: record.createdAt,
           })),
@@ -193,6 +233,7 @@ const getReport = async (req, res) => {
         maintenance: {
           totalMaintenance: totalMaintenance || 0,
           records: maintenanceRecords.map(record => ({
+            description: record.description || '',
             amount: record.cost,
             date: record.createdAt,
           })),
@@ -200,24 +241,23 @@ const getReport = async (req, res) => {
         payments: {
           totalPayments: totalPayments || 0,
           records: paymentRecords.map(record => ({
+            vendor: `${record.Vendor?.fname || ''} ${record.Vendor?.lname || ''}`,
+            item: record.item || '',
             amount: record.price,
             date: record.createdAt,
           })),
         },
-        purchases: {
-          totalPurchases: totalPurchases || 0,
-          records: purchaseRecords.map(record => ({
-            amount: record.totalPrice,
-            date: record.createdAt,
-          })),
-        },
-        salaryPayments: {
-          totalSalary: totalSalaryPayments || 0,
-          records: salaryPaymentRecords.map(record => ({
-            amount: record.amount,
-            date: record.createdAt,
-          })),
-        },
+       salaryPayments: {
+        totalSalary: totalSalaryPayments,
+        records: salaryPaymentRecords.map(record => ({
+          user: `${record.User?.fname || ''} ${record.User?.lname || ''}`,
+          netSalary: record.netSalary,
+          allowance: record.allowance,
+          total: parseFloat(record.netSalary || 0) + parseFloat(record.allowance || 0),
+          date: record.createdAt,
+        })),
+      },
+
         totalOutcome: outcome,
       },
       netIncome,

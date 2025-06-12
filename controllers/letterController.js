@@ -1,6 +1,7 @@
 const { Letter } = require('../models'); 
 const Tenant = require('../models/tenant');
 const LetterType = require('../models/letterType');
+const LetterResponse = require('../models/letterResponse');
 const Unit = require('../models/unit');
 const Floor = require('../models/floor');
 const {letterValidationSchema} = require('../helpers/schema');
@@ -59,15 +60,30 @@ exports.createLetter = async (req, res) => {
   }
 };
 
-
 // Get all Letters
 exports.getAllLetters = async (req, res) => {
   try {
-    const letters = await Letter.findAll(
+    const letters = await Letter.findAll({
+      include: [
         {
-            include: [Tenant, LetterType]
-        }
-    );
+          model: Tenant,
+          attributes: ['fullName', 'email', 'phoneNumber'],
+          include: [
+            {
+              model: Floor,
+              attributes: ['floorNumber']
+            },
+            {
+              model: Unit,
+              attributes: ['unitNumber']
+            }
+          ]
+        },
+        {model: LetterResponse, attributes: ['id','message']},
+        { model: LetterType }
+      ]
+    });
+
     return res.status(200).json(letters);
   } catch (error) {
     return res.status(500).json({ message: "Error fetching letters", error: error.message });
@@ -163,3 +179,50 @@ exports.deleteLetter = async (req, res) => {
     return res.status(500).json({ message: "Error deleting letter", error: error.message });
   }
 };
+
+exports.getMyLetters = async (req, res) => {
+  try {
+    const tenantId = req.params.id;
+
+    if (!tenantId) {
+      return res.status(400).json({ message: 'Tenant ID is required' });
+    }
+
+    const letters = await Letter.findAll({
+      where: { tenantId },
+      include: [
+        {
+          model: LetterType,
+          attributes: ['name'] 
+        },
+        {
+          model: Tenant,
+          attributes: ['fullName', 'email', 'phoneNumber'],
+          include: [
+            {
+              model: Floor,
+              attributes: ['floorNumber']
+            },
+            {
+              model: Unit,
+              attributes: ['unitNumber']
+            }
+          ]
+        },
+        {
+          model: LetterResponse,
+          attributes: ['id','message'],
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    // Always respond with 200 and an array (empty or not)
+    return res.status(200).json({ data: letters });
+
+  } catch (error) {
+    console.error('Error retrieving tenant letters:', error);
+    return res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+

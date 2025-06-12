@@ -1,52 +1,137 @@
 const { Op } = require("sequelize");
-
 const BillPayment = require("../models/billPayment");
 const BillType = require("../models/billType");
 const  Expense  = require('../models/expense');
 const ExpenseType = require('../models/expenseType')
+const User = require('../models/user');
+const Role = require('../models/role');
+const moment = require('moment');
+const sendNotificationHelper = require('../helpers/sendAlert');
+const cron = require('node-cron');
 
-
+cron.schedule('0 8 * * *', async () => {
+    try {
+      const today = moment().startOf('day');
+      console.log(`Running bill payment due reminder job for date: ${today.toISOString()}`);
+  
+      const billPayments = await BillPayment.findAll({
+        where: {
+          status: 'Paid',
+          endDate: {
+            [Op.lte]: today.clone().add(2, 'days').toDate()
+          }
+        },
+        include: [
+          {
+            model: BillType,
+            attributes: ['typeName'],
+          }
+        ]
+      });
+  
+      if (!billPayments.length) {
+        console.log("No government bill payments due soon.");
+        return;
+      }
+  
+      // Fetch admin users by role name
+      const adminRole = await Role.findOne({ where: { name: 'admin' } });
+      const admins = await User.findAll({ where: { roleId: adminRole.id } });
+  
+      for (const payment of billPayments) {
+        const endDate = moment(payment.endDate);
+        const diffInDays = today.diff(endDate, 'days');
+        const formattedDate = endDate.format('YYYY-MM-DD');
+        const billTypeName = payment.BillType?.typeName || 'Unknown Bill';
+  
+        let message = '';
+  
+        if (diffInDays < 0 && Math.abs(diffInDays) <= 2) {
+          message = `Payment for ${billTypeName} is due in ${Math.abs(diffInDays)} day(s), on ${formattedDate}.`;
+        } else if (diffInDays === 0) {
+          message = `Payment for ${billTypeName} is due today (${formattedDate}).`;
+        } else if (diffInDays > 0 && diffInDays <= 2) {
+          message = `Payment for ${billTypeName} was due on ${formattedDate} and is now ${diffInDays} day(s) overdue.`;
+        } else {
+          continue; // skip irrelevant dates
+        }
+  
+        console.log(`Notification content: ${message}`);
+  
+        await Promise.all(
+          admins.map((admin) =>
+            sendNotificationHelper({
+              adminId: admin.id,
+              title: `${billTypeName} Payment Reminder`,
+              body: message,
+              type: 'Bill Payment Reminder',
+              receiver_type: 'staff',
+            })
+          )
+        );
+      }
+  
+    } catch (error) {
+      console.error("Error sending bill payment due notifications:", error.message);
+      console.error(error.stack);
+    }
+  });
+  
 exports.createBillPayment = async (req, res) => {
   try {
-    const {billTypeId, amount, startDate, endDate, status, paymentMethod, description} = req.body;
+    const { billTypeId, amount, startDate, endDate, status, paymentMethod, description } = req.body;
+
     const billType = await BillType.findByPk(billTypeId);
     if (!billType) {
       return res.status(404).json({ message: "Bill type not found" });
     }
-    if(!amount || !startDate || !endDate || !status || !paymentMethod || !description) {
+
+    if (!amount || !startDate || !endDate || !status || !paymentMethod || !description) {
       return res.status(400).json({ message: "Please provide all required fields" });
     }
-    if(amount <= 0) {
+
+    if (amount <= 0) {
       return res.status(400).json({ message: "Amount must be greater than 0" });
     }
-    if(new Date(startDate) > new Date(endDate)) {
+
+    if (new Date(startDate) > new Date(endDate)) {
       return res.status(400).json({ message: "Start date cannot be greater than end date" });
     }
+
     // Create the BillPayment
     const billPayment = await BillPayment.create(req.body);
 
-    const type = billType.typeName;
-    
-    let expenseType= await ExpenseType.findOne({ where: { name: type } });
-    if (!expenseType) {
+    let expense = null;
+
+    // Only create Expense if the bill payment status is "paid"
+    if (status.toLowerCase() === 'paid') {
+      const type = billType.typeName;
+
+      let expenseType = await ExpenseType.findOne({ where: { name: type } });
+      if (!expenseType) {
         expenseType = await ExpenseType.create({ name: type, description: `Expense type for ${type}` });
-        console.log(`Created new notification type: ${type}`);
+        console.log(`Created new expense type: ${type}`);
       }
-    // Create the corresponding Expense
-    const expense = await Expense.create({
-      amount, 
-       date: new Date(),  
-      description: `Bill payment for ${description}`,
-      expenseTypeId: expenseType.id,
-    });
-    
+
+      expense = await Expense.create({
+        amount,
+        date: new Date(),
+        description: `Bill payment for ${description}`,
+        expenseTypeId: expenseType.id,
+      });
+    }
+
     return res.status(201).json({
-      message: "Bill payment and corresponding expense created successfully",
+      message: "Bill payment created successfully" + (expense ? " and expense recorded" : ""),
       billPayment,
-      expense
+      ...(expense && { expense }) // Only include expense if it was created
     });
+
   } catch (error) {
-    return res.status(500).json({ message: "Error creating bill payment and expense", error: error.message });
+    return res.status(500).json({
+      message: "Error creating bill payment and expense",
+      error: error.message
+    });
   }
 };
 

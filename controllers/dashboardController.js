@@ -18,11 +18,14 @@ const Stockout= require("../models/stockout");
 const TenantPayment= require("../models/tenantPayments");
 const BillPayment= require("../models/billPayment");
 const { Op,Sequelize } = require('sequelize');
+const {Role} = require('../models');
 
 
 
 exports.getDashboardStats = async (req, res) => {
   let whereCondition = {};
+  let stockoutWhereCondition = {};
+
   if(req.query.startDate && req.query.endDate) {
     whereCondition = {
       createdAt: {
@@ -41,6 +44,28 @@ exports.getDashboardStats = async (req, res) => {
   if(!req.query.startDate && req.query.endDate) {
     whereCondition = {
       createdAt: {
+        [Op.lte]: new Date(req.query.endDate)
+      }
+    };
+  }
+  if(req.query.startDate && req.query.endDate) {
+    stockoutWhereCondition = {
+      approvedAt: {
+        [Op.between]: [new Date(req.query.startDate), new Date(req.query.endDate)]
+      }
+    };
+  }
+  if(req.query.startDate && !req.query.endDate) {
+    stockoutWhereCondition = {
+      approvedAt: {
+        [Op.gte]: new Date(req.query.startDate)
+      }
+    };
+  }
+
+  if(!req.query.startDate && req.query.endDate) {
+    stockoutWhereCondition = {
+      approvedAt: {
         [Op.lte]: new Date(req.query.endDate)
       }
     };
@@ -219,7 +244,15 @@ exports.getDashboardStats = async (req, res) => {
       // Email.count({ where: { status: "read" } }),
 
       // Employees
-      Employee.count({ where: { role: "employee" } }),
+      await Employee.count({
+        include: [
+          {
+            model: Role,
+            where: { name: 'employee' } 
+          }
+        ]
+      })
+      ,
       // Employee.count({ where: { role: "admin" } }),
 
       // Salaries
@@ -228,10 +261,10 @@ exports.getDashboardStats = async (req, res) => {
       Salary.count({ where: { status: "paid", ...whereCondition } }),
 
       // Stockouts
-      Stockout.count({where:whereCondition}),
-      Stockout.count({ where: { status: "pending", ...whereCondition } }),
-      Stockout.count({ where: { status: "approved", ...whereCondition } }),
-      Stockout.count({ where: { status: "rejected", ...whereCondition } }),
+      Stockout.count({where:stockoutWhereCondition}),
+      Stockout.count({ where: { status: "pending",...stockoutWhereCondition} }),
+      Stockout.count({ where: { status: "approved",...stockoutWhereCondition} }),
+      Stockout.count({ where: { status: "rejected", ...stockoutWhereCondition} }),
 
       // Tenant Payments
       TenantPayment.count({where:whereCondition}),
@@ -265,7 +298,7 @@ exports.getDashboardStats = async (req, res) => {
       parking: { totalParking, onParking, readyToOut, completed },
       expenses: { totalExpenses },
       items: { totalItems, totalPurchasedItems, totalExistedItems,alertNumberOfItems },
-      TenantWithdrawalRequests: { totalWithdrawals, pendingWithdrawals, approvedWithdrawals, rejectedWithdrawals, processedWithdrawals },
+      ExistingRequests: { totalWithdrawals, pendingWithdrawals, approvedWithdrawals, rejectedWithdrawals, processedWithdrawals },
       emails: { totalEmails, sentEmails },
       employees: { totalEmployees },
       EmployeeSalaries: { totalSalaries, pendingSalaries, paidSalaries },
@@ -396,3 +429,63 @@ exports.getTenantDashboardStats = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+exports.getEmployeeDashboardStats = async (req, res) => {
+  try {
+    console.log("Authenticated User:", req.user);
+
+    const userId = req.user.id;
+
+    // Verify employee role
+    const employee = await Employee.findOne({
+      where: { id: userId },
+      include: [
+        {
+          model: Role,
+          where: { name: { [Op.notIn]: ['admin', 'tenant'] } }
+        }
+      ]
+    });
+
+    if (!employee) {
+      return res.status(403).json({ message: "Access denied. Not an employee." });
+    }
+
+    // Gather dashboard data (notifications, stockouts, salaries)
+    const [
+      totalNotifications,
+      unreadNotifications,
+
+      totalStockouts,
+      pendingStockouts,
+      approvedStockouts,
+
+      totalSalaries,
+      pendingSalaries,
+      paidSalaries
+    ] = await Promise.all([
+      Notification.count({ where: { receiver_id: userId, receiver_type: "employee" } }),
+      Notification.count({ where: { receiver_id: userId, isRead: false, receiver_type: "employee" } }),
+
+      Stockout.count({ where: { requestedBy: userId } }),
+      Stockout.count({ where: { requestedBy: userId, status: "pending" } }),
+      Stockout.count({ where: { requestedBy: userId, status: "approved" } }),
+
+      Salary.count({ where: { employeeId: userId } }),
+      Salary.count({ where: { employeeId: userId, status: "pending" } }),
+      Salary.count({ where: { employeeId: userId, status: "paid" } })
+    ]);
+
+    // Return response
+    res.json({
+      notifications: { totalNotifications, unreadNotifications },
+      stockouts: { totalStockouts, pendingStockouts, approvedStockouts },
+      salaries: { totalSalaries, pendingSalaries, paidSalaries }
+    });
+
+  } catch (error) {
+    console.error("Error in getEmployeeDashboardStats:", error);
+    res.status(500).json({ error: "Internal server error", details: error.message });
+  }
+};
+

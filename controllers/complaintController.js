@@ -2,6 +2,9 @@ const Complaint =require ('../models/complaint.js');
 const Tenant = require('../models/tenant.js');
 const sendNotificationHelper= require('../helpers/sendAlert');
 const User = require('../models/user.js');
+const Role = require('../models/role.js');
+const { BASE_URL } = require('../config/config');
+const sendEmailMessage = require('../services/sendEmailMessage');
 
 // Create a new complaint with multiple image uploads
 const createComplaint = async (req, res) => {
@@ -27,7 +30,12 @@ const createComplaint = async (req, res) => {
       images: imagePaths,
     });
 
-    const admins = await User.findAll({ where: { role: 'admin' } }); // Fetch all admins
+    const admins = await User.findAll({
+      include: [{
+        model: Role,
+        where: { name: 'admin' },
+      }],
+    }); // Fetch all admins
 
     if (complaint && admins.length > 0) {
       // Send notification to each admin
@@ -50,7 +58,6 @@ const createComplaint = async (req, res) => {
   }
 };
 
-
 // Get all complaints (admin view)
 const getAllComplaints = async (req, res) => {
   try {
@@ -61,14 +68,32 @@ const getAllComplaints = async (req, res) => {
           attributes: ['fullName', 'email', 'phoneNumber'],
         },
         {
-          model: User, // Including the assigned employee
-          attributes: ['fname', 'lname'], // Fetch 'fname' and 'lname' from the 'User' model
-          as: 'assignedEmployee', // Alias to link with the assigned employee
+          model: User,
+          attributes: ['fname', 'lname'],
+          as: 'assignedEmployee',
         },
       ],
     });
 
-    res.status(200).json(complaints);
+    const complaintsWithFullImageUrls = complaints.map(complaint => {
+      let imageUrls = [];
+
+      try {
+        const imagePaths = JSON.parse(complaint.images || '[]');
+        imageUrls = imagePaths.map(img =>
+          `${BASE_URL}/${img.replace(/\\\\/g, '/')}` // Normalize path
+        );
+      } catch (err) {
+        imageUrls = [];
+      }
+
+      return {
+        ...complaint.toJSON(),
+        images: imageUrls,
+      };
+    });
+
+    res.status(200).json(complaintsWithFullImageUrls);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching complaints', error: error.message });
   }
@@ -138,34 +163,72 @@ const assignComplaint = async (req, res) => {
 };
  
 // Update complaint status
- const updateComplaintStatus = async (req, res) => {
+const updateComplaintStatus = async (req, res) => {
   try {
     const { complaintId, status } = req.body;
-    const complaint = await Complaint.findByPk(complaintId);
+    console.log('Received request to update complaint:', complaintId, 'to status:', status);
 
+    const complaint = await Complaint.findByPk(complaintId);
     if (!complaint) {
+      console.log('Complaint not found with ID:', complaintId);
       return res.status(404).json({ message: 'Complaint not found' });
     }
 
     if (!['pending', 'in_progress', 'resolved'].includes(status)) {
+      console.log('Invalid status provided:', status);
       return res.status(400).json({ message: 'Invalid status' });
     }
 
     complaint.status = status;
     await complaint.save();
+    console.log('Complaint status updated in DB');
+
+    const tenant = await Tenant.findByPk(complaint.tenantId);
+    if (!tenant) {
+      console.log('Tenant not found with ID:', complaint.tenantId);
+      return res.status(404).json({ message: 'Tenant not found' });
+    }
+
+    console.log('Sending notification to tenant:', tenant.id, tenant.fullName);
+    await sendNotificationHelper({
+      adminId: tenant.id,
+      title: 'Complaint Status Update',
+      body: `Your complaint status has been updated to ${status}. Please check the complaints page for more details.`,
+      type: 'Complaint Status Update',
+      receiver_type: 'tenant',
+    });
+
+    // Send email notification to tenant
+    const emailResponse = await sendEmailMessage({
+      email: tenant.email,
+      fullName: tenant.fullName,
+      title: 'Complaint Status Update',
+      body: `Dear ${tenant.fullName},<br><br>Your complaint status has been updated to <strong>${status}</strong>. Please check the complaints page for more details.<br><br>Regards,<br>Apartment Management Team`,
+    });
+
+    console.log('Notification sent successfully');
 
     res.status(200).json({ message: 'Complaint status updated successfully', complaint });
   } catch (error) {
+    console.error('Error updating complaint status:', error.message);
     res.status(500).json({ message: 'Error updating complaint status', error: error.message });
   }
 };
 
 
 // Confirm or reopen a complaint (tenant feedback)
- const confirmComplaintResolution = async (req, res) => {
+const confirmComplaintResolution = async (req, res) => {
   try {
     const { complaintId, feedback } = req.body;
-    const complaint = await Complaint.findByPk(complaintId);
+      const complaint = await Complaint.findByPk(complaintId, {
+      include: [
+        {
+          model: User,
+          as: 'assignedEmployee',
+          attributes: ['id', 'fname', 'lname'],
+        }
+      ]
+    });
 
     if (!complaint) {
       return res.status(404).json({ message: 'Complaint not found' });
@@ -181,11 +244,32 @@ const assignComplaint = async (req, res) => {
     }
     await complaint.save();
 
-    res.status(200).json({ message: 'Complaint feedback submitted successfully', complaint });
+    // ✅ Process image paths into full URLs
+    let imageUrls = [];
+    try {
+      const imagePaths = JSON.parse(complaint.images || '[]');
+      imageUrls = imagePaths.map(img =>
+        `${BASE_URL}/${img.replace(/\\\\/g, '/')}` // Normalize path
+      );
+    } catch (err) {
+      imageUrls = [];
+    }
+
+    const updatedComplaint = {
+      ...complaint.toJSON(),
+      images: imageUrls,
+    };
+
+    res.status(200).json({
+      message: 'Complaint feedback submitted successfully',
+      complaint: updatedComplaint,
+    });
+
   } catch (error) {
     res.status(500).json({ message: 'Error updating complaint feedback', error: error.message });
   }
 };
+
 
 const deleteComplaint = async (req, res) => {
   try {
@@ -202,6 +286,7 @@ const deleteComplaint = async (req, res) => {
     res.status(500).json({ message: 'Error deleting complaint', error: error.message });
   }
 };
+
 const getSingleComplaint = async (req, res) => {
   try {
     const { complaintId } = req.params;
@@ -218,18 +303,52 @@ const getSingleComplaint = async (req, res) => {
     res.status(500).json({ message: 'Error fetching complaint', error: error.message });
   }
 }
+
 const getTenantComplaints = async (req, res) => {
   try {
     const { tenantId } = req.params;
-    const complaints = await Complaint.findAll({ where: { tenantId } }
-      , { include: { model: Tenant,attributes: ['fullName', 'email', 'phoneNumber'] } }
-    );
+    const complaints = await Complaint.findAll({
+      where: { tenantId },
+      include: [
+        {
+          model: Tenant,
+          attributes: ['fullName', 'email', 'phoneNumber'],
+        },
+        {
+          model: User,
+          as: 'assignedEmployee',
+          attributes: ['id', 'fname', 'lname'],
+        }
+      ]
+    });
 
-    res.status(200).json(complaints);
+    const updatedComplaints = complaints.map((complaint) => {
+      let parsedImages = [];
+
+      try {
+        parsedImages = complaint.images ? JSON.parse(complaint.images) : [];
+      } catch (err) {
+        console.error('Invalid image JSON:', complaint.images);
+      }
+
+      const fullImageUrls = parsedImages.map((imgPath) =>
+        `${BASE_URL}/${imgPath.replace(/\\/g, '/')}`
+      );
+
+      return {
+        ...complaint.toJSON(),
+        images: fullImageUrls,
+      };
+    });
+
+    res.status(200).json(updatedComplaints);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Error fetching complaints', error: error.message });
   }
 };
+
+
 const getAssignedComplaints = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -248,7 +367,26 @@ const getAssignedComplaints = async (req, res) => {
       ],
     });
 
-    res.status(200).json(complaints);
+    // Add full URL for images
+    const complaintsWithFullImageUrls = complaints.map(complaint => {
+      let imageUrls = [];
+
+      try {
+        const imagePaths = JSON.parse(complaint.images || '[]'); // Parse images if stored as JSON
+        imageUrls = imagePaths.map(img =>
+          `${BASE_URL}/${img.replace(/\\/g, '/')}` // Normalize path and prepend BASE_URL
+        );
+      } catch (err) {
+        imageUrls = [];
+      }
+
+      return {
+        ...complaint.toJSON(),
+        images: imageUrls,
+      };
+    });
+
+    res.status(200).json(complaintsWithFullImageUrls);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching complaints', error: error.message });
   }

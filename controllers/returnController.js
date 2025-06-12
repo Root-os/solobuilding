@@ -207,7 +207,7 @@ exports.generateReturnReport = async (req, res) => {
     });
 
     if (!returns || returns.length === 0) {
-      return res.status(404).json({ message: "No returns found for the given filters." });
+      return res.status(200).json([]); 
     }
 
     // Return the matched data

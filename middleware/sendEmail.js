@@ -20,13 +20,15 @@ const sendEmail = async (to, subject, text, html = null) => {
     ...(html && { html }), // Include html only if provided
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    return { success: true, message: 'Email sent successfully!' };
-  } catch (error) {
-    console.error('Error sending email:', error);
-    return { success: false, error: error.message };
-  }
+try {
+  const info = await transporter.sendMail(mailOptions);
+  console.log(`✅ Email sent to ${to}: ${info.messageId}`);
+  return { success: true, message: 'Email sent successfully!' };
+} catch (error) {
+  console.error('❌ Error sending email:', error);
+  return { success: false, error: error.message };
+}
+
 };
 
 module.exports = sendEmail;

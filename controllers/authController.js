@@ -5,6 +5,54 @@ const { Role, Permission } = require('../models');
 
 const { sendEmail } = require("../middleware/sendEmail");
 const EmployeeDetail =require('../models/employeeDetail')
+const Joi = require('joi');
+
+const employeeRegistrationSchema = Joi.object({
+  fname: Joi.string().trim().required().messages({
+    'any.required': 'First name is required',
+    'string.empty': 'First name cannot be empty',
+  }),
+  lname: Joi.string().trim().required().messages({
+    'any.required': 'Last name is required',
+    'string.empty': 'Last name cannot be empty',
+  }),
+  email: Joi.string().email().required().messages({
+    'any.required': 'Email is required',
+    'string.email': 'Email must be a valid email',
+  }),
+  password: Joi.string().min(6).required().messages({
+    'any.required': 'Password is required',
+    'string.min': 'Password must be at least 6 characters long',
+  }),
+  phone: Joi.string().optional().allow(null, '').pattern(/^\+?[0-9\-]{7,15}$/).messages({
+    'string.pattern.base': 'Phone must be a valid number',
+  }),
+  salary: Joi.number().precision(2).positive().required().messages({
+    'any.required': 'Salary is required',
+    'number.base': 'Salary must be a number',
+    'number.positive': 'Salary must be a positive number',
+  }),
+  position: Joi.string().required().messages({
+    'any.required': 'Position is required',
+  }),
+  hireDate: Joi.date().required().messages({
+    'any.required': 'Hire date is required',
+    'date.base': 'Hire date must be a valid date',
+  }),
+  shift: Joi.string().valid('day', 'night', 'flexible').optional(),
+  department: Joi.string().required().messages({
+    'any.required': 'Department is required',
+  }),
+  employmentType: Joi.string().valid('full-time', 'part-time', 'contract').optional(),
+  emergencyContact: Joi.string().optional().allow(null, ''),
+  address: Joi.string().optional().allow(null, ''),
+  bankAccount: Joi.string().optional().allow(null, ''),
+  roleId: Joi.number().integer().required().messages({
+    'any.required': 'Role ID is required',
+    'number.base': 'Role ID must be a number',
+  }),
+});
+
 /**
  * Helper function to generate JWT token
  */
@@ -59,27 +107,37 @@ if (phone&&phone.length < 10) {
   }
 };
 
-
 exports.registerUserEmployee = async (req, res) => {
+  // Validate the request body against the schema
+  const { error } = employeeRegistrationSchema.validate(req.body, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation error',
+      details: error.details.map((d) => d.message),
+    });
+  }  
   try {
-    const { fname, lname, email, password, phone, salary, position, hireDate, shift, department, employmentType, emergencyContact, address, bankAccount } = req.body;
+    const { fname, lname, email, password, phone, salary, position, hireDate, shift, department, employmentType, emergencyContact, address, bankAccount,roleId } = req.body;
 
     // Check if the required fields are provided
     if (!fname || !lname || !email || !password || !salary || !position || !hireDate || !department) {
       return res.status(400).json({ success: false, message: "All fields are required: fname, lname, email, password, salary, position, hireDate, department" });
     }
-
-    // Check if the user already exists
-    let user = await User.findOne({ where: { email } });
+    
+ let user;
+    user = await User.findOne({ where: { email } });
     if (user) {
       return res.status(400).json({ success: false, message: "User with this email already exists." });
     }
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-const role = await Role.findOne({ where: { name: 'employee' } });
+    if (!roleId) {
+      return res.status(400).json({ message: 'Invalid role please select the correct role' });
+    }
+const role = await Role.findByPk(roleId);
     if (!role) {
-      return res.status(400).json({ message: 'Invalid role please first create role employee' });
+      return res.status(400).json({ message: 'Invalid role please first create role with the specified id' });
     }
     // Create the user
     user = await User.create({
@@ -87,7 +145,7 @@ const role = await Role.findOne({ where: { name: 'employee' } });
       lname,
       email,
       password: hashedPassword,
-      roleId: role.id,
+      roleId: roleId,
       phone,
     });
 
@@ -116,10 +174,21 @@ const role = await Role.findOne({ where: { name: 'employee' } });
     // Return the success response
     res.status(201).json({ success: true, message: "User registered successfully", token });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Registration failed", error: error.message });
+    if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({
+        success: false,
+        message: error.errors[0].message==='email must be unique' ? 'User with this email already exists' : error.errors[0].message
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: "Registration failed",
+      error: error.message || "Unknown error",
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+    });
+
   }
 };
-
 
 exports.updateUser = async (req, res) => {
   try {
@@ -180,7 +249,7 @@ exports.updateUser = async (req, res) => {
 exports.updateEmployee = async (req, res) => {
   try {
     const { id } = req.params;  // Get the employee ID from the URL parameter
-    const { fname, lname, phone, salary, position, department, hireDate, shift, employmentType, emergencyContact, address, bankAccount } = req.body;
+    const { fname, lname, phone, roleId, salary, position, department, hireDate, shift, employmentType, emergencyContact, address, bankAccount } = req.body;
 
     // Find the employee by ID
     const user = await User.findOne({ where: { id } });
@@ -192,6 +261,7 @@ exports.updateEmployee = async (req, res) => {
     user.fname = fname || user.fname;
     user.lname = lname || user.lname;
     user.phone = phone || user.phone;
+    user.roleId = roleId || user.roleId;
     await user.save();
 
     // Find and update the employee details (if any)
@@ -243,10 +313,10 @@ exports.login = async (req, res) => {
     const permissions = user.Role.Permissions.map((perm) => perm.name);
 
     const token = generateToken(user, user.Role.name, permissions);
-
+   const role=user.Role.name;
     res.cookie("authToken", token, { httpOnly: true, sameSite: "None", secure: process.env.NODE_ENV === "production" });
 
-    res.status(200).json({ success: true,  token });
+    res.status(200).json({ success: true,  token , role});
   } catch (error) {
     res.status(500).json({ success: false, message: "Login failed", error: error.message });
   }
@@ -261,19 +331,31 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
+const { Op } = require('sequelize');
 exports.getAllEmployeeUsers = async (req, res) => {
   try {
-    const role = await Role.findOne({ where: { name: 'employee' } });
-    if (!role) {
-      return res.status(400).json({ message: 'Invalid role please first create role employee' });
+    // Get the admin role ID to exclude
+    const adminRole = await Role.findOne({ where: { name: 'admin' } });
+
+    // Handle missing admin role just in case
+    if (!adminRole) {
+      return res.status(400).json({ message: 'Admin role not found. Please create it first.' });
     }
-    // Fetch users with the role of 'employee' along with their related employee details
+
+    // Find all users whose role is NOT 'admin'
     const users = await User.findAll({
-      where: { roleId: role.id },
+      where: {
+        roleId: {
+          [Op.ne]: adminRole.id, // Not equal to admin role ID
+        },
+      },
       attributes: { exclude: ["password"] },
       include: [{
-        model: EmployeeDetail,  // Include the EmployeeDetail model
-        required: true,         // Ensures only users with employee details are included
+        model: EmployeeDetail,
+        required: true,
+      }, {
+        model: Role, // Optional: to include role name in the result
+        attributes: ['name']
       }]
     });
 
@@ -379,7 +461,6 @@ exports.myProfile = async (req, res) => {
   }
 };
 
-
 exports.verifySession = async (req, res) => {
   try {
     return res.status(200).json({ success: true,user:req.user, message: "Session is valid" });
@@ -419,6 +500,7 @@ exports.forgotPassword = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to send password reset email", error: error.message });
   }
 };
+
 exports.resetPassword = async (req, res) => {
   try {
     const { token } = req.params;

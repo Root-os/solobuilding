@@ -6,6 +6,7 @@ const { paramsSchema } = require("../helpers/schema");
 const Joi = require('joi');
 const { Op } = require('sequelize');
 // Create Payment
+
 exports.createPayment = async (req, res) => {
   try {
     const { error } = paymentValidationSchema.validate(req.body);
@@ -14,7 +15,9 @@ exports.createPayment = async (req, res) => {
         .status(400)
         .json({ message: "Validation Error", error: error.details[0].message });
     }
-    const { vendorId, price, paymentMethod, status ,paymentDate} = req.body;
+
+    // Destructure all the necessary fields, including item and description
+    const { vendorId, price, paymentMethod, status, paymentDate, item, description } = req.body;
 
     // Fetch the total price from the purchase table for the vendor
     const purchase = await Purchase.findOne({ where: { vendorId } });
@@ -27,6 +30,7 @@ exports.createPayment = async (req, res) => {
 
     const leftMoney = purchase.totalPrice - price;
 
+    // Create the payment, including item and description
     const payment = await Payment.create({
       vendorId,
       price,
@@ -34,6 +38,8 @@ exports.createPayment = async (req, res) => {
       status,
       leftMoney,
       paymentDate,
+      item, // Add item here
+      description, // Add description here
     });
 
     res.status(201).json(payment);
@@ -41,7 +47,6 @@ exports.createPayment = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 exports.getAllPayments = async (req, res) => {
   try {
@@ -161,9 +166,6 @@ exports.getPaymentsReport = async (req, res) => {
       startDate: Joi.date().iso().optional(),
       endDate: Joi.date().iso().greater(Joi.ref('startDate')).optional()
     });
-
-   
-
     const { vendorId, status, startDate, endDate } = req.body;
 
     // Define query conditions
@@ -183,7 +185,6 @@ exports.getPaymentsReport = async (req, res) => {
         [Op.lte]: new Date(endDate), // Less than or equal to endDate
       };
     }
-
     // Fetch payments based on conditions
     const payments = await Payment.findAll({
       where: whereConditions,
@@ -191,9 +192,7 @@ exports.getPaymentsReport = async (req, res) => {
     });
 
     if (payments.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No payments found with the given criteria" });
+      return res.status(200).json([]);
     }
 
     res.status(200).json(payments);

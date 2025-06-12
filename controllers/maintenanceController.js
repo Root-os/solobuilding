@@ -3,6 +3,7 @@ const Item = require("../models/item");
 const Unit = require("../models/unit");
 const { maintenanceValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
+const { Op } = require("sequelize");
 
 // Create a new maintenance record
 exports.createMaintenance = async (req, res) => {
@@ -32,7 +33,6 @@ exports.createMaintenance = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
-
 
 // Get all maintenance records
 exports.getAllMaintenances = async (req, res) => {
@@ -185,11 +185,6 @@ exports.deleteMaintenance = async (req, res) => {
 
 exports.getMaintenanceReport = async (req, res) => {
   try {
-
-    // const { error } = maintenanceValidationSchema.validate(req.body);
-    // if (error) {
-    //   return res.status(400).json({ message: error.error.details[0].message });
-    // }
     const { startDate, itemId, unitId } = req.body;
 
     const report = await Maintenance.findAll({
@@ -212,7 +207,7 @@ exports.getMaintenanceReport = async (req, res) => {
       ],
     });
 
-    res.status(200).json(report);
+    res.status(200).json(report || []); // Always return an array
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

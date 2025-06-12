@@ -222,17 +222,30 @@ const itemSchema = Joi.object({
     itemDetails: Joi.string().min(10).max(500).optional(),
 });
 const parkingSchema = Joi.object({
-    parkingSpaceId: Joi.number().integer().min(0).optional(),
-    carPlate: Joi.string().min(3).max(20).optional(),
-    carName: Joi.string().min(3).max(20).optional(),
-    driverName: Joi.string().min(3).max(30).optional(),
-    driverPhone: Joi.string().pattern(/^[0-9]+$/).optional(),
-    tenantId: Joi.number().integer().min(0).optional(),
-    timeIn: Joi.date().required(),
-    timeOut: Joi.date().optional(),
-    price: Joi.string().optional(),
-    isTenant: Joi.boolean().optional(),
-    status: Joi.string().valid('completed', 'onparking', 'ready to out').optional(),
+  parkingSpaceId: Joi.number().integer().min(0).optional(),
+  carPlate: Joi.string().min(3).max(20).optional(),
+  carName: Joi.string().min(3).max(20).optional(),
+  tenantId: Joi.number().integer().min(0).optional(),
+  timeIn: Joi.date().required(),
+  timeOut: Joi.date().optional(),
+  price: Joi.string().optional(),
+  isTenant: Joi.boolean().required(), // Make this required so conditional logic works
+
+  status: Joi.string()
+    .valid('completed', 'onparking', 'ready to out')
+    .optional(),
+
+  driverName: Joi.when('isTenant', {
+    is: false,
+    then: Joi.string().min(3).max(30).required(),
+    otherwise: Joi.string().allow('').optional()
+  }),
+
+  driverPhone: Joi.when('isTenant', {
+    is: false,
+    then: Joi.string().pattern(/^[0-9]+$/).required(),
+    otherwise: Joi.string().allow('').optional()
+  }),
 });
 
 const paymentRequestSchema = Joi.object({
@@ -254,6 +267,13 @@ const settingSchema = Joi.object({
     value: Joi.string().required(),
     unit: Joi.string().optional(),
     description: Joi.string().optional(),
+    phoneNumber: Joi.string()
+  .pattern(/^(09|07)\d{8}$/)
+  .required()
+  .messages({
+    'string.pattern.base': 'Phone number must start with 09 or 07 and be exactly 10 digits long',
+    'string.empty': 'Phone number is required',
+  })
 });
 
 
@@ -360,27 +380,32 @@ const itemAssignmentSchema = Joi.object({
   assignedId: Joi.number().integer().min(1).required(), // assignedId must exist and be a positive integer
 })
 
-// Define the Joi schema for Maintenance validation
-// const maintenanceValidationSchema = Joi.object({
-//   date: Joi.date().required(),
-//   description: Joi.string().max(255).optional().allow(null),
-//   cost: Joi.number().positive().precision(2).required(),
-//   itemId: Joi.number().integer().required(),
-//   unitId: Joi.number().integer().required(),
-// });
+
 const maintenanceValidationSchema = Joi.object({
   date: Joi.date().required(),
   description: Joi.string().required(),
   cost: Joi.number().required(),
   isItem: Joi.boolean().required(),
-  itemId: Joi.number().optional(), // Item ID is optional, but required when isItem is true
-  unitId: Joi.number().optional(), // Unit ID is optional
-  name: Joi.string().optional().when('isItem', {
-    is: false, 
-    then: Joi.required(),  // Name is required if isItem is false
-    otherwise: Joi.forbidden()  // Name is forbidden if isItem is true
+
+  itemId: Joi.number().when('isItem', {
+    is: true,
+    then: Joi.required(),
+    otherwise: Joi.forbidden()
+  }),
+
+  unitId: Joi.number().when('isItem', {
+    is: true,
+    then: Joi.optional(),      // Not required when isItem is true
+    otherwise: Joi.required()  // Required when isItem is false
+  }),
+
+  name: Joi.string().when('isItem', {
+    is: false,
+    then: Joi.required(),
+    otherwise: Joi.forbidden()
   }),
 });
+
 // Define the Joi schema for Purchase validation
 const purchaseValidationSchema = Joi.object({
   vendorId: Joi.number().integer().required(),
@@ -401,7 +426,10 @@ const purchaseRequestValidationSchema = Joi.object({
   reason: Joi.string().optional().allow(null),
   approvedBy: Joi.number().integer().optional().allow(null),
   vendorId: Joi.number().integer().optional().allow(null),
+  status: Joi.string().valid('pending', 'approved', 'rejected').optional(),
+  approvedAmount: Joi.number().positive().precision(2).optional().allow(null),
 });
+
 // Define the Joi schema for Payment validation
 const paymentValidationSchema = Joi.object({
   vendorId: Joi.number().integer().required(),
@@ -409,7 +437,10 @@ const paymentValidationSchema = Joi.object({
   paymentMethod: Joi.string().valid('cash', 'credit', 'bank transfer', 'other').required(),
   paymentDate: Joi.date().optional(),
   status: Joi.string().valid('complete', 'partial', 'pending').required(),
+  item: Joi.string().optional(), // <-- added
+  description: Joi.string().optional() // <-- added
 });
+
 const serviceTypeValidationSchema = Joi.object({
   name: Joi.string().max(255).required(),
   description: Joi.string().optional().allow(''),
@@ -494,7 +525,7 @@ const orderTypeValidationSchema = Joi.object({
 const orderValidationSchema = Joi.object({
   orderDate: Joi.date().required(),
   amount: Joi.number().positive().precision(2).required(),
-  status: Joi.string().valid('pending', 'completed', 'canceled').optional(),
+  status: Joi.string().valid('pending', 'completed', 'canceled', 'ready', 'approved').optional(),
   notes: Joi.string().optional().allow(''),
   receiptImage: Joi.string().optional().allow(''),
   orderTypeId: Joi.number().integer().positive().required(),

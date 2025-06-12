@@ -33,6 +33,7 @@ const Letter = require("./letter");
 const Role = require('./role');
 const Permission = require('./permission');
 const Task = require('./task');
+const LetterResponse = require("./letterResponse");
 const sequelize = require('../config/database');
 
 module.exports = {
@@ -72,4 +73,5 @@ module.exports = {
   payment,
   LetterType,
   Letter,
+  LetterResponse,
 };

@@ -1,20 +1,22 @@
-const Floor = require('../models/floor');
-const Unit = require('../models/unit');
-const Tenant = require('../models/tenant');
-const TenantVehicle = require('../models/tenantVehicle');
-const { Op } = require('sequelize');
-const multer = require('multer');
-const path = require('path');
-const moment = require('moment');
-const fs = require('fs');
-const sendEmail = require('../middleware/sendEmail');
-const bcrypt = require('bcryptjs');
-const {tenatSchema}=require('../helpers/schema')
-const sendTenantWelcomeEmail=require('../services/sendEmail')
+const Floor = require("../models/floor");
+const Unit = require("../models/unit");
+const Tenant = require("../models/tenant");
+const TenantVehicle = require("../models/tenantVehicle");
+const { Op } = require("sequelize");
+const multer = require("multer");
+const path = require("path");
+const moment = require("moment");
+const fs = require("fs");
+const sendEmail = require("../middleware/sendEmail");
+const bcrypt = require("bcryptjs");
+const { tenatSchema } = require("../helpers/schema");
+const sendTenantWelcomeEmail = require("../services/sendEmail");
+const { BASE_URL } = require("../config/config");
+
 // Set up multer storage for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = './uploads/';
+    const uploadDir = "./uploads/";
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir);
     }
@@ -22,7 +24,7 @@ const storage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + path.extname(file.originalname)); // Add a timestamp to ensure unique filenames
-  }
+  },
 });
 
 const upload = multer({ storage: storage });
@@ -40,29 +42,31 @@ exports.createTenant = async (req, res) => {
         return res.status(400).json({ error: error.details[0].message });
       }
 
-      const { 
-        unitId, 
-        leaseStartDate, 
+      const {
+        unitId,
+        leaseStartDate,
         leaseEndDate,
         email,
-        fullName, 
-        nationalId, 
-        phoneNumber, 
-        tin, 
-        floorId, 
-        advance, 
-       
+        fullName,
+        nationalId,
+        phoneNumber,
+        tin,
+        floorId,
+        advance,
+
         amount,
         carPlate = null, // Optional
-        carName = null,  // Optional
-        color = null     // Optional
+        carName = null, // Optional
+        color = null, // Optional
       } = req.body;
 
       // Check if the unit exists and is available
       const unit = await Unit.findByPk(unitId);
       if (!unit) return res.status(404).json({ error: "Unit not found" });
       if (unit.status !== "available") {
-        return res.status(400).json({ error: "Unit is already occupied or under maintenance" });
+        return res
+          .status(400)
+          .json({ error: "Unit is already occupied or under maintenance" });
       }
 
       const floor = await Floor.findByPk(floorId);
@@ -71,17 +75,12 @@ exports.createTenant = async (req, res) => {
       // Check for existing tenant with the same email, nationalId, phoneNumber, or tin
       const existingTenant = await Tenant.findOne({
         where: {
-          [Op.or]: [
-            { email },
-            { nationalId },
-            { phoneNumber },
-            { tin }
-          ],
+          [Op.or]: [{ email }, { nationalId }, { phoneNumber }, { tin }],
         },
       });
 
       if (existingTenant) {
-        let errorMessage = '';
+        let errorMessage = "";
         if (existingTenant.email === email) {
           errorMessage = "A tenant with the same email already exists";
         } else if (existingTenant.nationalId === nationalId) {
@@ -94,8 +93,10 @@ exports.createTenant = async (req, res) => {
         return res.status(400).json({ error: errorMessage });
       }
 
-      // Generate a random password
-      const generatedPassword = Math.random().toString(36).slice(-8);
+      // Generate a 4-digit numeric password
+      const generatedPassword = Math.floor(
+        1000 + Math.random() * 9000
+      ).toString();
 
       const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
@@ -137,7 +138,11 @@ exports.createTenant = async (req, res) => {
 
       // Send email with login credentials
 
-      const emailResponse = await sendTenantWelcomeEmail({ email, fullName, generatedPassword })
+      const emailResponse = await sendTenantWelcomeEmail({
+        email,
+        fullName,
+        generatedPassword,
+      });
       //const emailResponse = await sendEmail(email, emailSubject, emailBody);
       if (!emailResponse.success) {
         console.error("Email sending failed:", emailResponse.error);
@@ -150,17 +155,17 @@ exports.createTenant = async (req, res) => {
       });
     });
   } catch (error) {
-    if (error.name === 'SequelizeUniqueConstraintError') {
+    if (error.name === "SequelizeUniqueConstraintError") {
       const field = error.errors[0].path;
-      let errorMessage = '';
+      let errorMessage = "";
       switch (field) {
-        case 'email':
+        case "email":
           errorMessage = "A tenant with the same email already exists";
           break;
-        case 'nationalId':
+        case "nationalId":
           errorMessage = "A tenant with the same national ID already exists";
           break;
-        case 'phoneNumber':
+        case "phoneNumber":
           errorMessage = "A tenant with the same phone number already exists";
           break;
         default:
@@ -172,7 +177,6 @@ exports.createTenant = async (req, res) => {
   }
 };
 
-
 // Get all tenants
 exports.getAllTenants = async (req, res) => {
   try {
@@ -180,34 +184,35 @@ exports.getAllTenants = async (req, res) => {
       include: [
         {
           model: Unit,
-          attributes: ['unitNumber'], // Only select the unit number
+          attributes: ["unitNumber"], // Only select the unit number
         },
         {
           model: Floor,
-          attributes: ['floorNumber'], // Only select the floor number
+          attributes: ["floorNumber"], // Only select the floor number
         },
         {
           model: TenantVehicle, // Include tenant vehicle information
-          attributes: ['carPlate', 'carName', 'color'], // Select car details
-        }
+          attributes: ["carPlate", "carName", "color"], // Select car details
+        },
       ],
     });
 
-    const baseUploadPath = path.join(__dirname, '../uploads'); // Path to your 'uploads' directory
+    const baseUploadPath = path.join(__dirname, "../uploads"); // Path to your 'uploads' directory
 
     // Map through tenants to add the full document path and date calculations
-    const tenantsWithDetails = tenants.map(tenant => {
-      const documentFullPath = tenant.document ? path.join(baseUploadPath, tenant.document) : null;
-
+    const tenantsWithDetails = tenants.map((tenant) => {
+      const documentFullPath = tenant.document
+        ? `${BASE_URL}${tenant.document}`
+        : null;
       // Convert lease dates to moment objects
       const leaseStartDate = moment(tenant.leaseStartDate);
       const leaseEndDate = moment(tenant.leaseEndDate);
       const currentDate = moment();
 
       // Months paid calculation: full months between leaseStartDate and leaseEndDate
-      const monthsPaid = leaseEndDate.diff(leaseStartDate, 'months');  
+      const monthsPaid = leaseEndDate.diff(leaseStartDate, "months");
       // Remaining days for rent payment (between currentDate and leaseEndDate)
-      const remainingDays = leaseEndDate.diff(currentDate, 'days');
+      const remainingDays = leaseEndDate.diff(currentDate, "days");
 
       return {
         ...tenant.toJSON(),
@@ -223,26 +228,24 @@ exports.getAllTenants = async (req, res) => {
   }
 };
 
-
-
 exports.getTenantById = async (req, res) => {
   try {
-       const tenants = await Tenant.findAll({
+    const tenants = await Tenant.findAll({
       where: { id: req.params.id },
       include: [
         {
           model: Unit,
-          attributes: ['unitNumber'],
+          attributes: ["unitNumber"],
         },
         {
           model: Floor,
-          attributes: ['floorNumber'],
+          attributes: ["floorNumber"],
         },
       ],
     });
 
     if (!tenants.length) {
-      return res.status(404).json({ message: 'No tenants found ' });
+      return res.status(404).json({ message: "No tenants found " });
     }
 
     res.status(200).json(processTenantDetails(tenants));
@@ -256,55 +259,119 @@ exports.updateTenant = async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      return res.status(400).json({ error: 'Invalid tenant ID' });
-    }
-    const tenant = await Tenant.findOne({ where: { id: id } });
-
-    if (!tenant) {
-      return res.status(404).json({ message: 'Tenant not found' });
+      return res.status(400).json({ error: "Invalid tenant ID" });
     }
 
-    // Check if status is being updated to "inactive"
-    if (req.body.status === 'inactive') {
-      // Update unit status to "available" and set vacatedDate to current date
-      await Unit.update(
-        { status: 'available', vacatedDate: new Date() },
-        { where: { id: tenant.unitId } }
-      );
-    }
-    console.log(tenant.unitId);
-    console.log(req.body.status);
-    if (req.body.status === 'active') {
-      // Update unit status to "available" and set vacatedDate to current date
-      await Unit.update(
-        { status: 'occupied' },
-        { where: { id: tenant.unitId } }
-      );
-    }
-
-    // Handle file upload if a new document is provided
-    upload.single('document')(req, res, async (err) => {
+    // Handle file upload and process body inside middleware
+    upload.single("document")(req, res, async (err) => {
       if (err) {
         return res.status(400).json({ error: err.message });
       }
 
-      // Check if a file was uploaded
-      const filePath = req.file ? `/uploads/${req.file.filename}` : tenant.document; // Keep existing document if no new file uploaded
+      // Log req.body after multer processes it
+      console.log("Received body:", JSON.stringify(req.body));
 
-      // Update tenant data, including file path
+      let tenant = await Tenant.findOne({ where: { id }, include: Unit });
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+
+      // Validate unitId if provided
+      const unitId = req.body.unitId ? Number(req.body.unitId) : tenant.unitId;
+      if (req.body.unitId && isNaN(unitId)) {
+        return res.status(400).json({ error: "Invalid unit ID" });
+      }
+
+      // Store the previous unitId for updating its status
+      const previousUnitId = tenant.unitId;
+
+      // Handle status update logic for unit
+      if (req.body.status === "inactive" && previousUnitId) {
+        await Unit.update(
+          { status: "available", vacatedDate: new Date(), rentedDate: null },
+          { where: { id: previousUnitId } }
+        );
+      }
+
+      if (req.body.status === "active" && unitId) {
+        const unitExists = await Unit.findOne({ where: { id: unitId } });
+        if (!unitExists) {
+          return res.status(400).json({ error: "Unit not found" });
+        }
+        // Update the new unit to occupied
+        await Unit.update(
+          {
+            status: "occupied",
+            rentedDate: req.body.leaseStartDate || new Date(),
+            vacatedDate: null,
+          },
+          { where: { id: unitId } }
+        );
+      }
+
+      // If unitId has changed, set the previous unit to available
+      if (
+        req.body.unitId &&
+        Number(req.body.unitId) !== previousUnitId &&
+        previousUnitId
+      ) {
+        await Unit.update(
+          { status: "available", vacatedDate: new Date(), rentedDate: null },
+          { where: { id: previousUnitId } }
+        );
+      }
+
+      // Handle file upload
+      const filePath = req.file
+        ? `/Uploads/${req.file.filename}`
+        : tenant.document;
+
+      // Prepare updated data, exclude fields not in Tenant model
       const updatedData = {
-        ...req.body,
+        fullName: req.body.fullName || tenant.fullName,
+        phoneNumber: req.body.phoneNumber || tenant.phoneNumber,
+        email: req.body.email || tenant.email,
+        nationalId: req.body.nationalId || tenant.nationalId,
+        leaseStartDate: req.body.leaseStartDate || tenant.leaseStartDate,
+        leaseEndDate: req.body.leaseEndDate || tenant.leaseEndDate,
+        paymentStatus: req.body.paymentStatus || tenant.paymentStatus,
+        additionalNotes: req.body.additionalNotes || tenant.additionalNotes,
+        unitId: unitId,
+        floorId: req.body.floorId ? Number(req.body.floorId) : tenant.floorId,
+        advance: req.body.advance || tenant.advance,
+        tin: req.body.tin || tenant.tin,
+        status: req.body.status || tenant.status,
+        description: req.body.description || tenant.description,
         document: filePath,
       };
 
+      // Update tenant record
       await tenant.update(updatedData);
-      res.status(200).json(tenant);
+
+      // Re-fetch updated tenant + Unit info
+      const updatedTenant = await Tenant.findOne({
+        where: { id: tenant.id },
+        include: [
+          {
+            model: Unit,
+            attributes: [
+              "id",
+              "unitNumber",
+              "status",
+              "vacatedDate",
+              "rentedDate",
+            ],
+          },
+        ],
+      });
+
+      return res.status(200).json(updatedTenant);
     });
   } catch (error) {
+    console.error("Error updating tenant:", error);
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // Delete tenant by ID
 exports.deleteTenant = async (req, res) => {
@@ -312,12 +379,28 @@ exports.deleteTenant = async (req, res) => {
     const tenant = await Tenant.findOne({ where: { id: req.params.id } });
 
     if (!tenant) {
-      return res.status(404).json({ message: 'Tenant not found' });
+      return res.status(404).json({ message: "Tenant not found" });
     }
 
+    // Mark the associated unit as 'available' if tenant has one
+    if (tenant.unitId) {
+      await Unit.update(
+        {
+          status: "available",
+          vacatedDate: new Date(), // optional: update vacatedDate as well
+        },
+        { where: { id: tenant.unitId } }
+      );
+    }
+
+    // Delete the tenant
     await tenant.destroy();
-    res.status(200).json({ message: 'Tenant deleted successfully' });
+
+    res
+      .status(200)
+      .json({ message: "Tenant deleted and unit marked as available" });
   } catch (error) {
+    console.error("Error deleting tenant:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -331,7 +414,9 @@ exports.getTenantsByUnitId = async (req, res) => {
     });
 
     if (tenants.length === 0) {
-      return res.status(404).json({ message: 'No tenants found for this unit' });
+      return res
+        .status(404)
+        .json({ message: "No tenants found for this unit" });
     }
 
     res.status(200).json(tenants);
@@ -349,7 +434,9 @@ exports.getTenantsByFloorId = async (req, res) => {
     });
 
     if (tenants.length === 0) {
-      return res.status(404).json({ message: 'No tenants found for this floor' });
+      return res
+        .status(404)
+        .json({ message: "No tenants found for this floor" });
     }
     res.status(200).json(tenants);
   } catch (error) {
@@ -357,61 +444,69 @@ exports.getTenantsByFloorId = async (req, res) => {
   }
 };
 
-
 exports.filterTenants = async (req, res) => {
   try {
-    const { paymentStatus, leaseStartDateFrom, leaseStartDateTo, leaseEndDateFrom, leaseEndDateTo, status, unitId, floorId } = req.body;
+    const {
+      leaseStartDateFrom,
+      leaseStartDateTo,
+      leaseEndDateFrom,
+      leaseEndDateTo,
+      status,
+      unitId,
+      floorId,
+    } = req.body;
 
     let whereConditions = {};
 
-    if (paymentStatus) {
-      whereConditions.paymentStatus = paymentStatus;
-    }
-
-    if (status) {
-      whereConditions.status = status;
-    }
-
-    if (unitId) {
-      whereConditions.unitId = unitId;
-    }
-
-    if (floorId) {
-      whereConditions.floorId = floorId;
-    }
-
+    if (status) whereConditions.status = status;
+    if (unitId) whereConditions.unitId = unitId;
+    if (floorId) whereConditions.floorId = floorId;
     if (leaseStartDateFrom && leaseStartDateTo) {
       whereConditions.leaseStartDate = {
         [Op.between]: [leaseStartDateFrom, leaseStartDateTo],
       };
     }
-
     if (leaseEndDateFrom && leaseEndDateTo) {
       whereConditions.leaseEndDate = {
         [Op.between]: [leaseEndDateFrom, leaseEndDateTo],
       };
     }
+
     const tenants = await Tenant.findAll({
       where: whereConditions,
       include: [
         {
           model: Unit,
-          attributes: ['unitNumber'],
+          attributes: ["unitNumber"],
         },
         {
           model: Floor,
-          attributes: ['floorNumber'],
+          attributes: ["floorNumber"],
         },
       ],
     });
 
     if (!tenants.length) {
-      return res.status(404).json({ message: 'No tenants found with the given filters' });
+      return res.status(200).json([]);
     }
 
-    res.status(200).json(processTenantDetails(tenants));
+    const tenantsWithDetails = tenants.map((tenant) => {
+      const leaseStartDate = moment(tenant.leaseStartDate);
+      const leaseEndDate = moment(tenant.leaseEndDate);
+      const currentDate = moment();
 
+      const monthsPaid = leaseEndDate.diff(leaseStartDate, "months");
+      const remainingDays = leaseEndDate.diff(currentDate, "days");
 
+      return {
+        ...tenant.toJSON(),
+        documentUrl: tenant.document ? `${BASE_URL}${tenant.document}` : null,
+        monthsPaid,
+        remainingDays: remainingDays > 0 ? remainingDays : 0,
+      };
+    });
+
+    res.status(200).json(tenantsWithDetails);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -426,23 +521,25 @@ exports.getTenantsWithExpiringLease = async (req, res) => {
     const tenants = await Tenant.findAll({
       where: {
         leaseEndDate: {
-          [Op.between]: [today, tenDaysLater]
-        }
+          [Op.between]: [today, tenDaysLater],
+        },
       },
       include: [
         {
           model: Unit,
-          attributes: ['unitNumber'],
+          attributes: ["unitNumber"],
         },
         {
           model: Floor,
-          attributes: ['floorNumber'],
+          attributes: ["floorNumber"],
         },
       ],
     });
 
     if (!tenants.length) {
-      return res.status(404).json({ message: 'No tenants found with the given filters' });
+      return res
+        .status(404)
+        .json({ message: "No tenants found with the given filters" });
     }
 
     res.status(200).json(processTenantDetails(tenants));
@@ -451,19 +548,20 @@ exports.getTenantsWithExpiringLease = async (req, res) => {
   }
 };
 
-
 const processTenantDetails = (tenants) => {
-  const baseUploadPath = path.join(__dirname, '../uploads'); 
+  const baseUploadPath = path.join(__dirname, "../uploads");
 
-  return tenants.map(tenant => {
-    const documentFullPath = tenant.document ? path.join(baseUploadPath, tenant.document) : null;
+  return tenants.map((tenant) => {
+    const documentFullPath = tenant.document
+      ? path.join(baseUploadPath, tenant.document)
+      : null;
 
     const leaseStartDate = moment(tenant.leaseStartDate);
     const leaseEndDate = moment(tenant.leaseEndDate);
     const currentDate = moment();
 
-    const monthsPaid = leaseEndDate.diff(leaseStartDate, 'months');  
-    const remainingDays = leaseEndDate.diff(currentDate, 'days');
+    const monthsPaid = leaseEndDate.diff(leaseStartDate, "months");
+    const remainingDays = leaseEndDate.diff(currentDate, "days");
 
     return {
       ...tenant.toJSON(),

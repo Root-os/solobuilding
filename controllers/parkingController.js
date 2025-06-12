@@ -137,6 +137,7 @@ exports.addParking = async (req, res) => {
         return res.status(500).json({ message: error });
     }
 };
+
 exports.getAllParkings = async (req, res) => {
     try {
         

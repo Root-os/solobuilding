@@ -8,6 +8,9 @@ const { format } = require("fast-csv");
 const generatePDF = require("../helpers/createPdf");
 const generateExcel = require("../helpers/createExcel");
 const sendNotificationHelper= require('../helpers/sendAlert');
+const sendEmailMessage = require('../services/sendEmailMessage');
+const Role = require('../models/role');
+
 
 exports.createStockoutRequest = async (req, res) => {
     try {
@@ -28,7 +31,26 @@ exports.createStockoutRequest = async (req, res) => {
         const stockout = await Stockout.create({
             itemId,  reason,source, requestedQuantity, requestedBy, status: 'pending'
         });
-
+        // Send notification to admins
+        const admins = await User.findAll({
+            include: [{
+                model: Role,
+                where: { name: 'admin' },
+            }],
+        });
+        if (stockout && admins.length > 0) {
+            await Promise.all(
+                admins.map((admin) =>
+                    sendNotificationHelper({
+                        adminId: admin.id,
+                        title: 'New Stockout Request',
+                        body: `A new stockout request has been submitted by ${req.user.fname??''} ${req.user.lname??''}. Please check the stockout requests page for more details.`,
+                        type: 'New Stockout Request',
+                        receiver_type: 'staff',
+                    })
+                )
+            );
+        }
         return res.status(201).json(stockout);
     } catch (error) {
         return res.status(500).json({ message: error.message });
@@ -36,72 +58,136 @@ exports.createStockoutRequest = async (req, res) => {
 };
 
 exports.approveStockout = async (req, res) => {
-    try {
-const { error } = paramsSchema.validate(req.params);
-        if (error) {
-            return res.status(400).json({ message: error.details[0].message });
-        }
-        const { id } = req.params;
-        const approvedBy = req.user.id;
-        const {  status,approvedQuantity,approvalReason } = req.body;
-if (!approvedQuantity||approvedQuantity<=0) {
-    return res.status(400).json({ message: "Approved quantity is required and must be greater than zero" });
-}
-        // Fetch stockout request
-        const stockout = await Stockout.findByPk(id);
-        if (!stockout) return res.status(404).json({ message: "Stockout request not found" });
-
-        if (stockout.status !== 'pending') {
-            return res.status(400).json({ message: "Stockout request has already been processed" });
-        }
-if(status==='rejected'){
-    if (!approvalReason) {
-        return res.status(400).json({ message: "Approval reason is required for rejection" });
+  try {
+    // Validate request params
+    const { error } = paramsSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
     }
-    stockout.status = 'rejected';
+
+    const { id } = req.params;
+    const approvedBy = req.user.id;
+    const { status, approvedQuantity, approvalReason } = req.body;
+
+    // Find the stockout request
+    const stockout = await Stockout.findByPk(id);
+    if (!stockout) {
+      return res.status(404).json({ message: "Stockout request not found" });
+    }
+
+    if (stockout.status !== 'pending') {
+      return res.status(400).json({ message: "Stockout request has already been processed" });
+    }
+
+    // Get the requester details
+    const requester = await User.findByPk(stockout.requestedBy);
+
+    // Handle rejection
+    if (status === 'rejected') {
+      if (!approvalReason) {
+        return res.status(400).json({ message: "Approval reason is required for rejection" });
+      }
+
+      stockout.status = 'rejected';
+      stockout.approvedBy = approvedBy;
+      stockout.approvedAt = new Date();
+      stockout.approvedQuantity = 0;
+      stockout.approvalReason = approvalReason;
+      await stockout.save();
+
+      // Send in-app notification to requester
+      if (requester) {
+        sendNotificationHelper({
+          adminId: requester.id,
+          title: `Stockout Request Rejected`,
+          body: `Your stockout request has been rejected. Reason: ${approvalReason}`,
+          type: "Stockout Request",
+          receiver_type: "staff"
+        });
+      }
+
+      // Send email to requester
+      if (requester && requester.email) {
+        await sendEmailMessage({
+          email: requester.email,
+          fullName: requester.fullName || 'Requester',
+          title: `Stockout Request Rejected`,
+          body: `Your stockout request has been rejected. Reason: ${approvalReason}`
+        });
+      }
+
+      return res.status(200).json({ message: "Stockout request rejected successfully", stockout });
+    }
+
+    // Handle approval: Validate approved quantity
+    if (!approvedQuantity || approvedQuantity <= 0) {
+      return res.status(400).json({ message: "Approved quantity is required and must be greater than zero" });
+    }
+
+    // Find the item and check stock
+    const item = await Item.findByPk(stockout.itemId);
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    if (Number(approvedQuantity) > Number(item.itemAmount)) {
+      console.log(`Received approved quantity: ${approvedQuantity}, current stock: ${item.itemAmount}`);
+      return res.status(400).json({ message: "Insufficient stock for approval" });
+    }
+
+    // Update item stock
+    item.itemAmount -= approvedQuantity;
+    let isStockLow = false;
+    let itemLeft;
+    if (item.itemAmount < item.min_amount) {
+      isStockLow = true;
+      itemLeft = item.itemAmount;
+
+      // Notify low stock alert
+      sendNotificationHelper({
+        adminId: req.user.id,
+        title: "Low Stock Alert!",
+        body: `Stock of ${item.itemName} is running low. Only ${itemLeft} left, consider restocking.`
+      });
+    }
+    await item.save();
+
+    // Update stockout request with approved details
+    stockout.approvedQuantity = approvedQuantity;
     stockout.approvedBy = approvedBy;
     stockout.approvedAt = new Date();
-    stockout.approvedQuantity = 0;
+    stockout.status = 'approved';
     stockout.approvalReason = approvalReason;
     await stockout.save();
-    return res.status(200).json({ message: "Stockout request rejected successfully", stockout });
-}
-        // Fetch item
-        const item = await Item.findByPk(stockout.itemId);
-        if (!item) return res.status(404).json({ message: "Item not found" });
 
-        if (approvedQuantity > item.itemAmount) {
-            return res.status(400).json({ message: "Insufficient stock for approval" });
-        }
-
-        // Deduct stock
-        item.itemAmount -= approvedQuantity;
-        let isStockLow = false;
-        let itemLeft;
-        if(item.itemAmount<item.min_amount){
-            isStockLow = true;
-            itemLeft = item.itemAmount
-            sendNotificationHelper({
-                adminId: req.user.id,
-                title: "Low Stock Alert!",
-                body: `Stock of ${item.itemName} is running low. Only ${itemLeft} left, consider restocking.`
-            });
-            
-        }
-        await item.save();
-        // Update stockout record
-        stockout.approvedQuantity = approvedQuantity;
-        stockout.approvedBy = approvedBy;
-        stockout.approvedAt = new Date();
-        stockout.status = 'approved';
-        stockout.approvalReason = approvalReason;
-        await stockout.save();
-
-        return res.status(200).json({ message: "Stockout approved successfully", stockout });
-    } catch (error) {
-        return res.status(500).json({ message: error.message });
+    // Send in-app notification to requester for approval
+    if (requester) {
+      sendNotificationHelper({
+        adminId: requester.id,
+        title: `Stockout Request Approved`,
+        body: `Your stockout request for ${item.itemName} has been approved. Approved Quantity: ${approvedQuantity}. Reason: ${approvalReason || 'No reason provided'}`,
+        type: "Stockout Request",
+        receiver_type: "staff"
+      });
     }
+   const requesterName = `${requester.fname} ${requester.lname}`;
+
+    // Send email notification to requester for approval
+    if (requester && requester.email) {
+      await sendEmailMessage({
+        email: requester.email,
+        fullName: requesterName,
+        title: `Stockout Request Approved`,
+        body: `Your stockout request for ${item.itemName} has been approved. Approved Quantity: ${approvedQuantity}. Reason: ${approvalReason || 'No reason provided'}.`
+      });
+    }
+
+    return res.status(200).json({ message: "Stockout approved successfully", stockout });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
 };
+
 exports.getStockoutRequests = async (req, res) => {
     try {
         const { status } = req.query; // Optional filter by status
@@ -109,7 +195,7 @@ exports.getStockoutRequests = async (req, res) => {
 
         const stockouts = await Stockout.findAll({
             where: whereCondition,
-            include: [{ model: Item, attributes: ["itemName"] }, { model: User, attributes: ["fname","lname","email"] }]
+            include: [{ model: Item, attributes: ["itemName", "itemAmount", "min_amount"] }, { model: User, attributes: ["fname","lname","email"] }]
         });
 
         return res.status(200).json(stockouts);
@@ -117,11 +203,12 @@ exports.getStockoutRequests = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
 exports.getStockoutRequestById = async (req, res) => {
     try {
         const { id } = req.params;
         const stockout = await Stockout.findByPk(id, {
-            include: [{ model: Item, attributes: ["itemName"] }, { model: User, as: "requester", attributes: ["fullName"] }]
+            include: [{ model: Item, attributes: ["itemName"] }, { model: User, attributes: ["fullName"] }]
         });
 
         if (!stockout) return res.status(404).json({ message: "Stockout request not found" });
@@ -131,6 +218,22 @@ exports.getStockoutRequestById = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
+exports.mySetStockoutRequest = async (req, res) => {
+    try {
+        const  id  = req.user.id;
+        const stockout = await Stockout.findAll({where:{requestedBy:id}, 
+            include: [{ model: Item, attributes: ["itemName"] }, { model: User,  attributes: ["fname","lname"] }]
+        });
+
+        if (!stockout) return res.status(404).json({ message: "Stockout request not found" });
+
+        return res.status(200).json(stockout);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
 exports.cancelStockoutRequest = async (req, res) => {
     try {
         const { id } = req.params;
@@ -148,6 +251,7 @@ exports.cancelStockoutRequest = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
 exports.updateStockoutRequest = async (req, res) => {
     try {
         const { id } = req.params;
@@ -187,6 +291,7 @@ exports.updateStockoutRequest = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
 exports.deleteStockoutRequest = async (req, res) => {
     try {
         const { id } = req.params;
@@ -204,6 +309,7 @@ exports.deleteStockoutRequest = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
 exports.checkLowStock = async (req, res) => {
     try {
         const lowStockItems = await Item.findAll({ where: { itemAmount: { [Op.lte]: Sequelize.col("min_amount") } } });
@@ -222,7 +328,6 @@ exports.checkLowStock = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
-
 
 exports.exportStockoutReport = async (req, res) => {
     try {
@@ -318,6 +423,7 @@ exports.getStockMovementOverview = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
 exports.getStockoutLogs = async (req, res) => {
     try {
         const { startDate, endDate, status, source } = req.query;
