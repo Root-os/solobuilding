@@ -11,7 +11,7 @@ router.post("/login", userController.login);
 router.post("/logout",adminOrEmployeeAuth, userController.logout);
 
 // User Profile
-router.get("/me", userController.myProfile);
+router.get("/me", adminOrEmployeeAuth, userController.myProfile);
 router.put("/update",adminOrEmployeeAuth, userController.updateUser);
 router.put("/change-password",adminOrEmployeeAuth, userController.changePassword);
 

@@ -8,20 +8,17 @@ const storage = multer.diskStorage({
     cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
   }
 });
-
 // Check file type
 function checkFileType(file, cb) {
   const filetypes = /pdf|doc|docx/;
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = filetypes.test(file.mimetype);
-
   if (mimetype && extname) {
     return cb(null, true);
   } else {
     cb('Error: Files of type PDF, DOC, and DOCX only!');
   }
 }
-
 // Initialize upload
 const Fileupload = multer({
   storage: storage,

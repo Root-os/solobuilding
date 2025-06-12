@@ -43,6 +43,10 @@ const Setting = sequelize.define("Setting", {
         type: DataTypes.STRING,
         allowNull: true,
     },
+      qrImage: {  
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
     
 }, {
     tableName: "settings",

@@ -5,6 +5,79 @@ const Unit = require('../models/unit');
 const Floor = require('../models/floor');
 const moment = require('moment');
 const { Op } = require('sequelize');
+const User = require('../models/user');
+const Role = require('../models/role');
+const sendNotificationHelper = require('../helpers/sendAlert');
+const cron = require('node-cron');
+
+cron.schedule('0 8 * * *', async () => {
+  try {
+    const today = moment().startOf('day');
+    console.log(`Running utility due reminder job for date: ${today.toISOString()}`);
+
+    // Fetch last paid utility payments along with their bill type
+    const lastPaidPayments = await TenantPayment.findAll({
+      where: { status: 'Paid' },
+      include: [
+        {
+          model: Tenant,
+          attributes: ['fullName'],
+        },
+        {
+          model: BillType, // Include the BillType model to get the typeName
+          attributes: ['typeName'],
+        },
+      ],
+      order: [['endDate', 'DESC']],
+    });
+
+    if (!lastPaidPayments.length) {
+      console.log("No paid utility payments found.");
+      return;
+    }
+
+    // Get admins by role name
+    const adminRole = await Role.findOne({ where: { name: 'admin' } });
+    const admins = await User.findAll({ where: { roleId: adminRole.id } });
+
+    for (const payment of lastPaidPayments) {
+      const tenant = payment.Tenant;
+      const billType = payment.BillType; // Access the bill type info
+      const lastEndDate = moment(payment.endDate).startOf('day');
+      const diffInDays = today.diff(lastEndDate, 'days');
+      const formattedDate = lastEndDate.format('YYYY-MM-DD');
+
+      let message = '';
+
+      if (diffInDays < 0 && Math.abs(diffInDays) <= 2) {
+        message = `${billType.typeName} bill for tenant ${tenant.fullName} is due in ${Math.abs(diffInDays)} day(s), on ${formattedDate}.`;
+      } else if (diffInDays === 0) {
+        message = `${billType.typeName} bill for tenant ${tenant.fullName} is due today (${formattedDate}).`;
+      } else if (diffInDays > 0 && diffInDays <= 2) {
+        message = `${billType.typeName} bill for tenant ${tenant.fullName} was due on ${formattedDate} and is now ${diffInDays} day(s) overdue.`;
+      } else {
+        continue;
+      }
+
+      console.log(`Notification content: ${message}`);
+
+      await Promise.all(
+        admins.map((admin) =>
+          sendNotificationHelper({
+            adminId: admin.id,
+            title: `Utility Payment Reminder: ${billType.typeName}`,
+            body: message,
+            type: 'Utility Payment Reminder',
+            receiver_type: 'staff',
+          })
+        )
+      );
+    }
+  } catch (error) {
+    console.error("Error sending utility payment notifications:", error.message);
+    console.error(error.stack);
+  }
+});
 
 // Create a new tenant payment
 exports.createPayment = async (req, res) => {
@@ -34,7 +107,6 @@ exports.createPayment = async (req, res) => {
     res.status(500).json({ message: 'Error creating payment', error });
   }
 };
-
 
 // Get all tenant payments
 exports.getAllPayments = async (req, res) => {
@@ -141,7 +213,6 @@ exports.getAllPaymentByDate = async (req, res) => {
   }
 };
 
-
 // Get a specific payment by ID
 exports.getPaymentByTenantId = async (req, res) => {
   try {
@@ -163,7 +234,6 @@ exports.getPaymentByTenantId = async (req, res) => {
     res.status(500).json({ message: 'Error fetching payment', error: error.message });
   }
 };
-
 
 // Update a tenant payment
 exports.updatePayment = async (req, res) => {

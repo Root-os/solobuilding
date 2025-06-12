@@ -2,6 +2,11 @@ const Order = require('../models/order');
 const OrderType = require('../models/orderType');
 const Tenant = require('../models/tenant');
 const { orderValidationSchema, paramsSchema } = require('../helpers/schema');
+const { BASE_URL } = require('../config/config');
+const sendNotificationHelper= require('../helpers/sendAlert');
+const Role = require('../models/role');
+const User = require('../models/user');
+const sendEmailMessage = require('../services/sendEmailMessage');
 
 // Create Order
 exports.createOrder = async (req, res) => {
@@ -16,7 +21,7 @@ exports.createOrder = async (req, res) => {
     // Handle file upload (receiptImage)
     let receiptImagePath = null;
     if (req.file) {
-      receiptImagePath = req.file.path; // Store the uploaded file path in the database
+      receiptImagePath = req.file.path;
     }
 
     // Get order type to calculate total price
@@ -27,7 +32,6 @@ exports.createOrder = async (req, res) => {
 
     const totalprice = value.amount * orderType.price;
 
-    // Create the order, using tenantId from the token (not from the request body)
     const { orderDate, amount, status, notes, orderTypeId } = value;
 
     const newOrder = await Order.create({
@@ -35,13 +39,37 @@ exports.createOrder = async (req, res) => {
       amount,
       status,
       notes,
-      receiptImage: receiptImagePath, 
-      tenantId, 
+      receiptImage: receiptImagePath,
+      tenantId,
       orderTypeId,
       totalprice,
     });
 
+    // Find all admin users
+    const admins = await User.findAll({
+      include: [{
+        model: Role,
+        where: { name: 'admin' },
+      }],
+    });
+
+    // Send notification to all admins
+    if (admins.length > 0) {
+      await Promise.all(
+        admins.map((admin) =>
+          sendNotificationHelper({
+            adminId: admin.id,
+            title: 'New Order Submitted',
+            body: `A new order has been placed by tenant ${req.user.fullName ?? ''}. Please review it.`,
+            type: 'New Order',
+            receiver_type: 'admin',
+          })
+        )
+      );
+    }
+
     res.status(201).json(newOrder);
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -56,12 +84,18 @@ exports.getAllOrders = async (req, res) => {
         { model: OrderType }, // Include order type details
       ],
     });
-    res.status(200).json(orders);
+
+    // Add full URL for receiptImage
+    const ordersWithFullUrl = orders.map(order => ({
+      ...order.toJSON(),
+      receiptImage: order.receiptImage ? `${BASE_URL}/${order.receiptImage}` : null,
+    }));
+
+    res.status(200).json(ordersWithFullUrl);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-
 
 // Get Order by ID
 exports.getOrderById = async (req, res) => {
@@ -104,7 +138,13 @@ exports.getOrdersByTenantId = async (req, res) => {
       return res.status(404).json({ message: 'No orders found for this tenant' });
     }
 
-    res.status(200).json(orders);
+    // Add full URL for receiptImage
+    const ordersWithFullUrl = orders.map(order => ({
+      ...order.toJSON(),
+      receiptImage: order.receiptImage ? `${BASE_URL}/${order.receiptImage}` : null,
+    }));
+
+    res.status(200).json(ordersWithFullUrl);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -115,12 +155,14 @@ exports.getOrdersForCurrentTenant = async (req, res) => {
   try {
     const tenantId = req.user.id;
     if (!tenantId) {
-        return res.status(401).json({ message: "Unauthorized: Tenant ID missing" });
-      }
-      const tenant = await Tenant.findByPk(tenantId);
-      if (!tenant) {
-        return res.status(404).json({ message: "Tenant not found" });
-      }
+      return res.status(401).json({ message: "Unauthorized: Tenant ID missing" });
+    }
+
+    const tenant = await Tenant.findByPk(tenantId);
+    if (!tenant) {
+      return res.status(404).json({ message: "Tenant not found" });
+    }
+
     const orders = await Order.findAll({
       where: { tenantId },
       include: [
@@ -132,7 +174,13 @@ exports.getOrdersForCurrentTenant = async (req, res) => {
       return res.status(404).json({ message: 'No orders found for this tenant' });
     }
 
-    res.status(200).json(orders);
+    // Add full URL for receiptImage
+    const ordersWithFullUrl = orders.map(order => ({
+      ...order.toJSON(),
+      receiptImage: order.receiptImage ? `${BASE_URL}/${order.receiptImage}` : null,
+    }));
+
+    res.status(200).json(ordersWithFullUrl);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -143,6 +191,7 @@ exports.updateOrder = async (req, res) => {
   try {
     const tenantId = req.user.id;
     const { id } = req.params;
+    console.log(JSON.stringify(req.body))
     const { error, value } = orderValidationSchema.validate(req.body);
 
     if (error) {
@@ -194,35 +243,25 @@ exports.updateOrder = async (req, res) => {
   }
 };
 
-
 // Approve Order
 exports.approveOrder = async (req, res) => {
   try {
-    // Ensure the user is an admin (or adjust based on your logic)
     if (req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Unauthorized: Only admins can approve orders' });
     }
 
-    // Extract order ID from URL params and status from the request body
     const { id } = req.params;
     const { status } = req.body;
 
-    // Validate the incoming status to ensure it's one of the allowed values
-    if (!status || !['pending', 'completed', 'canceled'].includes(status)) {
-      return res.status(400).json({ message: 'Invalid status value. Allowed values are "pending", "completed", "canceled".' });
+    if (!status || !['pending', 'completed', 'canceled', 'ready', 'approved'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status value. Allowed values are "pending", "completed", "canceled", "ready", "approved".' });
     }
 
-    // Find the order by ID
     const order = await Order.findByPk(id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
 
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
-
-    // Update the order's status
     order.status = status;
 
-    // Recalculate totalPrice if necessary (based on your logic)
     if (order.amount || order.orderTypeId) {
       const orderType = await OrderType.findByPk(order.orderTypeId);
       if (orderType) {
@@ -230,10 +269,31 @@ exports.approveOrder = async (req, res) => {
       }
     }
 
-    // Save the updated order
     await order.save();
 
-    // Include tenant and order type in the response
+    const tenant = await Tenant.findByPk(order.tenantId);
+    if (tenant) {
+      const orderType = await OrderType.findByPk(order.orderTypeId);
+      const orderTypeName = orderType ? orderType.name : 'your service';
+
+      // ✅ Send in-app notification
+      await sendNotificationHelper({
+        adminId: tenant.id,
+        title: `Order ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        body: `Your order (ID: ${order.id}) for ${orderTypeName} has been marked as ${status}.`,
+        type: 'Order Status Update',
+        receiver_type: 'tenant',
+      });
+
+      // ✅ Send email
+      await sendEmailMessage({
+        email: tenant.email,
+        fullName: tenant.fullName,
+        title: `Your Order is ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        body: `Your order (ID: ${order.id}) for ${orderTypeName} has been marked as <b>${status}</b>.`,
+      });
+    }
+
     const updatedOrder = await Order.findByPk(order.id, {
       include: [
         { model: Tenant },

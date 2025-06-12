@@ -2,9 +2,9 @@ const  AssetType  = require('../models/assetType');
 
 exports.createAssetType = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, amount } = req.body;
     
-    const assetType = await AssetType.create({ name, description });
+    const assetType = await AssetType.create({ name, description, amount });
     
     res.status(201).json({
       success: true,
@@ -57,7 +57,7 @@ exports.getAssetType = async (req, res) => {
 
 exports.updateAssetType = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, amount } = req.body;
 
     const assetType = await AssetType.findByPk(req.params.id);
     if (!assetType) {
@@ -78,7 +78,7 @@ exports.updateAssetType = async (req, res) => {
       }
     }
 
-    await assetType.update({ name, description });
+    await assetType.update({ name, description, amount });
 
     res.status(200).json({
       success: true,

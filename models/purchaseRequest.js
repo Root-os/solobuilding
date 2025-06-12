@@ -23,8 +23,12 @@ const PurchaseRequest = sequelize.define(
       defaultValue: "pending",
     },
     amount: {
-      type: DataTypes.DECIMAL(10, 2),
+      type: DataTypes.INTEGER,
       allowNull: false,
+    },
+     approvedAmount: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
     requestDate: {
       type: DataTypes.DATE,

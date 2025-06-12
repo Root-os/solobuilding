@@ -22,12 +22,13 @@ router.use('/dashboard', require('./dashboardRoutes'));
 router.use('/withdrawal-request', require('./withdrawalRequestRoutes'));
 router.use('/email', require('./emailRoutes'));
 router.use('/auth', require('./authRoutes'));
-
+router.use('/share', require('./shareReceipt'));
 // Inventory
 router.use('/item-types', require('./itemCategory'));
 router.use('/items', require('./itemRoutes'));
 router.use('/setting', require('./settingRoutes'));
 router.use('/charging', require('./chargingRoute'));
+router.use('/building-law', require('./buildingLawRoutes'));
 
 //purchases
 router.use('/purchases', require('./purchaseRoute'));
@@ -46,6 +47,7 @@ router.use("/stockout", require("./stockoutRoutes"));
 //letter 
 router.use('/letter-type', require('./letterTypeRoute'));
 router.use('/letter', require('./letterRoute'));
+router.use('/letter-response', require('./letterResponse'));
 
 //asset
 router.use('/asset', require('./assetTypeRoute'));

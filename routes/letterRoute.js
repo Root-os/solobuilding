@@ -8,7 +8,7 @@ router.get("/", letterController.getAllLetters);
 router.get("/:id", letterController.getLetterById); 
 router.put("/:id", letterController.updateLetter); 
 router.delete("/:id", letterController.deleteLetter);
-
+router.get("/tenant/:id", letterController.getMyLetters);
 
 
 // Additional routes for letterController
