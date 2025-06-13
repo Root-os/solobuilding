@@ -5,6 +5,7 @@ const { Op } = require('sequelize');
 const {paymentRequestSchema,paramsSchema,paymentRequestStatusSchema} = require('../helpers/schema')
 const sendNotificationHelper= require('../helpers/sendAlert');
 const User = require('../models/user.js');
+
 // Create a payment request
 exports.createPaymentRequest = async (req, res) => {
   try {
@@ -21,7 +22,6 @@ exports.createPaymentRequest = async (req, res) => {
     if (!existingPaymentType) {
       return res.status(404).json({ message: 'Payment Type not found' });
     }
-
     const newPaymentRequest = await PaymentRequest.create({
       tenantId,
       message,
@@ -173,12 +173,12 @@ exports.reviewPayment = async (req, res) => {
 exports.getMyRequestFromAdmin = async (req, res) => {
   try {
     // Validate user ID
-    const { error } = paramsSchema.validate(req.user.id);
-    if (error) {
-      return res.status(400).json({ message: error.details[0].message });
+    if (!req.user || !req.user.id) {
+      return res.status(400).json({ message: 'User ID is required' });
     }
 
-    const { id } = req.user;
+    const  id  = Number(req.user.id);
+    console.log('Fetching payment requests for tenant ID:', id);
 
     // Fetch payment requests that belong to the user
     const paymentRequests = await PaymentRequest.findAll({
@@ -198,7 +198,6 @@ exports.getMyRequestFromAdmin = async (req, res) => {
     res.status(500).json({ message: 'Error retrieving payment requests', error: error.message });
   }
 };
-
 
 // Upload Payment Receipt
 exports.uploadReceipt = async (req, res) => {

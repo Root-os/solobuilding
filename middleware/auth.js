@@ -55,7 +55,6 @@ const verifyToken = (req, res,next) => {
   if (user.role !== "tenant") {
     return res.status(403).json({ success: false, message: "Access denied. Tenants only." });
   }
-
   next();
 };
 
