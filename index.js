@@ -1,22 +1,22 @@
-const express = require('express');
-const helmet = require('helmet');
-const cors = require('cors');
-const rateLimit = require('express-rate-limit');
-const xss = require('xss-clean');
-const hpp = require('hpp');
-const morgan = require('morgan');
-const cookieParser = require('cookie-parser');
-const path = require('path');
-const config = require('./config/config');
-const sequelize = require('./config/database');
-const defineAssociation = require('./models/association');
-const routes = require('./routes');
-const errorHandler = require('./middleware/errorHandler');
+const express = require("express");
+const helmet = require("helmet");
+const cors = require("cors");
+const rateLimit = require("express-rate-limit");
+const xss = require("xss-clean");
+const hpp = require("hpp");
+const morgan = require("morgan");
+const cookieParser = require("cookie-parser");
+const path = require("path");
+const config = require("./config/config");
+const sequelize = require("./config/database");
+const defineAssociation = require("./models/association");
+const routes = require("./routes");
+const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
-const PORT =  process.env.PORT||5000;
+const PORT = process.env.PORT || 5000;
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads/')));
+app.use("/uploads", express.static(path.join(__dirname, "uploads/")));
 // Security & Performance Middlewares
 app.use(helmet());
 // app.use(rateLimit({
@@ -24,14 +24,16 @@ app.use(helmet());
 //   max: 100,
 //   message: "Too many requests from this IP, please try again later.",
 // }));
-app.use(cors({
-  origin:"*", //config.CORS_ORIGIN?? "http://localhost:3000", 
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-}));
+app.use(
+  cors({
+    origin: "*", //config.CORS_ORIGIN?? "http://localhost:3000",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  })
+);
 app.use(xss());
 app.use(hpp());
-app.use(morgan('combined'));
+app.use(morgan("combined"));
 app.use(cookieParser());
 app.use(express.json());
 
@@ -46,20 +48,20 @@ const connectDB = async () => {
 };
 connectDB();
 
-defineAssociation(); // Define associations before syncing models
+defineAssociation();
 
-
-sequelize.sync({alter: false})
+sequelize
+  .sync({ force: false, alter: false })
   .then(() => {
-    console.log('Database & tables are up to date!');
+    console.log("Database & tables are up to date!");
   })
-  .catch(err => {
-    console.error('Error syncing database:', err);
+  .catch((err) => {
+    console.error("Error syncing database:", err);
   });
 
 // Routes
-app.use('/api', routes);
-app.get('/', (req, res) => res.send('Server is running happy coding!'));
+app.use("/api", routes);
+app.get("/", (req, res) => res.send("Server is running happy coding!"));
 
 // Handle 404 - Route Not Found
 app.use((req, res, next) => {
@@ -67,7 +69,6 @@ app.use((req, res, next) => {
   error.status = 404;
   next(error);
 });
-
 
 // Error Handling Middleware (MUST be last)
 app.use(errorHandler);
@@ -79,9 +80,8 @@ const shutdown = async () => {
   process.exit(0);
 };
 
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
 
 // Start Server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
