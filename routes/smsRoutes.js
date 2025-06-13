@@ -5,7 +5,13 @@ const {
   bulkSMSController,
   advancedOtpController,
   webhookController,
+  messageController,
 } = require("../controllers/smsController");
+const {
+  adminAuth,
+  tenantAuth,
+  AdminOrTenantAuth,
+} = require("../middleware/auth");
 
 const router = express.Router();
 const otpLimiter = rateLimit({
@@ -16,10 +22,22 @@ const otpLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-router.post("/send-sms", singleSMSController.sendSingleSMS);
-router.post("/send-bulk-sms", bulkSMSController.sendBulkSMS);
-router.post("/send-otp", otpLimiter, advancedOtpController.sendAdvancedOtp);
-router.post("/verify-otp", otpLimiter, advancedOtpController.verifyAdvancedOtp);
+router.post("/send-sms", adminAuth, singleSMSController.sendSingleSMS);
+router.post("/send-bulk-sms", adminAuth, bulkSMSController.sendBulkSMS);
+router.post(
+  "/send-otp",
+  AdminOrTenantAuth,
+  otpLimiter,
+  advancedOtpController.sendAdvancedOtp
+);
+router.post(
+  "/verify-otp",
+  AdminOrTenantAuth,
+  otpLimiter,
+  advancedOtpController.verifyAdvancedOtp
+);
 router.post("/webhook", webhookController.handleWebhook);
+router.get("/", AdminOrTenantAuth, messageController.getMessages);
+router.delete("/:id", AdminOrTenantAuth, messageController.deleteMessage);
 
 module.exports = router;
