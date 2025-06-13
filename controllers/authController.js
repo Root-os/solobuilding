@@ -245,6 +245,7 @@ exports.updateUser = async (req, res) => {
   }
 };
 
+
 exports.updateEmployee = async (req, res) => {
   try {
     const { id } = req.params;  // Get the employee ID from the URL parameter

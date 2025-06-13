@@ -1,0 +1,6462 @@
+{
+	"info": {
+		"_postman_id": "6c5bd2a7-7438-4151-b761-6d5ad80ac2a6",
+		"name": "Apartment managmnet",
+		"description": "# **base url** [<b>https://apartment.houseethiopia.com/</b>](https://apartment.houseethiopia.com/)**api/**",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "40922898"
+	},
+	"item": [
+		{
+			"name": "floor",
+			"item": [
+				{
+					"name": "creat",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"floorNumber\": \"3A\",\r\n  \"noUnits\": \"10\",\r\n  \"status\": \"active\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/floor",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"floor"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get floor",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/floor/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"floor",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"floorNumber\": \"2A\",\r\n  \"noUnits\": \"10\",\r\n  \"status\": \"available\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/floor/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"floor",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/floor/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"floor",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get free units by floor id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{remote}}/api/floor/1",
+							"host": [
+								"{{remote}}"
+							],
+							"path": [
+								"api",
+								"floor",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "unit",
+			"item": [
+				{
+					"name": "create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"unitNumber\": \"2A-304\",\r\n  \"size\": 200.0,\r\n  \"status\": \"available\",\r\n  \"availableEquipments\": [\"Generator\", \"Water Heater\"],\r\n  \"problems\": [\"Leaking pipe\", \"Malfunctioning light\"],\r\n  \"rentedDate\": \"2024-02-01T00:00:00.000Z\",\r\n  \"vacatedDate\": \"2024-12-01T00:00:00.000Z\",\r\n  \"floorId\": 1\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{local}}/api/unit",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"unit"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get unit",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/unit",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"unit"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get floor info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/unit/floor/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"unit",
+								"floor",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update unit",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"unitNumber\": \"2A-202\",\r\n  \"size\": 200.0,\r\n  \"status\": \"under_maintenance\",\r\n  \"availableEquipments\": [\"Generator\", \"Water Heater\"],\r\n  \"problems\": [\"Leaking pipe\", \"Malfunctioning light\"],\r\n  \"rentedDate\": \"2024-02-01T00:00:00.000Z\",\r\n  \"vacatedDate\": \"2024-12-01T00:00:00.000Z\",\r\n  \"floorId\": 2\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/unit/3",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"unit",
+								"3"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete Request",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/unit/3",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"unit",
+								"3"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "free units",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/unit/free/units",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"unit",
+								"free",
+								"units"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "rented units",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/unit/rented/units",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"unit",
+								"rented",
+								"units"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "tenant",
+			"item": [
+				{
+					"name": "tenant auth",
+					"item": [
+						{
+							"name": "login",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"email\":\"sami@gmail.com\",//\"phoneNumber\": \"0989787656\",//you can use email instead of phoneNumber\r\n  \"password\": \"lb2mzjko\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{remote}}/api/tenant-auth/login",
+									"host": [
+										"{{remote}}"
+									],
+									"path": [
+										"api",
+										"tenant-auth",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "change password",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"currentPassword\": \"securePassword123\",\r\n  \"newPassword\": \"newSecurePassword123\"\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/api/tenant-auth/login",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"api",
+										"tenant-auth",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "forgot password",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"email\": \"johndoe@example.com\"\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/api/tenant-auth/forgot-password",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"api",
+										"tenant-auth",
+										"forgot-password"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "reset password",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"password\": \"newSecurePassword123\"\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/api/tenant-auth/reset-password/:token",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"api",
+										"tenant-auth",
+										"reset-password",
+										":token"
+									],
+									"variable": [
+										{
+											"key": "token",
+											"value": ""
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "my profile",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{remote}}/api/tenant-auth/profile",
+									"host": [
+										"{{remote}}"
+									],
+									"path": [
+										"api",
+										"tenant-auth",
+										"profile"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "update profile",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"fullName\":\"tenant full name\",\r\n     \"phoneNumber\":\"0912345678\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/api/tenant-auth/profile",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"api",
+										"tenant-auth",
+										"profile"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "tenant vehicle",
+					"item": [
+						{
+							"name": "add vehicle",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:3002/api/tenant-vehicle/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"api",
+										"tenant-vehicle",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "get a single tenant vehicles",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:3002/api/tenant-vehicle/vehicles/:tenantId",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"api",
+										"tenant-vehicle",
+										"vehicles",
+										":tenantId"
+									],
+									"variable": [
+										{
+											"key": "tenantId",
+											"value": ""
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "update vehicle",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:3002/api/tenant-vehicle/:id",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"api",
+										"tenant-vehicle",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": ""
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "get single vehicle",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:3002/api/tenant-vehicle/:id",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"api",
+										"tenant-vehicle",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": ""
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "delete vehicle",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:3002/api/tenant-vehicle/:id",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"api",
+										"tenant-vehicle",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": ""
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "get all vehicles",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:3002/api/tenant-vehicle/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"api",
+										"tenant-vehicle",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "get by plate",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:3002/api/tenant-vehicle/carplate/:carPlate",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"api",
+										"tenant-vehicle",
+										"carplate",
+										":carPlate"
+									],
+									"variable": [
+										{
+											"key": "carPlate",
+											"value": ""
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "get vehicle with filter",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:3002/api/tenant-vehicle?tenantId=5&color=red&startDate=2024-01-01&carPlate=abc123",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"api",
+										"tenant-vehicle"
+									],
+									"query": [
+										{
+											"key": "tenantId",
+											"value": "5"
+										},
+										{
+											"key": "color",
+											"value": "red"
+										},
+										{
+											"key": "startDate",
+											"value": "2024-01-01"
+										},
+										{
+											"key": "carPlate",
+											"value": "abc123"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "create Tenant",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "document",
+									"type": "file",
+									"src": "/C:/Users/RUS/Desktop/birra/machine.jpg"
+								},
+								{
+									"key": "advance",
+									"value": "10",
+									"type": "text"
+								},
+								{
+									"key": "floorId",
+									"value": "1",
+									"type": "text"
+								},
+								{
+									"key": "unitId",
+									"value": "2",
+									"type": "text"
+								},
+								{
+									"key": "carName",
+									"value": "dfsd",
+									"type": "text"
+								},
+								{
+									"key": "carPlate",
+									"value": "sdfds",
+									"type": "text"
+								},
+								{
+									"key": "tin",
+									"value": "1234567",
+									"type": "text"
+								},
+								{
+									"key": "additionalNotes",
+									"value": "kdjdk",
+									"type": "text"
+								},
+								{
+									"key": "leaseEndDate",
+									"value": "2025/01/03",
+									"type": "text"
+								},
+								{
+									"key": "leaseStartDate",
+									"value": "2025/02/03",
+									"type": "text"
+								},
+								{
+									"key": "nationalId",
+									"value": "rodi",
+									"type": "text"
+								},
+								{
+									"key": "phoneNumber",
+									"value": "0915307009",
+									"type": "text"
+								},
+								{
+									"key": "fullName",
+									"value": "trtr",
+									"type": "text"
+								},
+								{
+									"key": "color",
+									"value": "car color",
+									"type": "text"
+								},
+								{
+									"key": "email",
+									"value": "rodi@gmail.com",
+									"type": "text"
+								},
+								{
+									"key": "amount",
+									"value": "10000",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{local}}/api/tenant",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"tenant"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get tennats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/tenant",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"tenant"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "fullName",
+									"value": "John Doe",
+									"type": "text"
+								},
+								{
+									"key": "phoneNumber",
+									"value": "0912345678",
+									"type": "text"
+								},
+								{
+									"key": "email",
+									"value": "johndoe@example.com",
+									"type": "text"
+								},
+								{
+									"key": "nationalId",
+									"value": "1234567890",
+									"type": "text"
+								},
+								{
+									"key": "leaseStartDate",
+									"value": "2025-01-01",
+									"type": "text"
+								},
+								{
+									"key": "leaseEndDate",
+									"value": "2025-03-012",
+									"type": "text"
+								},
+								{
+									"key": "paymentStatus",
+									"value": "due",
+									"type": "text"
+								},
+								{
+									"key": "additionalNotes",
+									"value": "Needs extra parking space",
+									"type": "text"
+								},
+								{
+									"key": "unitId",
+									"value": "10",
+									"type": "text"
+								},
+								{
+									"key": "floorId",
+									"value": "1",
+									"type": "text"
+								},
+								{
+									"key": "advance",
+									"value": "500",
+									"type": "text"
+								},
+								{
+									"key": "tin",
+									"value": "TIN123456",
+									"type": "text"
+								},
+								{
+									"key": "document",
+									"value": "document_url_here",
+									"type": "text"
+								},
+								{
+									"key": "status",
+									"value": "inactive",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Tenant for Unit 1B, Floor 2",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/tenant/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"tenant",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/tenant/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"tenant",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "tenant by unit",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/tenant/unit/5",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"tenant",
+								"unit",
+								"5"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get tenants by floor",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/tenant/floor/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"tenant",
+								"floor",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "tenant report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"paymentStatus\": \"due\",\r\n  \"leaseStartDateFrom\": \"2024-01-01\",\r\n  \"leaseStartDateTo\": \"2024-12-31\",\r\n  \"leaseEndDateFrom\": \"2024-06-01\",\r\n  \"leaseEndDateTo\": \"2024-12-31\",\r\n  \"status\": \"active\",\r\n  \"unitId\": 5,\r\n  \"floorId\": 2\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/tenant/filter",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"tenant",
+								"filter"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "ten days remaining tenants",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/tenant/10days/remaining",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"tenant",
+								"10days",
+								"remaining"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "bill type",
+			"item": [
+				{
+					"name": "create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"typeName\": \"Electricity\",\r\n  \"description\": \"Monthly electricity bill payment\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/bill-type",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"bill-type"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get bill type",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/bill-type",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"bill-type"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"typeName\": \"Electricity2\",\r\n  \"description\": \"Monthly electricity bill payment\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/bill-type/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"bill-type",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delte",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/bill-type/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"bill-type",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "tenant bill payments",
+			"item": [
+				{
+					"name": "add payments",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"tenantId\": 3,\r\n  \"billPaymentTypeId\": 2,\r\n  \"amount\": 1200.50,\r\n  \"startDate\": \"2024-02-01\",\r\n  \"endDate\": \"2024-02-28\",\r\n  \"status\": \"Pending\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/tenant-payments",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"tenant-payments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get payments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/tenant-payments",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"tenant-payments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update payments",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"tenantId\": 3,\r\n  \"billPaymentTypeId\": 2,\r\n  \"amount\": 200.50,\r\n  \"startDate\": \"2024-02-01\",\r\n  \"endDate\": \"2024-02-28\",\r\n  \"status\": \"Pending\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/tenant-payments/5",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"tenant-payments",
+								"5"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/tenant-payments/5",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"tenant-payments",
+								"5"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "by date",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/tenant-payments/by-date?startDate=2025-07-10&endDate=2025-02-10",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"tenant-payments",
+								"by-date"
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2025-07-10"
+								},
+								{
+									"key": "endDate",
+									"value": "2025-02-10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "tenant bill payments report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"startDate\": \"2024-02-01\",\r\n    \"endDate\": \"2024-02-28\",\r\n    \"billPaymentTypeId\": 3,\r\n    \"tenantId\": 7\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/tenant-payments/reports",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"tenant-payments",
+								"reports"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "payment by tenant id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/tenant-payments/3",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"tenant-payments",
+								"3"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "payment requests",
+			"item": [
+				{
+					"name": "payment type",
+					"item": [
+						{
+							"name": "create payment type",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"Rent Payment\",\r\n  \"description\": \"Payments for monthly house rent.\"\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{local}}/api/payment-types",
+									"host": [
+										"{{local}}"
+									],
+									"path": [
+										"api",
+										"payment-types"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "get all payment types",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{local}}/api/payment-types",
+									"host": [
+										"{{local}}"
+									],
+									"path": [
+										"api",
+										"payment-types"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{local}}/api/payment-types/:id",
+									"host": [
+										"{{local}}"
+									],
+									"path": [
+										"api",
+										"payment-types",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": ""
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "update type",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"Electricity Bill Payment\",\r\n  \"description\": \"Updated description for electricity payments.\"\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{local}}/api/payment-types/2",
+									"host": [
+										"{{local}}"
+									],
+									"path": [
+										"api",
+										"payment-types",
+										"2"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "delete type",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{local}}/api/payment-types/:id",
+									"host": [
+										"{{local}}"
+									],
+									"path": [
+										"api",
+										"payment-types",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": ""
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"tenantId\": 1,\r\n  \"message\": \"Monthly rent due\",\r\n  \"paymentTypeId\": 2,\r\n  \"level\": \"high\",\r\n  \"amount\": 1200,\r\n  \"dueDate\": \"2025-03-05\",\r\n  \"repeatedFor\": \"monthly\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/payment-requests",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"payment-requests"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/payment-requests",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"payment-requests"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"message\": \"Updated rent payment\",\r\n  \"level\": \"medium\",\r\n  \"amount\": 5500,\r\n  \"dueDate\": \"2025-04-10\",\r\n  \"status\": \"pending\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/payment-requests/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"payment-requests",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/payment-requests/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"payment-requests",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "approve or reject reques",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"status\": \"approved\"\r\n}\r\n//or {\"status\": \"rejected\"}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/payment-requests/review/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"payment-requests",
+								"review",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "upload receipt",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "receipt",
+									"type": "file",
+									"src": "/C:/Users/SAM/Desktop/bingo.jpg"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/payment-requests/upload-receipt/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"payment-requests",
+								"upload-receipt",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get my requests tenant",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/payment-requests/tenant/my-requests",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"payment-requests",
+								"tenant",
+								"my-requests"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get single request",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/payment-requests/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"payment-requests",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "rent collection",
+			"item": [
+				{
+					"name": "ceate",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"tenantId\": 2,\r\n  \"amountPaid\": 5000,\r\n  \"paymentDate\": \"2025-05-15\",\r\n  \"paymentMethod\": \"Bank Transfer\",\r\n  \"paymentFrequency\": \"Monthly\",\r\n  \"nextDueDate\": \"2025-05-15\",\r\n  \"status\": \"Paid\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/rent-collection",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"rent-collection"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/rent-collection",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"rent-collection"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get single tenat payment history",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/rent-collection/4",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"rent-collection",
+								"4"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"tenantId\": 4,\r\n  \"amountPaid\": 59000,\r\n  \"paymentDate\": \"2025-02-15\",\r\n  \"paymentMethod\": \"Bank Transfer\",\r\n  \"paymentFrequency\": \"Monthly\",\r\n  \"nextDueDate\": \"2025-04-15\",\r\n  \"status\": \"Paid\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/rent-collection/4",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"rent-collection",
+								"4"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/rent-collection/8",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"rent-collection",
+								"8"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get paymnets by status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/rent-collection/by-status/Pending",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"rent-collection",
+								"by-status",
+								"Pending"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "filter rent collection",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"paymentDateFrom\": \"2024-01-01\",\r\n  \"paymentDateTo\": \"2024-12-31\",\r\n  \"nextDueDateFrom\": \"2024-07-01\",\r\n  \"nextDueDateTo\": \"2024-12-31\",\r\n  \"paymentFrequency\": \"Monthly\",\r\n  \"status\": \"Pending\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/rent-collection/filter",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"rent-collection",
+								"filter"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "bill paymnets for goverment",
+			"item": [
+				{
+					"name": "create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"billTypeId\": 2,\r\n  \"amount\": 500.00,\r\n  \"startDate\": \"2024-02-01\",\r\n  \"endDate\": \"2024-02-28\",\r\n  \"status\": \"pending\",\r\n  \"paymentMethod\": \"Bank Transfer\",\r\n  \"description\": \"Monthly water bill for Apartment 305\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/bill-payments",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"bill-payments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get bills",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/bill-payments",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"bill-payments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"billTypeId\": 2,\r\n  \"amount\": 5080.00,\r\n  \"startDate\": \"2024-02-01\",\r\n  \"endDate\": \"2024-02-28\",\r\n  \"status\": \"pending\",\r\n  \"paymentMethod\": \"Bank Transfer\",\r\n  \"description\": \"Monthly water bill for Apartment 305\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/bill-payments/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"bill-payments",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/bill-payments/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"bill-payments",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "payment by status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/bill-payments/by-status/Pending",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"bill-payments",
+								"by-status",
+								"Pending"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "bill payment report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n     \"startDate\": \"2024-02-01\",\r\n           \"endDate\": \"2024-02-29\",\r\n           \"billTypeId\": 2,\r\n            \"createdAt\": \"2025-02-15\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/bill-payments/bill-report",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"bill-payments",
+								"bill-report"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "parking",
+			"item": [
+				{
+					"name": "add parking",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"carPlate\": \"ABC1234\",\r\n  \"carName\": \"Toyota Camry\",\r\n  \"driverName\": \"John Doe\",\r\n  \"driverPhone\": \"+251912345678\",\r\n  \"tenantId\": 1,\r\n  \"timeIn\": \"2025-02-15T08:00:00Z\",\r\n  \"timeOut\": \"2025-02-15T10:00:00Z\",\r\n  \"isTenant\": true,\r\n  \"status\": \"onparking\",\r\n  \"parkingSpaceId\":\"1\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/parking",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"parking"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \r\n  \"carName\": \"Toyota Camry\",\r\n  \"driverName\": \"Jane Doe\",\r\n  \"driverPhone\": \"+251912345679\",\r\n  \"tenantId\": 1,\r\n  \"timeIn\": \"2025-02-15T08:00:00Z\",\r\n  \"timeOut\": \"2025-02-15T11:00:00Z\",\r\n  \"isTenant\": true,\r\n  \"status\": \"completed\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/parking/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"parking",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get parking",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/parking/",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"parking",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get parking by status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/parking/by-status/completed",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"parking",
+								"by-status",
+								"completed"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "parking report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n       \r\n       \r\n        \"carPlate\": \"ABC1234\",\r\n        \"carName\": \"Toyota Camry\",\r\n        \"driverName\": \"Jane Doe\",\r\n        \"driverPhone\": \"+251912345679\",\r\n        \"tenantId\": 3,\r\n        \r\n        \"isTenant\": true,\r\n        \"status\": \"completed\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/parking/report/all",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"parking",
+								"report",
+								"all"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "expense",
+			"item": [
+				{
+					"name": "add expense type",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\":\"test\",\r\n    \"description\":\"test\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/expense-type",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"expense-type"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get expense type",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/expense-type",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"expense-type"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update expense type",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\":\"updated\",\r\n    \"description\":\"test\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/expense-type/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"expense-type",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete expense type",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/expense-type/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"expense-type",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "add expense",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "\r\n  {\r\n    \"amount\": 250.75,\r\n    \"date\": \"2024-02-15\",\r\n    \"description\": \"Flight ticket for client meeting\",\r\n    \"expenseTypeId\": 2\r\n  }\r\n \r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/expense/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"expense",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get expense",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{remote}}/api/expense",
+							"host": [
+								"{{remote}}"
+							],
+							"path": [
+								"api",
+								"expense"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update expnses",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "\r\n  {\r\n    \"amount\": 2350.75,\r\n    \"date\": \"2024-02-15\",\r\n    \"description\": \"Flight ticket for client meeting\",\r\n    \"expenseTypeId\": 2\r\n  }\r\n \r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/expense//1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"expense",
+								"",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete expnses",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/expense//1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"expense",
+								"",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "expense report by date and type",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \r\n  \"expenseTypeId\": 2,\r\n  \"startDate\":\"2024-01-01\",\r\n  \"endDate\":\"2024-02-28\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/expense/filter",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"expense",
+								"filter"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "inventory",
+			"item": [
+				{
+					"name": "add item types",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"typeName\": \"Electronics\",\r\n  \"description\": \"Items such as phones, laptops, etc.\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/item-types",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"item-types"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update item types",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"typeName\": \"Electronics\",\r\n  \"description\": \"Items such as phones, laptops, etc.\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/item-types/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"item-types",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get item types",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/item-types/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"item-types",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete item typos",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/item-types/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"item-types",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "add items",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"itemName\": \"Laptop\",\r\n  \"expirationDate\": \"2026-05-10\",\r\n  \"itemAmount\": 5,\r\n  \"itemTypeId\": 2,\r\n  \"unit\": \"pcs\",\r\n  \"itemCategory\": \"Electronics\",\r\n  \"itemDetails\": \"Brand new gaming laptop with high performance.\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/items",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"items"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get items",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://apartment.houseethiopia.com/api/items",
+							"protocol": "https",
+							"host": [
+								"apartment",
+								"houseethiopia",
+								"com"
+							],
+							"path": [
+								"api",
+								"items"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "updates items",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"itemName\": \"Laptop\",\r\n  \"expirationDate\": \"2026-05-10\",\r\n  \"itemAmount\": 5,\r\n  \"itemTypeId\": 2,\r\n  \"unit\": \"pcs\",\r\n  \"itemCategory\": \"Electronics\",\r\n  \"itemDetails\": \"Brand new gaming laptop with high performance.\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/items/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"items",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/items/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"items",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get expired items",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/items/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"items",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "setting",
+			"item": [
+				{
+					"name": "create setting",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": ""
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get setting",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/setting",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"setting"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"key\": \"parking_price\",\r\n    \"value\": \"120\",\r\n    \"description\": \"Parking fee per hour in ETB\"\r\n  }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/setting/parking_price",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"setting",
+								"parking_price"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "charging",
+			"item": [
+				{
+					"name": "add charging",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"carPlate\": \"ABC123\",\r\n  \"carName\": \"Tesla Model S\",\r\n  \"isTenant\": true,\r\n  \"tenantId\": 1,  // Use an existing tenant ID\r\n  \"chargingStartTime\": \"2025-02-16T08:00:00Z\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/charging",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"charging"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get charging",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/charging",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"charging"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \r\n    \"carPlate\": \"ABC1p23\",\r\n    \"carName\": \"Tesla Model S\",\r\n    \"isTenant\": true,\r\n    \"tenantId\": 3,\r\n    \"driverName\": null,\r\n    \"driverPhone\": null,\r\n    \"chargingStartTime\": \"2025-02-16T08:00:00.000Z\",\r\n    \"chargingEndTime\": null,\r\n    \"chargingCost\": 100,\r\n    \"status\": \"charging\"\r\n    \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/charging/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"charging",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/charging/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"charging",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"carPlate\": \"ABC123\",\r\n  \"carName\": \"Tesla Model S\",\r\n  \"isTenant\": true,\r\n  \"tenantId\": 1,  \r\n  \"chargingStartTime\": \"2025-02-16T08:00:00Z\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/charging/report",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"charging",
+								"report"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "complaint",
+			"item": [
+				{
+					"name": "submit complaint",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "images",
+									"type": "file",
+									"src": "/C:/Users/SAM/Desktop/bingo.jpg"
+								},
+								{
+									"key": " tenantId",
+									"value": "2",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "electric is not working",
+									"description": "any description about the complain to submit",
+									"type": "text"
+								},
+								{
+									"key": "urgency",
+									"value": "low",
+									"description": "// \"medium\", \"high\",\"low\"",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/complaints/submit",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"complaints",
+								"submit"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "view all complaint",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/complaints/all",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"complaints",
+								"all"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "assign complaint to staff",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \r\n    \"complaintId\":1,\r\n     \"employeeId\":3 \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/complaints/assign",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"complaints",
+								"assign"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update complaint status",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \r\n    \"complaintId\":3, \r\n    \"status\":\"pending \"//\"pending\", \"in_progress\", \"resolved\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/complaints/update-status",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"complaints",
+								"update-status"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "tenant confirm or reopen complaint",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \r\n    \"complaintId\":3, \r\n    \"feedback\":\"satisfied\" //'satisfied', 'not_satisfied' \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/complaints/confirm-resolution",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"complaints",
+								"confirm-resolution"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete complaint",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/complaints/delete/:complaintId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"complaints",
+								"delete",
+								":complaintId"
+							],
+							"variable": [
+								{
+									"key": "complaintId",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get single complaint",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/complaints/get/:complaintId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"complaints",
+								"get",
+								":complaintId"
+							],
+							"variable": [
+								{
+									"key": "complaintId",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get tenant complaint",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/complaints/tenant/:tenantId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"complaints",
+								"tenant",
+								":tenantId"
+							],
+							"variable": [
+								{
+									"key": "tenantId",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get employee assigned complaint",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/complaints/assigned/:employeeId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"complaints",
+								"assigned",
+								":employeeId"
+							],
+							"variable": [
+								{
+									"key": "employeeId",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "dashboard",
+			"item": [
+				{
+					"name": "dashboard stat",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{remote}}/api/dashboard",
+							"host": [
+								"{{remote}}"
+							],
+							"path": [
+								"api",
+								"dashboard"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "tenant dashboard",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywiZnVsbE5hbWUiOiJ0cnRyIiwicm9sZSI6InRlbmFudCIsImlhdCI6MTc0MDk5Mjk4MSwiZXhwIjoxNzQxMDAzNzgxfQ.YRysRhOlON7AyoUec4O0WlV1PSSBBIq0kj4R602WtEY",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/dashboard/for-tenant",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"dashboard",
+								"for-tenant"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "notification",
+			"item": [
+				{
+					"name": "notification type",
+					"item": [
+						{
+							"name": "add notification type",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZm5hbWUiOiJKb2huIiwibG5hbWUiOiJEb2UiLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDA2NjI4ODIsImV4cCI6MTc0MDY3MzY4Mn0.mAckfzHwJCjr1Di-u-4oXA9YcqtZbpRL6hhLZTZLugg",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"Reminder\"\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{local}}/api/notification-type",
+									"host": [
+										"{{local}}"
+									],
+									"path": [
+										"api",
+										"notification-type"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "get notification type",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:3002/api/notification-type",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"api",
+										"notification-type"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "update notification typeequest",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"Reminder\",\r\n  \"description\": \"Urgent rehhminders for tenants.\"\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:3002/api/notification-type/1",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"api",
+										"notification-type",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "delete type",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:3002/api/notification-type/1",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "3002",
+									"path": [
+										"api",
+										"notification-type",
+										"1"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "notification for single tenant or user",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"receiver_id\": 1,\r\n  \"receiver_type\": \"tenant\",\r\n  \"title\": \"Payment Due Reminder\",\r\n  \"body\": \"Your rent payment is due by the end of the month.\",\r\n  \"type_id\": 2\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{local}}/api/notification/create",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"notification",
+								"create"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update notifcation",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"Updated Payment Reminder\",\r\n  \"body\": \"Your rent payment is due in 3 days.\",\r\n  \"type_id\": 2,\r\n  \"isRead\": false\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/notification/update/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"notification",
+								"update",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "bulk notification",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"Building Maintenance Update\",\r\n  \"body\": \"Scheduled maintenance will occur this weekend.\",\r\n  \"type_id\": 1,\r\n  \"receiver_type\": \"tenant\",\r\n  \"senderId\": 1\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/notification/group",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"notification",
+								"group"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get notification by id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://apartment.houseethiopia.com/api/notification/get-by-id/2",
+							"protocol": "https",
+							"host": [
+								"apartment",
+								"houseethiopia",
+								"com"
+							],
+							"path": [
+								"api",
+								"notification",
+								"get-by-id",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "notification for loggedin",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://apartment.houseethiopia.com/api/notification/my-notification",
+							"protocol": "https",
+							"host": [
+								"apartment",
+								"houseethiopia",
+								"com"
+							],
+							"path": [
+								"api",
+								"notification",
+								"my-notification"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "mark as read",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/notification/mark-as-read/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"notification",
+								"mark-as-read",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get all notification",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{remote}}/api/notification/all",
+							"host": [
+								"{{remote}}"
+							],
+							"path": [
+								"api",
+								"notification",
+								"all"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete notification",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/notification/delete/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"notification",
+								"delete",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "notification for login staff",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://apartment.houseethiopia.com/api/notification/staff-notification",
+							"protocol": "https",
+							"host": [
+								"apartment",
+								"houseethiopia",
+								"com"
+							],
+							"path": [
+								"api",
+								"notification",
+								"staff-notification"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete notification staff",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/notification/staff-delete/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"notification",
+								"staff-delete",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "mark as read staff",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/notification/staff-mark-as-read/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"notification",
+								"staff-mark-as-read",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "admin delete notification by id",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/notification/delete-admin/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"notification",
+								"delete-admin",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "withdrawal request",
+			"item": [
+				{
+					"name": "submit withdrawal request",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"terminationDate\": \"2025-03-15\",\r\n  \"reason\": \"Relocating to a new city.\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/withdrawal-request/submit",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"withdrawal-request",
+								"submit"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get all request",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/withdrawal-request/all",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"withdrawal-request",
+								"all"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "my request tenant",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/withdrawal-request/tenant/my-requests",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"withdrawal-request",
+								"tenant",
+								"my-requests"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "assigned to me employee",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/withdrawal-request/employee/my-requests",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"withdrawal-request",
+								"employee",
+								"my-requests"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "review request",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"requestId\": 1,\r\n  \"status\": \"approved\",\r\n  \"adminResponse\": \"Your request has been approved. Please return the keys by the termination date.\"\r\n}\r\n\r\n// {\r\n//   \"requestId\": 1,\r\n//   \"status\": \"rejected\",\r\n//   \"adminResponse\": \"Your request is rejected due to pending dues.\"\r\n// }\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/withdrawal-request/review",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"withdrawal-request",
+								"review"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "assign employee",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"requestId\": 1,\r\n  \"employeeId\": 5\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/withdrawal-request/assign-employee",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"withdrawal-request",
+								"assign-employee"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "tenant feedback",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"requestId\": 1,\r\n  \"tenantFeedback\": \"I have cleared all dues, please reconsider my request.\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/withdrawal-request/feedback",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"withdrawal-request",
+								"feedback"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "finalize request",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"requestId\": 1,\r\n  \"depositRefundStatus\": \"full\"\r\n}\r\n\r\n// {\r\n//   \"requestId\": 1,\r\n//   \"depositRefundStatus\": \"partial\"\r\n// }\r\n\r\n// {\r\n//   \"requestId\": 1,\r\n//   \"depositRefundStatus\": \"not_processed\"\r\n// }\r\n\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/withdrawal-request/finalize",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"withdrawal-request",
+								"finalize"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete request",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/withdrawal-request/delete/1",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"withdrawal-request",
+								"delete",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "email",
+			"item": [
+				{
+					"name": "send single email",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZm5hbWUiOiJKb2huIiwibG5hbWUiOiJEb2UiLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDAzNDUzNDcsImV4cCI6MTc0MDM1NjE0N30.xw-7WYw_OUxdQrIfDMRGjEWD-Icykh04Zzg5c4CXsvM",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"receiverId\": 1,\r\n  \"subject\": \"Welcome to the Apartment\",\r\n  \"content\": \"Your rent agreement has been updated.\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/email/send",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"email",
+								"send"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "send bulk email",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"subject\": \"Important Notice\",\r\n  \"content\": \"The maintenance team will visit tomorrow.\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/email/send-bulk",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"email",
+								"send-bulk"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get recieved emails",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/email/received",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"email",
+								"received"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get sent emails",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/email/sent",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"email",
+								"sent"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "mark as read",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/email/mark-read/:emailId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"email",
+								"mark-read",
+								":emailId"
+							],
+							"variable": [
+								{
+									"key": "emailId",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete email",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/email/delete/:emailId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"email",
+								"delete",
+								":emailId"
+							],
+							"variable": [
+								{
+									"key": "emailId",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "auth",
+			"item": [
+				{
+					"name": "register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"fname\": \"John\",\r\n  \"lname\": \"Doe\",\r\n  \"email\": \"ab@ab.com\",\r\n  \"password\": \"123456\",\r\n  \"roleId\": 1,\r\n  \"phone\": \"1234567899\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://apartment-backend.softwareethiopia.com/api/auth/register",
+							"protocol": "https",
+							"host": [
+								"apartment-backend",
+								"softwareethiopia",
+								"com"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"email\": \"johndoe@gmail.com\",\r\n  \"password\": \"123456\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{remote}}/api/auth/login",
+							"host": [
+								"{{remote}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "logout",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/auth/logout",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "my profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/auth/me",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"auth",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"fname\": \"John\",\r\n  \"lname\": \"Smith\",\r\n  \"phone\":\"0912345678\",\r\n  \"role\": \"employee\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/auth/update/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"auth",
+								"update",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "change password",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"currentPassword\": \"securePassword123\",\r\n  \"newPassword\": \"newSecurePassword123\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/auth/change-password",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"auth",
+								"change-password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get all user",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/auth/users",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"auth",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get single user",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/auth/user/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"auth",
+								"user",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete user",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/auth/delete/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"auth",
+								"delete",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "verify session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/auth/verify-session",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"auth",
+								"verify-session"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "forgot password",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"email\": \"johndoe@example.com\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/auth/forgot-password",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"auth",
+								"forgot-password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "reset password",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"password\": \"newSecurePassword123\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3002/api/auth/reset-password/:resetToken",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"auth",
+								"reset-password",
+								":resetToken"
+							],
+							"variable": [
+								{
+									"key": "resetToken",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete account",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/api/auth/delete-my-account",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3002",
+							"path": [
+								"api",
+								"auth",
+								"delete-my-account"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get all employee",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{remote}}/api/auth/employee",
+							"host": [
+								"{{remote}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"employee"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "register employee",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fname\": \"John\",\n  \"lname\": \"employeed\",\n  \"email\": \"emp@ab.com\",\n  \"password\": \"123456\",\n  \"phone\": \"1234567890\",\n  \"salary\": 50000,\n  \"position\": \"Software Engineer\",\n  \"hireDate\": \"2025-03-01\",\n  \"shift\": \"day\",\n  \"department\": \"IT\",\n  \"employmentType\": \"full-time\",  // Optional: Could be 'full-time', 'part-time', or 'contract'\n  \"emergencyContact\": \"9876543210\",  // Optional\n  \"address\": \"1234 Elm Street, City, Country\",  // Optional\n  \"bankAccount\": \"123-456-789\"  // Optional\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{remote}}/api/auth/register/employee",
+							"host": [
+								"{{remote}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register",
+								"employee"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "employee salary",
+			"item": [
+				{
+					"name": "single payment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"employeeId\": 5,\r\n  \"paymentMethod\": \"bank_transfer\",\r\n  \"paymentFromDate\": \"2025-03-01T00:00:00Z\",\r\n  \"paymentToDate\": \"2025-03-31T23:59:59Z\",\r\n  \"status\": \"Paid\",//optional if the payment is not completed\r\n  \"allowance\":34//optional like transport allowanse and bonus\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{remote}}/api/salary-payments/pay",
+							"host": [
+								"{{remote}}"
+							],
+							"path": [
+								"api",
+								"salary-payments",
+								"pay"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "my salary history",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/salary-payments/my-history",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"salary-payments",
+								"my-history"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get all history",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{remote}}/api/salary-payments/all",
+							"host": [
+								"{{remote}}"
+							],
+							"path": [
+								"api",
+								"salary-payments",
+								"all"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "mass payment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"paymentMethod\": \"cash\",\r\n  \"paymentFromDate\": \"2025-03-01T00:00:00Z\",\r\n  \"paymentToDate\": \"2025-03-31T23:59:59Z\",\r\n  \"status\": \"pending\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{remote}}/api/salary-payments/mass-pay",
+							"host": [
+								"{{remote}}"
+							],
+							"path": [
+								"api",
+								"salary-payments",
+								"mass-pay"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update salary payment",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"paymentMethod\":\"any string\",//optional\r\n     \"status\":\"Paid\"//\"Paid\", \"Pending\", \"Failed\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{local}}/api/salary-payments/:id",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"salary-payments",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete salary payment",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/salary-payments/:id",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"salary-payments",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "stockOut",
+			"item": [
+				{
+					"name": "initiate stockout request",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"itemId\": 1,\r\n    \"source\": \"store\",//\"store\", \"warehouse\", \"supplier\"\r\n    \"reason\": \"Regular supply\",\r\n    \"requestedQuantity\": 5\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{local}}/api/stockout/request",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"stockout",
+								"request"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "approve or reject request",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"status\": \"approved\",\r\n    \"approvedQuantity\": 5,\r\n    \"approvalReason\": \"Request valid, sufficient stock available\"\r\n}\r\n// {\r\n//     \"status\": \"rejected\",\r\n//     \"approvalReason\": \"Request exceeds allowable stock limit\"\r\n// }\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{local}}/api/stockout/approve/:id",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"stockout",
+								"approve",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"itemId\": 2,\r\n    \"source\": \"warehouse\",//\"store\", \"warehouse\", \"supplier\"\r\n    \"reason\": \"Emergency replacement\",\r\n    \"requestedQuantity\": 3\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{local}}/api/stockout/:id",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"stockout",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "cancel stockout request",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/stockout/cance-requestl/:id",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"stockout",
+								"cance-requestl",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete stockout",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/stockout/:id",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"stockout",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get all stockout",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{remote}}/api/stockout",
+							"host": [
+								"{{remote}}"
+							],
+							"path": [
+								"api",
+								"stockout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get by id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/stockout/:id",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"stockout",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get low level stocks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/stockout/low-stock/check",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"stockout",
+								"low-stock",
+								"check"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "export report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/stockout/export?period=daily&formatType=csv",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"stockout",
+								"export"
+							],
+							"query": [
+								{
+									"key": "period",
+									"value": "daily",
+									"description": "//period: \"daily\" or \"monthly\","
+								},
+								{
+									"key": "formatType",
+									"value": "csv",
+									"description": "//  formatType: \"csv\", \"pdf\", or  \"excel\""
+								}
+							]
+						},
+						"description": "The API endpoint `/api/stockout/export` is a GET request used to export stockout data. It accepts query parameters `period` and `formatType` to specify the period and format type of the export.\n\n### Response\n\nThe response returned has a status code of 500 and a Content-Type of `application/json`. The response body is a JSON object with a key `message` of type string.\n\n``` json\n{\n    \"message\": \"\"\n}\n\n ```"
+					},
+					"response": []
+				},
+				{
+					"name": "for requester",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/stockout/for-requester",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"stockout",
+								"for-requester"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "tenant inventory in and out",
+			"item": [
+				{
+					"name": "get all",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/tenant-inventory",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"tenant-inventory"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get tenant inventories (tenant)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/tenant-inventory/tenant",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"tenant-inventory",
+								"tenant"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get tenant item by id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/tenant-inventory/:id",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"tenant-inventory",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "# Get Tenant Inventory Details\n\nThis endpoint retrieves the inventory details for a specific tenant identified by the `id` parameter.\n\n## Response\n\nThe response for this request is a JSON object representing the inventory details for the specified tenant. The JSON schema for the response can be documented as follows:\n\n``` json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"id\": {\n      \"type\": \"string\",\n      \"description\": \"The unique identifier for the tenant\"\n    },\n    \"name\": {\n      \"type\": \"string\",\n      \"description\": \"The name of the tenant\"\n    },\n    \"inventory\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"item_id\": {\n            \"type\": \"string\",\n            \"description\": \"The unique identifier for the inventory item\"\n          },\n          \"item_name\": {\n            \"type\": \"string\",\n            \"description\": \"The name of the inventory item\"\n          },\n          \"quantity\": {\n            \"type\": \"integer\",\n            \"description\": \"The quantity of the inventory item available\"\n          }\n        }\n      }\n    }\n  }\n}\n\n ```"
+					},
+					"response": []
+				},
+				{
+					"name": "delete inventory",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/tenant-inventory/1",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"tenant-inventory",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update tenant inventory",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"tenantId\": 1,//optional\r\n  \"type\": \"move-out\",//optional move-in, move-out\r\n  \"items\": [\r\n    {\r\n      \"name\": \"Sofa\",\r\n      \"quantity\": 1,\r\n      \"condition\": \"Used\"\r\n    }\r\n  ],//optional but if it is it have atleast one item\r\n  \"notes\": \"Tenant moved out.\"//optional\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{local}}/api/tenant-inventory/3",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"tenant-inventory",
+								"3"
+							]
+						},
+						"description": "### Update Tenant Inventory\n\nThis endpoint allows the client to update the inventory for a specific tenant.\n\n#### Request Body\n\n- `tenantId` (number) - The ID of the tenant.\n    \n- `type` (string) - The type of inventory update, e.g., \"move-out\".\n    \n- `items` (array) - An array of objects containing the details of the items being updated, including `name` (string), `quantity` (number), and `condition` (string).\n    \n- `notes` (string) - Additional notes related to the inventory update.\n    \n\n#### Response\n\nThe response will be in JSON format with the following schema:\n\n``` json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"success\": {\n      \"type\": \"boolean\"\n    },\n    \"inventory\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"id\": {\n          \"type\": \"number\"\n        },\n        \"tenantId\": {\n          \"type\": \"number\"\n        },\n        \"type\": {\n          \"type\": \"string\"\n        },\n        \"items\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"name\": {\n                \"type\": \"string\"\n              },\n              \"quantity\": {\n                \"type\": \"number\"\n              },\n              \"condition\": {\n                \"type\": \"string\"\n              }\n            }\n          }\n        },\n        \"checkedBy\": {\n          \"type\": \"number\"\n        },\n        \"notes\": {\n          \"type\": \"string\"\n        },\n        \"createdAt\": {\n          \"type\": \"string\"\n        },\n        \"updatedAt\": {\n          \"type\": \"string\"\n        }\n      }\n    }\n  }\n}\n\n ```"
+					},
+					"response": []
+				},
+				{
+					"name": "add tenant inventory",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"tenantId\": 1,\r\n  \"type\": \"move-in\",//move-in, move-out\r\n  \"items\": [\r\n    { \"name\": \"Sofa\", \"condition\": \"Good\", \"quantity\": 1 },\r\n    { \"name\": \"Table\", \"condition\": \"New\", \"quantity\": 1 },\r\n    { \"name\": \"Bed\", \"condition\": \"Slightly Used\", \"quantity\": 2 }\r\n  ],\r\n  \"notes\": \"Initial check-in inventory\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{remote}}/api/tenant-inventory",
+							"host": [
+								"{{remote}}"
+							],
+							"path": [
+								"api",
+								"tenant-inventory"
+							]
+						},
+						"description": "### POST /api/tenant-inventory\n\nThis endpoint is used to submit the inventory details for a specific tenant.\n\n#### Request Body\n\n- tenantId (number): The ID of the tenant.\n    \n- type (string): The type of inventory (e.g., move-in, move-out).\n    \n- items (array): An array of objects containing the details of each item in the inventory, including name, condition, and quantity.\n    \n- notes (string): Additional notes related to the inventory submission.\n    \n\n#### Response\n\nThe response will be in the form of a JSON schema:\n\n``` json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"success\": {\n      \"type\": \"boolean\"\n    },\n    \"inventory\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"id\": {\n          \"type\": \"number\"\n        },\n        \"tenantId\": {\n          \"type\": \"number\"\n        },\n        \"type\": {\n          \"type\": \"string\"\n        },\n        \"items\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"name\": {\n                \"type\": \"string\"\n              },\n              \"condition\": {\n                \"type\": \"string\"\n              },\n              \"quantity\": {\n                \"type\": \"number\"\n              }\n            }\n          }\n        },\n        \"checkedBy\": {\n          \"type\": \"number\"\n        },\n        \"notes\": {\n          \"type\": \"string\"\n        },\n        \"updatedAt\": {\n          \"type\": \"string\"\n        },\n        \"createdAt\": {\n          \"type\": \"string\"\n        }\n      }\n    }\n  }\n}\n\n ```"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "return",
+			"item": [
+				{
+					"name": "create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"vendorId\":1,\r\n    \"itemId\":1,\r\n    \"quantity\":20,\r\n    \"reason\":\"because it is expired\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/returns",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"returns"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getall",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/returns",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"returns"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"vendorId\":1,\r\n    \"itemId\":1,\r\n    \"quantity\":1,\r\n    \"reason\":\"because it is expired so i dont want it\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/returns/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"returns",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/returns/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"returns",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"vendorId\":1,\r\n    \"itemId\":1\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/returns/report",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"returns",
+								"report"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getByItemId",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/returns/item/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"returns",
+								"item",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getByVendorId",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/returns/byVendorId/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"returns",
+								"byVendorId",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getByid",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": ""
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "purchase",
+			"item": [
+				{
+					"name": "create_purchase",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"vendourName\": \"New Vendor\",\r\n  \"vendourPhone\": \"987-654-3210\",\r\n  \"amount\": 5,\r\n  \"price\": 30,\r\n  \"description\": \"Purchase of item Y\",\r\n  \"expirationDate\": \"2026-12-31\",\r\n  \"itemId\": 1,\r\n  \"itemTypeId\": 1\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/purchases",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"purchases"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"date\": \"2025-02-28T08:13:26.205Z\",\r\n    \"vendourName\": \"Jane Doe\",\r\n    \"vendourPhone\": \"987-654-3210\",\r\n    \"amount\": 15,\r\n    \"price\": 60,\r\n    \"description\": \"Updated purchase of item Y\",\r\n    \"expirationDate\": \"2026-12-31T00:00:00.000Z\",\r\n    \"itemId\": 2,\r\n    \"itemTypeId\": 2\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/purchases/1",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"purchases",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get-all",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/purchases",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"purchases"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/purchases/4",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"purchases",
+								"4"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "purchase_Report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"vendorId\": 1\r\n//   \"startDate\": \"2025-01-01\",\r\n//   \"endDate\": \"2025-12-31\",\r\n//   \"itemTypeId\": 1\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/purchases/purchaseReport",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"purchases",
+								"purchaseReport"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get_byId",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/purchases/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"purchases",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "purchase_request",
+			"item": [
+				{
+					"name": "create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"itemId\": 2,\r\n  \"requestedBy\": 2,\r\n  \"status\": \"approved\",//rejected,approved\r\n  \"amount\": 200,\r\n  \"requestDate\": \"2025-02-27\",\r\n  \"reason\": \"Bill supplies purchase\",\r\n  \"approvedBy\": 2,\r\n  \"vendorName\": \"Electric Supplies\",\r\n  \"vendorPhone\": \"+1234567890\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/purchases-request",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"purchases-request"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"itemId\": 2,\r\n  \"requestedBy\": 2,\r\n  \"status\": \"Pending\",//rejected,approved\r\n  \"amount\": 500,\r\n  \"requestDate\": \"2025-02-27\",\r\n  \"reason\": \"Office supplies purchase\",\r\n  \"approvedBy\": 2,\r\n  \"vendorName\": \"ABC Supplies\",\r\n  \"vendorPhone\": \"+1234567890\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/purchases-request/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"purchases-request",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get-all",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/purchases-request",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"purchases-request"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getById",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/purchases-request/2",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"purchases-request",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/purchases-request/3",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"purchases-request",
+								"3"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "purchase-req-report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"vendorName\": \"ABC Supplies\"\r\n//   \"startDate\": \"2025-01-01\",\r\n//   \"endDate\": \"2025-02-01\",\r\n//   \"itemId\": 2\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/purchases-request/report",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"purchases-request",
+								"report"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "item-assignments",
+			"item": [
+				{
+					"name": "create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"itemId\": 1,\r\n  \"assignedId\": 1,\r\n  \"assignType\": \"User\",//User\r\n  \"assignDate\": \"2025-02-27\",\r\n  \"amount\": 5,\r\n  \"description\": \"Loan of 5 items to the user\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/item-assignments",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"item-assignments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getall",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/item-assignments",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"item-assignments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getById",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/item-assignments/1",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"item-assignments",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"itemId\": 2,\r\n  \"assignedId\": 2,\r\n  \"assignType\": \"unit\",//User\r\n  \"assignDate\": \"2025-02-27\",\r\n  \"amount\": 1,\r\n  \"description\": \"Loan and credit is permitted\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/item-assignments/1",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"item-assignments",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"itemId\": 1,\r\n  \"assignDate\": \"2025-02-01\",\r\n  \"assignType\": \"user\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/item-assignments/report",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"item-assignments",
+								"report"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "service-Type",
+			"item": [
+				{
+					"name": "create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\":\"seya\",\r\n    \"description\":\"this test from nodejs\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/service-type",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"service-type"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getall",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/service-type",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"service-type"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get_byId",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/service-type/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"service-type",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\":\"abyssinia\",\r\n    \"description\":\"abyssinia software technology plc\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/service-type/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"service-type",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/service-type/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"service-type",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "vendor",
+			"item": [
+				{
+					"name": "create_vendor",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "fname",
+									"value": "sami",
+									"type": "text"
+								},
+								{
+									"key": "lname",
+									"value": "abera",
+									"type": "text"
+								},
+								{
+									"key": "phone",
+									"value": "1234567891",
+									"type": "text"
+								},
+								{
+									"key": "email",
+									"value": "john.doe@example.com",
+									"type": "text"
+								},
+								{
+									"key": "address",
+									"value": "123 Street, City, Country",
+									"type": "text"
+								},
+								{
+									"key": "contractTerms",
+									"type": "file",
+									"src": "Salhe Seid 2025  Resume (1).pdf"
+								},
+								{
+									"key": "serviceTypeId",
+									"value": "2",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{App}}/api/vendors",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"vendors"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getall",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/vendors",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"vendors"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "fname",
+									"value": "seyasgsg",
+									"type": "text"
+								},
+								{
+									"key": "lname",
+									"value": "aberaseyashadsh",
+									"type": "text"
+								},
+								{
+									"key": "phone",
+									"value": "1234567776",
+									"type": "text"
+								},
+								{
+									"key": "email",
+									"value": "john.doe@example.com",
+									"type": "text"
+								},
+								{
+									"key": "address",
+									"value": "123 Street, City, Country",
+									"type": "text"
+								},
+								{
+									"key": "contractTerms",
+									"value": "",
+									"type": "text"
+								},
+								{
+									"key": "serviceTypeId",
+									"value": "1",
+									"type": "text"
+								},
+								{
+									"key": "updatedAt",
+									"value": "2025-02-28T13:03:04.821Z",
+									"type": "text"
+								},
+								{
+									"key": "createdAt",
+									"value": "2025-02-28T13:03:04.821Z",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{App}}/api/vendors/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"vendors",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/vendors/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"vendors",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getById",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/payments/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"payments",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "payment",
+			"item": [
+				{
+					"name": "create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"vendorId\":1,\r\n    \"price\":500,\r\n    \"paymentMethod\":\"cash\",//'cash', 'credit', 'bank transfer', 'other'\r\n    \"status\":\"complete\"//', 'partial', 'pending'\r\n\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/payments",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"payments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get-all",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/payments",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"payments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getByid",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/payments/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"payments",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"vendorId\":1,\r\n    \"price\":1000,\r\n    \"paymentMethod\":\"cash\",//'cash', 'credit', 'bank transfer', 'other'\r\n    \"status\":\"complete\"//', 'partial', 'pending'\r\n\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/payments/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"payments",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/payments/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"payments",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"vendorId\":2\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/payments/report",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"payments",
+								"report"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "maintenance",
+			"item": [
+				{
+					"name": "create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"date\": \"2025-02-27\",\r\n  \"description\": \"Annual maintenance of the user and also.\",\r\n  \"cost\": 150.00,\r\n  \"itemId\": 1,\r\n  \"unitId\": 2\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/maintenance",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"maintenance"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getAll",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/maintenance",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"maintenance"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getById",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/maintenance/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"maintenance",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"date\": \"2025-02-27\",\r\n  \"description\": \"Annual maintenance of ...\",\r\n  \"cost\": 150.00,\r\n  \"itemId\": 1,\r\n  \"unitId\": 2\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/maintenance/{{id}}",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"maintenance",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n//   \"startDate\": \"2025-01-01\",\r\n  \"itemId\": 1\r\n//   \"unitId\": 2\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{App}}/api/maintenance/report",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"maintenance",
+								"report"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "item_category",
+			"item": [
+				{
+					"name": "create_itemType",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"categoryName\":\"Electronics\",\r\n  \"description\": \"Items such as phones, laptops, etc.\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{local}}/api/item-types",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"item-types"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get-all",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/item-types",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"item-types"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "items",
+			"item": [
+				{
+					"name": "create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"itemName\": \"Canned Beans\",\r\n  \"expirationDate\": \"2025-12-31\",\r\n  \"itemAmount\": 10,\r\n  \"itemType\": \"Purchase\",  // Valid types: \"Purchase\" or \"Existing\"\r\n  \"unit\": \"Cans\",\r\n  \"itemCategoryId\": 2,\r\n  \"itemDetails\": \"A can of beans.\",\r\n  \"min_amount\":5\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{local}}/api/items",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"items"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getItems",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/items",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"items"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/items",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"items"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "alert",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{App}}/api/items/alert",
+							"host": [
+								"{{App}}"
+							],
+							"path": [
+								"api",
+								"items",
+								"alert"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "sms",
+			"item": [
+				{
+					"name": "send sms",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"referenceType\": \"Tenant\",\n  \"referenceId\": 1,\n  \"msg\": \"Your apartment payment is due.\",\n  \"callback\": \"https://webhook.site/ad5afcfa-2413-45d0-9704-9b299d5bf00a\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{local}}/api/sms/send-sms",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"sms",
+								"send-sms"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "send otp",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"referenceType\": \"Tenant\",\n  \"referenceId\": 1,\n  \"callback\": \"https://webhook.site/ad5afcfa-2413-45d0-9704-9b299d5bf00a\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{local}}/api/sms/send-otp",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"sms",
+								"send-otp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "verify otp",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"referenceType\": \"Tenant\",\n  \"referenceId\": 1,\n  \"token\": \"634123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{local}}/api/sms/verify-otp",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"sms",
+								"verify-otp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "send bulk sms",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"references\": [\n    { \"referenceType\": \"Tenant\", \"referenceId\": 1 },\n    { \"referenceType\": \"Tenant\", \"referenceId\": 2 }\n  ],\n  \"msg\": \"Maintenance scheduled tomorrow.\",\n  \"notify_url\": \"https://webhook.site/ad5afcfa-2413-45d0-9704-9b299d5bf00a\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{local}}/api/sms/send-bulk-sms",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"sms",
+								"send-bulk-sms"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get sms",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/sms",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"sms"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete sms",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{local}}/api/sms/:id",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"sms",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "remote",
+			"value": "https://apartment.houseethiopia.com",
+			"type": "default"
+		}
+	]
+}

@@ -1,14 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const { 
+const {
   getDashboardStats,
   getTenantDashboardStats,
-  getEmployeeDashboardStats // Assuming you have this function in your controller
+  getEmployeeDashboardStats, // Assuming you have this function in your controller
 } = require("../controllers/dashboardController");
-const { 
-  adminAuth, 
-  tenantAuth, 
-  employeeAuth // Add a middleware for employee authentication
+const {
+  adminAuth,
+  tenantAuth,
+  employeeAuth, // Add a middleware for employee authentication
 } = require("../middleware/auth");
 
 // Route for the admin dashboard, accessible only by admins
