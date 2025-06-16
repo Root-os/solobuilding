@@ -4,7 +4,9 @@ const PaymentType=require('../models/paymentType');
 const { Op } = require('sequelize');
 const {paymentRequestSchema,paramsSchema,paymentRequestStatusSchema} = require('../helpers/schema')
 const sendNotificationHelper= require('../helpers/sendAlert');
-const User = require('../models/user.js');
+const User = require('../models/user');
+const Role = require('../models/role');
+const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
 
 // Create a payment request
 exports.createPaymentRequest = async (req, res) => {
@@ -31,13 +33,21 @@ exports.createPaymentRequest = async (req, res) => {
       dueDate,
       repeatedFor,
     });
- await sendNotificationHelper({
-  adminId: tenantId,
-  title: 'New Payment Request',
-  body: `A new payment request has been submitted by apartment manager. Please check the payment requests page for more details.`,
-  type: 'New Payment Request',
-  receiver_type: 'tenant',
-});
+  await sendNotificationHelper({
+    adminId: tenantId,
+    title: 'New Payment Request',
+    body: `A new payment request has been submitted by apartment manager. Please check the payment requests page for more details.`,
+    type: 'New Payment Request',
+    receiver_type: 'tenant',
+  });
+  //send sms to tenant
+  const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
+  await smsUtil.sendSingleSMS({
+    phone: existingTenant.phoneNumber,
+    msg: `A new payment request has been submitted by apartment manager. Please check the payment requests page for more details.`,
+    callback: process.env.GEEZSMS_WEBHOOK_URL, // Optional callback URL
+  });
+
     res.status(201).json({ message: 'Payment request created successfully', data: newPaymentRequest });
   } catch (error) {
     console.error("Error creating payment request:", error);
@@ -144,7 +154,6 @@ exports.deletePaymentRequest = async (req, res) => {
   }
 };
 
-
 // Approve or Reject Payment
 exports.reviewPayment = async (req, res) => {
   try {
@@ -214,9 +223,16 @@ exports.uploadReceipt = async (req, res) => {
     }
 
     // Update with receipt path
-    paymentRequest.receipt = `/uploads/receipts/${req.file.filename}`;
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    paymentRequest.receipt = `${baseUrl}/uploads/receipts/${req.file.filename}`;
     await paymentRequest.save();
-    const admins = await User.findAll({ where: { role: 'admin' } }); // Fetch all admins
+    const admins = await User.findAll({
+        include: {
+          model: Role,
+          where: { name: 'admin' }, // or whatever your Role name field is
+        },
+      });
+ // Fetch all admins
     if(admins.length > 0){await Promise.all(
       admins.map((admin) =>
         sendNotificationHelper({
@@ -228,6 +244,20 @@ exports.uploadReceipt = async (req, res) => {
         })
       )
     );}
+    //send sms to admins
+    const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
+    const smsPromises = admins.map((admin) => {
+      return smsUtil.sendSingleSMS({
+        phone: admin.phone, 
+        msg: `A new payment receipt has been uploaded by tenant. Please check the payment requests page for more details.`,
+        callback: process.env.GEEZSMS_WEBHOOK_URL, // Optional callback URL
+      });
+    }
+    );
+    await Promise.all(smsPromises);
+    // Return success response
+
+    
         res.status(200).json({ message: 'Receipt uploaded successfully', data: paymentRequest });
       } catch (error) {
         console.error('Error uploading receipt:', error);

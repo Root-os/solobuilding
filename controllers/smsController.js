@@ -321,9 +321,25 @@ const messageController = {
       if (role.toLowerCase() === "admin") {
         // Admins get all Tenant messages
         messages = await Message.findAll({
-          where: {
-            referenceType: "Tenant",
-          },
+          // where: {
+          //   referenceType: "Tenant",
+          // },
+          include: [
+            {
+              model: Tenant,
+              as: "tenant",
+              attributes: ["fullName"],
+              required: false,
+              where: { id: { [Op.col]: "Message.referenceId" } },
+            },
+            {
+              model: User,
+              as: "user",
+              attributes: ["fname", "lname"],
+              required: false,
+              where: { id: { [Op.col]: "Message.referenceId" } },
+            },
+          ],
           order: [["createdAt", "DESC"]],
         });
       } else if (role.toLowerCase() === "tenant") {
@@ -369,9 +385,9 @@ const messageController = {
 
       if (role.toLowerCase() === "admin") {
         // Admins can delete any Tenant message
-        if (message.referenceType !== "Tenant") {
-          throw new Error("Admins can only delete Tenant messages");
-        }
+        // if (message.referenceType !== "Tenant") {
+        //   throw new Error("Admins can only delete Tenant messages");
+        // }
       } else if (role.toLowerCase() === "tenant") {
         // Tenants can only delete their own messages
         if (

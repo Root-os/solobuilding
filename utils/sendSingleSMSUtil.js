@@ -1,9 +1,10 @@
 const axios = require("axios");
-
+require("dotenv").config();
 function createSingleSMSUtil({ token }) {
   const baseUrl = "https://api.geezsms.com/api/v1";
 
   async function sendSingleSMS({ phone, msg, shortcode_id, callback }) {
+    callback = callback || process.env.GEEZSMS_WEBHOOK_URL;
     if (!phone || !msg) throw new Error("Phone and message are required");
     if (phone.startsWith("09")) {
       phone = phone.replace(/^09/, "2519");

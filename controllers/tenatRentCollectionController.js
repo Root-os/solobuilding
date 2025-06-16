@@ -2,20 +2,24 @@ const TenantRentCollection = require("../models/tenantRentCollection");
 const Tenant = require("../models/tenant");
 const Floor = require("../models/floor");
 const Unit = require("../models/unit");
+const User = require("../models/user");
+const Role = require('../models/role');
 const { Op } = require("sequelize");
 const { tenantRentCollectionSchema } = require("../helpers/schema");
 const cron = require("node-cron");
 const sendNotificationHelper = require("../helpers/sendAlert");
-//* * * * * to test evey minute
+const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
+
+
 //schedule a task to run every day at midnight (0 0 * * *)
-cron.schedule("0 0 * * *", async () => {
+cron.schedule("0 8 * * *", async () => {
   try {
     const today = new Date();
     console.log(`Current Date: ${today.toISOString()}`);
 
     // Calculate the dates 10 and 2 days from now
-    const tenDaysBefore = new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000); // 10 days from now
-    const twoDaysBefore = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000); // 2 days from now
+    const tenDaysBefore = new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000); 
+    const twoDaysBefore = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000); 
     console.log(`10 Days From Now: ${tenDaysBefore.toISOString()}`);
     console.log(`2 Days From Now: ${twoDaysBefore.toISOString()}`);
 
@@ -23,7 +27,7 @@ cron.schedule("0 0 * * *", async () => {
     const rentCollections = await TenantRentCollection.findAll({
       where: {
         nextDueDate: {
-          [Op.in]: [tenDaysBefore, twoDaysBefore], // Match with 10 days or 2 days remaining
+          [Op.in]: [tenDaysBefore, twoDaysBefore], 
         },
       },
       include: {
@@ -70,6 +74,7 @@ cron.schedule("0 0 * * *", async () => {
             });
           })
         );
+        
 
         // Send notification to tenant
         console.log(
@@ -91,6 +96,89 @@ cron.schedule("0 0 * * *", async () => {
       "Error while sending rent payment due notifications:",
       error.message
     );
+  }
+});
+
+// Initialize SMS sender util
+const { sendSingleSMS } = createSingleSMSUtil({
+  token: process.env.GEEZSMS_TOKEN,
+});
+
+// Days to notify before lease ends
+const NOTIFY_DAYS = [10, 5,4, 3, 2, 1, 0];
+
+cron.schedule("0 8 * * *", async () => {
+  console.log("Running lease expiry SMS notifier...");
+
+  try {
+    const today = new Date();
+
+    // Get max days to look ahead
+    const maxNotifyDay = Math.max(...NOTIFY_DAYS);
+    const futureDate = new Date(today.getTime() + maxNotifyDay * 24 * 60 * 60 * 1000);
+
+    // Find tenants with leaseEndDate between today and futureDate
+    const tenants = await Tenant.findAll({
+      where: {
+        leaseEndDate: {
+          [Op.between]: [today, futureDate],
+        },
+      },
+    });
+
+    if (tenants.length === 0) {
+      console.log("No tenants with lease ending soon.");
+      return;
+    }
+
+    // Fetch all admin users by roleId (assuming admin roleId is 1)
+     const admins = await User.findAll({
+        include: {
+          model: Role,
+          where: { name: 'admin' }, // or whatever your Role name field is
+        },
+      });
+
+    if (admins.length === 0) {
+      console.log("No admins found to send notifications.");
+      return;
+    }
+
+    for (const tenant of tenants) {
+      const leaseEnd = new Date(tenant.leaseEndDate);
+      const diffDays = Math.floor((leaseEnd - today) / (1000 * 60 * 60 * 24));
+
+      if (!NOTIFY_DAYS.includes(diffDays)) continue;
+
+      const tenantMsg = `Dear ${tenant.fullName}, your lease ends in ${diffDays} day(s). Contact management for renewal or move-out process.`;
+      const adminMsg = `Lease for tenant ${tenant.fullName} ends in ${diffDays} day(s).`;
+
+      // Send SMS to tenant if phone exists
+      if (tenant.phoneNumber) {
+        try {
+          await sendSingleSMS({ phone: tenant.phoneNumber, msg: tenantMsg });
+          console.log(`SMS sent to tenant: ${tenant.fullName}`);
+        } catch (err) {
+          console.error(`Failed to send SMS to tenant ${tenant.fullName}:`, err.message);
+        }
+      }
+
+      // Send SMS to all admins
+      for (const admin of admins) {
+        if (admin.phone) {  // Use 'phone' field from your User table
+          try {
+            await sendSingleSMS({ phone: admin.phone, msg: adminMsg });
+            console.log(`SMS sent to admin: ${admin.id}`);
+          } catch (err) {
+            console.error(`Failed to send SMS to admin ${admin.id}:`, err.message);
+          }
+        }
+      }
+    }
+
+    console.log("Lease expiry SMS notifications complete.");
+  } catch (error) {
+    console.error("Lease expiry cron job error:", error.message);
   }
 });
 

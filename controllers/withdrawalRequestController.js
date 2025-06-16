@@ -5,6 +5,7 @@ const Role = require('../models/role');
 const {refundStatusSchema} = require('../helpers/schema');
 const sendNotificationHelper= require('../helpers/sendAlert');
 const sendEmailMessage = require('../services/sendEmailMessage');
+const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
 
 
 
@@ -50,6 +51,18 @@ const createWithdrawalRequest = async (req, res) => {
         )
       );
     }
+
+    // send sms to admins
+    const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
+    await Promise.all(
+      admins.map((admin) =>
+        smsUtil.sendSingleSMS({
+          phone: admin.phoneNumber,
+          msg: `A new withdrawal request has been submitted by ${tenant.fullName}. Please check the withdrawal requests page for more details.`,
+          callback: process.env.GEEZSMS_WEBHOOK_URL, 
+        })
+      )
+    );
     res.status(201).json({ message: "Withdrawal request submitted successfully.", request });
   } catch (error) {
     res.status(500).json({ message: "Error submitting withdrawal request.", error: error.message });
