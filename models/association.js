@@ -14,11 +14,12 @@ const {
     Parking, 
     PaymentType, 
     PaymentRequest, 
-    Tenant,
     TenantPayment, 
     TenantRentCollection, 
     TenantVehicle, 
     Unit, 
+    Message,
+    Tenant,
     User, 
     WithdrawalRequest,
     Purchase,
@@ -35,6 +36,7 @@ const {
     Permission,
     Task,
     LetterResponse,
+    
 } = require('./index');
 
 const defineAssociations = () => {
@@ -203,6 +205,20 @@ Notification.belongsTo(Tenant, {
 
     LetterResponse.belongsTo(Letter, { foreignKey: "letterId", onDelete: "CASCADE" });
     Letter.hasMany(LetterResponse, { foreignKey: "letterId", onDelete: "CASCADE" });
+
+    Message.belongsTo(Tenant, {
+  foreignKey: 'referenceId',
+  targetKey: 'id',
+  as: 'tenant',
+  constraints: false, // disables FK constraint for polymorphism
+});
+
+Message.belongsTo(User, {
+  foreignKey: 'referenceId',
+  targetKey: 'id',
+  as: 'user',
+  constraints: false, // disables FK constraint for polymorphism
+});
     
 };
 

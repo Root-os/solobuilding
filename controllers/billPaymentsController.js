@@ -33,19 +33,16 @@ cron.schedule('0 8 * * *', async () => {
         console.log("No government bill payments due soon.");
         return;
       }
-  
       // Fetch admin users by role name
       const adminRole = await Role.findOne({ where: { name: 'admin' } });
       const admins = await User.findAll({ where: { roleId: adminRole.id } });
-  
       for (const payment of billPayments) {
         const endDate = moment(payment.endDate);
         const diffInDays = today.diff(endDate, 'days');
         const formattedDate = endDate.format('YYYY-MM-DD');
         const billTypeName = payment.BillType?.typeName || 'Unknown Bill';
-  
         let message = '';
-  
+
         if (diffInDays < 0 && Math.abs(diffInDays) <= 2) {
           message = `Payment for ${billTypeName} is due in ${Math.abs(diffInDays)} day(s), on ${formattedDate}.`;
         } else if (diffInDays === 0) {
@@ -55,9 +52,7 @@ cron.schedule('0 8 * * *', async () => {
         } else {
           continue; // skip irrelevant dates
         }
-  
         console.log(`Notification content: ${message}`);
-  
         await Promise.all(
           admins.map((admin) =>
             sendNotificationHelper({

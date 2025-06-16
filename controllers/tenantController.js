@@ -12,6 +12,7 @@ const bcrypt = require("bcryptjs");
 const { tenatSchema } = require("../helpers/schema");
 const sendTenantWelcomeEmail = require("../services/sendEmail");
 const { BASE_URL } = require("../config/config");
+const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
 
 // Set up multer storage for file uploads
 const storage = multer.diskStorage({
@@ -148,12 +149,21 @@ exports.createTenant = async (req, res) => {
         console.error("Email sending failed:", emailResponse.error);
       }
 
+      // Send SMS notification
+    const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
+    const smsResponse = await smsUtil.sendSingleSMS({
+      phone: phoneNumber,
+      msg: `Welcome ${fullName}! Your tenant account has been created successfully.\nUsername: ${email}\nPassword: ${generatedPassword}\nPlease change your password after your first login.`,
+      callback: process.env.GEEZSMS_WEBHOOK_URL,
+    });
+
       res.status(201).json({
         success: true,
         message: "Tenant registered successfully",
         password: generatedPassword,
       });
     });
+
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
       const field = error.errors[0].path;

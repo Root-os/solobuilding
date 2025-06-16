@@ -4,6 +4,8 @@ function createBulkSMSUtil({ token }) {
   const baseUrl = "https://api.geezsms.com/api/v1";
 
   async function sendBulkSMS({ contacts, msg, sender_id, notify_url }) {
+        notify_url = notify_url || process.env.GEEZSMS_WEBHOOK_URL;
+
     if (!contacts || !msg) throw new Error("Contacts and message are required");
     if (!Array.isArray(contacts) || contacts.length === 0)
       throw new Error("Contacts must be a non-empty array");
