@@ -150,13 +150,24 @@ exports.createTenant = async (req, res) => {
       }
 
       // Send SMS notification
-    const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
-    const smsResponse = await smsUtil.sendSingleSMS({
-      phone: phoneNumber,
-      msg: `Welcome ${fullName}! Your tenant account has been created successfully.\nUsername: ${email}\nPassword: ${generatedPassword}\nPlease change your password after your first login.`,
-      callback: process.env.GEEZSMS_WEBHOOK_URL,
-    });
+      const loginUrl = process.env.TENANT_PORTAL_URL;
+      const downloadApk = process.env.DOWNLOAD_APK_URL;
+      const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
+      const smsMessage = `Welcome ${fullName}!\n` +
+        `Your tenant account has been created successfully.\n` +
+        `Floor: ${floor.floorNumber}, Unit: ${unit.unitNumber}\n` +
+        `Phone: ${phoneNumber}\n` +
+        `Username: ${email}\nPassword: ${generatedPassword}\n` +
+        `Please log in to your account: ${loginUrl}\n` +
+        `Download our app: ${downloadApk}\n` +
+        `For any issues, please contact us.\n` +
+        `You can change your password When ever you want.`;
 
+      const smsResponse = await smsUtil.sendSingleSMS({
+        phone: phoneNumber,
+        msg: smsMessage,
+        callback: process.env.GEEZSMS_WEBHOOK_URL,
+      });
       res.status(201).json({
         success: true,
         message: "Tenant registered successfully",

@@ -85,14 +85,12 @@ NotificationType.hasMany(Notification, { foreignKey: "type_id", as: "notificatio
 Notification.belongsTo(User, {
   as: "receiverStaff",
   foreignKey: "receiver_id",
-  onDelete: "CASCADE",
   constraints: false, // Disable FK constraint for polymorphism
 });
 
 Notification.belongsTo(Tenant, {
   as: "receiverTenant",
   foreignKey: "receiver_id",
-  onDelete: "CASCADE",
   constraints: false, // Disable FK constraint for polymorphism
 });
       
@@ -218,8 +216,8 @@ Message.belongsTo(User, {
   targetKey: 'id',
   as: 'user',
   constraints: false, // disables FK constraint for polymorphism
-});
-    
+}); 
+  
 };
 
 module.exports = defineAssociations;

@@ -1,0 +1,20 @@
+### update status
+PATCH http://localhost:5000/api/item-out-request/12/status
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZm5hbWUiOiJKb2huIiwibG5hbWUiOiJTbWl0aCIsInJvbGUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbXSwiaWF0IjoxNzUwMTcwNDQ0LCJleHAiOjE3NTAxODEyNDR9.zNdZBNxmAS9L6zOoLVcLj1LrzcsAX1MzkfWuEAoGS_U
+Content-Type: application/json
+
+{
+ "status": "Approved"
+}
+
+### update status
+PUT http://localhost:5000/api/item-out-request/12
+
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MjIsImZ1bGxOYW1lIjoiRW5rdXdlcmsgQXNtYXJlIiwicm9sZSI6InRlbmFudCIsImlhdCI6MTc1MDE3MTg1NSwiZXhwIjoxNzUwMTgyNjU1fQ.KPt7TvDg11DGH7xKzghzoQwMWIbNmgP-mgHjXG70tSs
+Content-Type: application/json
+
+{
+  "tenantId": 22,
+  "tenantItemId": [],
+  "quantity": 2
+}

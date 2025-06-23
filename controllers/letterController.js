@@ -6,6 +6,7 @@ const Unit = require('../models/unit');
 const Floor = require('../models/floor');
 const {letterValidationSchema} = require('../helpers/schema');
 const sendNotificationHelper= require('../helpers/sendAlert');
+const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
 
 // Create a Letter
 exports.createLetter = async (req, res) => {
@@ -41,24 +42,29 @@ exports.createLetter = async (req, res) => {
       status: "Sent",
     });
 
-    let notification;
-    if (newLetter) {
-      const formattedDate = new Date(newLetter.Date).toLocaleDateString();
-
-      notification = await sendNotificationHelper({
-        adminId: tenant.id,
-        title: `Dear ${tenant.fullName} you have New Letter`,
-        body: `You have received a new letter from the management on ${formattedDate}. Please check your dashboard for more details.`,
-        type: "New Letter",
-        receiver_type: "tenant"
+    
+    const formattedDate = new Date(newLetter.Date).toLocaleDateString();
+    const notification = await sendNotificationHelper({
+      adminId: tenant.id,
+      title: `Dear ${tenant.fullName} you have New Letter`,
+      body: `You have received a new letter from the management on ${formattedDate}. Please check your dashboard for more details.`,
+      type: "New Letter",
+      receiver_type: "tenant"
       });
-    }
+      const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
+      const loginUrl = process.env.TENANT_PORTAL_URL;
+      await smsUtil.sendSingleSMS({
+        phone: tenant.phoneNumber,
+        msg: `You have received a new letter from the management on ${formattedDate}.
+             Please check your dashboard for more details. + \nLogin here: ${loginUrl}`, 
+        callback: process.env.GEEZSMS_WEBHOOK_URL, 
+      });
 
-    return res.status(201).json({ message: "Letter created successfully", newLetter, notification });
-  } catch (error) {
-    return res.status(500).json({ message: "Error creating letter", error: error.message });
-  }
-};
+      return res.status(201).json({ message: "Letter created successfully", newLetter, notification });
+    } catch (error) {
+      return res.status(500).json({ message: "Error creating letter", error: error.message });
+    }
+  };
 
 // Get all Letters
 exports.getAllLetters = async (req, res) => {
