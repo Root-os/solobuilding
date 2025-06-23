@@ -4,7 +4,9 @@ const sendEmail = require('../middleware/sendEmail'); // Adjust the path as need
 
 const sendTenantWelcomeEmail = async ({ email, fullName, generatedPassword }) => {
   const subject = 'Welcome to Your Tenant Portal – Login Credentials';
-  const loginUrl = 'https://apartmentfront.bruktiethiotour.com/tenant-login';
+  // const loginUrl = 'https://apartmentfront.bruktiethiotour.com/tenant-login';
+  const loginUrl = process.env.TENANT_PORTAL_URL;
+
 
   // Plain text version
   const text = `Hello ${fullName},

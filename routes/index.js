@@ -29,6 +29,9 @@ router.use("/items", require("./itemRoutes"));
 router.use("/setting", require("./settingRoutes"));
 router.use("/charging", require("./chargingRoute"));
 router.use("/building-law", require("./buildingLawRoutes"));
+//request
+router.use("/item-out-request", require("./itemOutRoute"));
+router.use("/tenant-items", require("./tenantItemsRoute"));
 
 //purchases
 router.use("/purchases", require("./purchaseRoute"));

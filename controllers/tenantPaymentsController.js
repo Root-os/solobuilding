@@ -9,22 +9,25 @@ const User = require('../models/user');
 const Role = require('../models/role');
 const sendNotificationHelper = require('../helpers/sendAlert');
 const cron = require('node-cron');
+const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
 
-cron.schedule('0 8 * * *', async () => {
+cron.schedule('0 0 * * *', async () => {
   try {
     const today = moment().startOf('day');
     console.log(`Running utility due reminder job for date: ${today.toISOString()}`);
 
-    // Fetch last paid utility payments along with their bill type
+    const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
+
+    // Fetch last paid utility payments
     const lastPaidPayments = await TenantPayment.findAll({
       where: { status: 'Paid' },
       include: [
         {
           model: Tenant,
-          attributes: ['fullName'],
+          attributes: ['fullName', 'phoneNumber'], // include phoneNumber
         },
         {
-          model: BillType, // Include the BillType model to get the typeName
+          model: BillType,
           attributes: ['typeName'],
         },
       ],
@@ -36,13 +39,13 @@ cron.schedule('0 8 * * *', async () => {
       return;
     }
 
-    // Get admins by role name
+    // Fetch admins
     const adminRole = await Role.findOne({ where: { name: 'admin' } });
     const admins = await User.findAll({ where: { roleId: adminRole.id } });
 
     for (const payment of lastPaidPayments) {
       const tenant = payment.Tenant;
-      const billType = payment.BillType; // Access the bill type info
+      const billType = payment.BillType;
       const lastEndDate = moment(payment.endDate).startOf('day');
       const diffInDays = today.diff(lastEndDate, 'days');
       const formattedDate = lastEndDate.format('YYYY-MM-DD');
@@ -56,11 +59,12 @@ cron.schedule('0 8 * * *', async () => {
       } else if (diffInDays > 0 && diffInDays <= 2) {
         message = `${billType.typeName} bill for tenant ${tenant.fullName} was due on ${formattedDate} and is now ${diffInDays} day(s) overdue.`;
       } else {
-        continue;
+        continue; // Skip if not within 2-day window
       }
 
       console.log(`Notification content: ${message}`);
 
+      // Notify admins (dashboard)
       await Promise.all(
         admins.map((admin) =>
           sendNotificationHelper({
@@ -72,7 +76,39 @@ cron.schedule('0 8 * * *', async () => {
           })
         )
       );
+
+      await sendNotificationHelper({
+        tenantId: tenant.id,
+        title: `Your ${billType.typeName} Bill Reminder`,
+        body: message,
+        type: 'Utility Payment Reminder',
+        receiver_type: 'tenant',
+      });
+
+      // SMS to admins
+      await Promise.all(
+        admins.map((admin) => {
+          if (!admin.phone) return Promise.resolve();
+          return smsUtil.sendSingleSMS({
+            phone: admin.phone,
+            msg: message,
+            callback: process.env.GEEZSMS_WEBHOOK_URL,
+          });
+        })
+      );
+
+      // SMS to tenant
+      if (tenant.phoneNumber) {
+        const loginUrl = process.env.TENANT_PORTAL_URL;
+        await smsUtil.sendSingleSMS({
+          phone: tenant.phoneNumber,
+          msg: `Reminder: ${message}. \nPlease log in to your tenant portal at ${loginUrl} for more details.`,
+          callback: process.env.GEEZSMS_WEBHOOK_URL,
+        });
+      }
     }
+
+    console.log("Utility payment notifications sent successfully.");
   } catch (error) {
     console.error("Error sending utility payment notifications:", error.message);
     console.error(error.stack);

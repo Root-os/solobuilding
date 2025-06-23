@@ -35,6 +35,9 @@ const Permission = require('./permission');
 const Task = require('./task');
 const Message = require('./message');
 const LetterResponse = require("./letterResponse");
+const TenantInventory = require("./tenantInventory");
+const TenantInventoryItem = require("./itemOutRequest")
+const ApprovedOutRequest = require("./approvedItemOutRequest")
 const sequelize = require('../config/database');
 
 module.exports = {
@@ -75,5 +78,8 @@ module.exports = {
   LetterType,
   Letter,
   LetterResponse,
-  Message
+  Message,
+  TenantInventory,
+  TenantInventoryItem,
+  ApprovedOutRequest
 };

@@ -51,18 +51,20 @@ const createWithdrawalRequest = async (req, res) => {
         )
       );
     }
-
-    // send sms to admins
+    //send sms to admins phone
     const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
     await Promise.all(
       admins.map((admin) =>
         smsUtil.sendSingleSMS({
-          phone: admin.phoneNumber,
+          phone: admin.phone,
           msg: `A new withdrawal request has been submitted by ${tenant.fullName}. Please check the withdrawal requests page for more details.`,
-          callback: process.env.GEEZSMS_WEBHOOK_URL, 
+          callback: process.env.GEEZSMS_WEBHOOK_URL, // Optional callback URL
         })
       )
     );
+
+
+
     res.status(201).json({ message: "Withdrawal request submitted successfully.", request });
   } catch (error) {
     res.status(500).json({ message: "Error submitting withdrawal request.", error: error.message });

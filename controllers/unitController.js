@@ -20,6 +20,11 @@ exports.createUnit = async (req, res) => {
       return res.status(404).json({ error: "Floor not found." });
     }
 
+    // Check floor status
+    if (floor.status === "inActive" || floor.status === "under_construction") {
+      return res.status(400).json({ error: "Cannot add unit to an inactive or under-construction floor." });
+    }
+
     // Count how many units are already registered on this floor
     const currentUnitCount = await Unit.count({ where: { floorId: req.body.floorId } });
 
@@ -34,6 +39,7 @@ exports.createUnit = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // Get all units
 exports.getAllUnits = async (req, res) => {

@@ -8,69 +8,97 @@ const Role = require('../models/role');
 const moment = require('moment');
 const sendNotificationHelper = require('../helpers/sendAlert');
 const cron = require('node-cron');
+const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
 
 cron.schedule('0 8 * * *', async () => {
-    try {
-      const today = moment().startOf('day');
-      console.log(`Running bill payment due reminder job for date: ${today.toISOString()}`);
-  
-      const billPayments = await BillPayment.findAll({
-        where: {
-          status: 'Paid',
-          endDate: {
-            [Op.lte]: today.clone().add(2, 'days').toDate()
-          }
-        },
-        include: [
-          {
-            model: BillType,
-            attributes: ['typeName'],
-          }
-        ]
-      });
-  
-      if (!billPayments.length) {
-        console.log("No government bill payments due soon.");
-        return;
-      }
-      // Fetch admin users by role name
-      const adminRole = await Role.findOne({ where: { name: 'admin' } });
-      const admins = await User.findAll({ where: { roleId: adminRole.id } });
-      for (const payment of billPayments) {
-        const endDate = moment(payment.endDate);
-        const diffInDays = today.diff(endDate, 'days');
-        const formattedDate = endDate.format('YYYY-MM-DD');
-        const billTypeName = payment.BillType?.typeName || 'Unknown Bill';
-        let message = '';
+  try {
+    const today = moment().startOf('day');
+    console.log(`Running bill payment due reminder job for date: ${today.toISOString()}`);
 
-        if (diffInDays < 0 && Math.abs(diffInDays) <= 2) {
-          message = `Payment for ${billTypeName} is due in ${Math.abs(diffInDays)} day(s), on ${formattedDate}.`;
-        } else if (diffInDays === 0) {
-          message = `Payment for ${billTypeName} is due today (${formattedDate}).`;
-        } else if (diffInDays > 0 && diffInDays <= 2) {
-          message = `Payment for ${billTypeName} was due on ${formattedDate} and is now ${diffInDays} day(s) overdue.`;
-        } else {
-          continue; // skip irrelevant dates
+    const billPayments = await BillPayment.findAll({
+      where: {
+        status: 'Paid',
+        endDate: {
+          [Op.lte]: today.clone().add(2, 'days').toDate()
         }
-        console.log(`Notification content: ${message}`);
-        await Promise.all(
-          admins.map((admin) =>
-            sendNotificationHelper({
-              adminId: admin.id,
-              title: `${billTypeName} Payment Reminder`,
-              body: message,
-              type: 'Bill Payment Reminder',
-              receiver_type: 'staff',
-            })
-          )
-        );
-      }
-  
-    } catch (error) {
-      console.error("Error sending bill payment due notifications:", error.message);
-      console.error(error.stack);
+      },
+      include: [
+        {
+          model: BillType,
+          attributes: ['typeName'],
+        }
+      ]
+    });
+    if (!billPayments.length) {
+      console.log("No government bill payments due soon.");
+      return;
     }
-  });
+    // Fetch admin users by role name
+    const adminRole = await Role.findOne({ where: { name: 'admin' } });
+    const admins = await User.findAll({ where: { roleId: adminRole.id } });
+
+    const smsLines = [];
+    for (const payment of billPayments) {
+      const endDate = moment(payment.endDate);
+      const diffInDays = today.diff(endDate, 'days');
+      const formattedDate = endDate.format('YYYY-MM-DD');
+      const billTypeName = payment.BillType?.typeName || 'Unknown Bill';
+      let message = '';
+      let smsLine = '';
+
+      if (diffInDays < 0 && Math.abs(diffInDays) <= 2) {
+        message = `Payment for ${billTypeName} payment for government is due in ${Math.abs(diffInDays)} day(s), on ${formattedDate}.`;
+        smsLine = `• ${billTypeName} payment for government is due in ${Math.abs(diffInDays)} day(s), on ${formattedDate}`;
+      } else if (diffInDays === 0) {
+        message = `Payment for ${billTypeName} payment for government is due today (${formattedDate}).`;
+        smsLine = `• ${billTypeName} payment for government is due today (${formattedDate})`;
+      } else if (diffInDays > 0 && diffInDays <= 2) {
+        message = `Payment for ${billTypeName} payment for government was due on ${formattedDate} and is now ${diffInDays} day(s) overdue.`;
+        smsLine = `• ${billTypeName} payment for government was due on ${formattedDate} (${diffInDays} day(s) overdue)`;
+      } else {
+        continue; 
+      }
+
+      smsLines.push(smsLine);
+
+      console.log(`Notification content: ${message}`);
+      await Promise.all(
+        admins.map((admin) =>
+          sendNotificationHelper({
+            adminId: admin.id,
+            title: `${billTypeName} Payment Reminder`,
+            body: message,
+            type: 'Bill Payment Reminder',
+            receiver_type: 'staff',
+          })
+        )
+      );
+    }
+
+    // Send SMS summary if any valid bills found
+    if (smsLines.length > 0) {
+      const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
+      const smsMessage = `Reminder:\n${smsLines.join('\n')}`;
+
+      await Promise.all(
+        admins.map((admin) =>
+          smsUtil.sendSingleSMS({
+            phone: admin.phone,
+            msg: smsMessage,
+            callback: process.env.GEEZSMS_WEBHOOK_URL,
+          })
+        )
+      );
+    }
+
+    console.log("Bill payment due notifications sent successfully.");
+
+  } catch (error) {
+    console.error("Error sending bill payment due notifications:", error.message);
+    console.error(error.stack);
+  }
+});
+
   
 exports.createBillPayment = async (req, res) => {
   try {

@@ -99,7 +99,7 @@ const adminOrEmployeeAuth = async (req, res, next) => {
   const roleName = user.role.toLowerCase();
 
   if (roleName === 'admin') {
-    return next(); // ✅ Admin allowed
+    return next(); 
   }
 
   if (roleName === 'tenant') {
@@ -112,7 +112,7 @@ const adminOrEmployeeAuth = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Access denied. Role not recognized.' });
     }
 
-    next(); // ✅ Valid employee-like role (not admin, not tenant)
+    next(); 
   } catch (err) {
     console.error('Role DB check failed:', err.message);
     return res.status(500).json({ success: false, message: 'Internal server error while checking role' });
@@ -130,19 +130,17 @@ const EmployeeOrTenantAuth = async (req, res, next) => {
     return res.status(403).json({ success: false, message: 'Access denied. Admins are not allowed here.' });
   }
 
-  // ✅ Allow 'tenant' even though it's not in the Role table
   if (roleName === 'tenant') {
     return next();
   }
 
   try {
-    // ✅ Dynamically check if the role exists in the DB for employee-like roles
     const roleExists = await Role.findOne({ where: { name: user.role } });
     if (!roleExists) {
       return res.status(403).json({ success: false, message: 'Access denied. Role not recognized.' });
     }
 
-    next(); // ✅ Valid non-admin, non-tenant role
+    next();
   } catch (err) {
     console.error('Role DB check failed:', err.message);
     return res.status(500).json({ success: false, message: 'Internal server error while checking role' });
