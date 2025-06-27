@@ -5,27 +5,29 @@ const {
   getEmployeeSalaryHistory,
   updateSalaryPayment,
   deleteSalaryPayment,
-  getAllSalaryPayments
+  getAllSalaryPayments,
+  getSalaryPaymentsByDateRange
 } = require("../controllers/salaryPaymentController");
 const {adminAuth,employeeAuth}= require("../middleware/auth");
 const router = express.Router();
 
-// 💵 Pay Salary (Admin Only)
+// Pay Salary (Admin Only)
 router.post("/pay",adminAuth, paySalary);
 
-// ✅ Mass Salary Payment (Admin Only)
+//  Mass Salary Payment (Admin Only)
 router.post("/mass-pay", adminAuth, massPaySalaries);
 
-// 👨‍💼 Employee Views Salary Payment History
+// Employee Views Salary Payment History
 router.get("/my-history",employeeAuth, getEmployeeSalaryHistory);
 
-// 📝 Admin Updates Salary Payment Record
+// Admin Updates Salary Payment Record
 router.put("/:id", adminAuth, updateSalaryPayment);
 
-// ❌ Admin Deletes Salary Payment Record
+// Admin Deletes Salary Payment Record
 router.delete("/:id", adminAuth, deleteSalaryPayment);
 
-// 📜 Get All Salary Payments (Admin)
+// Get All Salary Payments (Admin)
 router.get("/all", adminAuth, getAllSalaryPayments);
+router.post("/filterByDateRange", adminAuth, getSalaryPaymentsByDateRange );
 
 module.exports = router;

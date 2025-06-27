@@ -103,6 +103,29 @@ exports.updateUnit = async (req, res) => {
     if (!unit) {
       return res.status(404).json({ message: 'Unit not found' });
     }
+
+    const newFloorId = req.body.floorId;
+
+    if (newFloorId && newFloorId !== unit.floorId) {
+      const floor = await Floor.findByPk(newFloorId);
+
+      if (!floor) {
+        return res.status(400).json({ message: 'Target floor not found' });
+      }
+
+      // Check floor status - only allow 'active'
+      if (floor.status !== 'active') {
+        return res.status(400).json({ message: `Cannot assign unit to floor with status '${floor.status}'. Only floors with 'active' status are allowed.` });
+      }
+
+      const maxUnits = parseInt(floor.noUnits, 10);
+      const currentUnitsCount = await Unit.count({ where: { floorId: newFloorId } });
+
+      if (currentUnitsCount >= maxUnits) {
+        return res.status(400).json({ message: `Floor ${floor.floorNumber} has reached its unit limit (${maxUnits}).` });
+      }
+    }
+
     await unit.update(req.body);
     res.status(200).json(unit);
   } catch (error) {

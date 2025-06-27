@@ -6,10 +6,36 @@ const { Op } = require("sequelize");
 // Create Item
 exports.createItem = async (req, res) => {
   try {
-    const { itemName, expirationDate, itemAmount, itemType, unit, itemDetails, itemCategoryId, min_amount } = req.body;
+    const {
+      itemName,
+      expirationDate,
+      itemAmount,
+      itemType,
+      unit,
+      itemDetails,
+      itemCategoryId,
+      min_amount
+    } = req.body;
+
+    // Validate required fields
+    if (!itemName || !itemCategoryId) {
+      return res.status(400).json({ message: "Item name and category are required" });
+    }
 
     // Default itemType to 'Existing' if not provided
     const itemTypeToUse = itemType || "Existing";
+
+    // Check for duplicate item by name and category
+    const existingItem = await Item.findOne({
+      where: {
+        itemName: itemName.trim(),
+        itemCategoryId
+      }
+    });
+
+    if (existingItem) {
+      return res.status(409).json({ message: "Item with this name already exists in the selected category" });
+    }
 
     // Create item in the database
     const newItem = await Item.create({
@@ -20,7 +46,7 @@ exports.createItem = async (req, res) => {
       itemType: itemTypeToUse,
       unit,
       itemDetails,
-      min_amount,
+      min_amount
     });
 
     return res.status(201).json({ message: "Item created successfully", newItem });

@@ -2,12 +2,16 @@ const WithdrawalRequest = require('../models/withdrawal');
 const Tenant=require('../models/tenant');
 const User = require('../models/user');
 const Role = require('../models/role');
+const TenantRentCollection = require('../models/tenantRentCollection');
+const TenantPayment = require('../models/tenantPayments');
+const Unit = require('../models/unit');
+const BillType = require('../models/billType');
 const {refundStatusSchema} = require('../helpers/schema');
 const sendNotificationHelper= require('../helpers/sendAlert');
 const sendEmailMessage = require('../services/sendEmailMessage');
 const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
-
-
+const { Op } = require('sequelize');
+const moment = require('moment');
 
 // Create a new withdrawal request
 const createWithdrawalRequest = async (req, res) => {
@@ -62,9 +66,6 @@ const createWithdrawalRequest = async (req, res) => {
         })
       )
     );
-
-
-
     res.status(201).json({ message: "Withdrawal request submitted successfully.", request });
   } catch (error) {
     res.status(500).json({ message: "Error submitting withdrawal request.", error: error.message });
@@ -290,6 +291,120 @@ const provideTenantFeedback = async (req, res) => {
     }
 };
 
+const getTenantDetails = async (req, res) => {
+  const { tenantId } = req.params;
+
+  try {
+    const tenant = await Tenant.findOne({
+      where: { id: tenantId },
+      attributes: ['id', 'fullName', 'leaseStartDate'],
+      include: [
+        {
+          model: Unit,
+          attributes: ['availableEquipments', 'problems'],
+        },
+        {
+          model: TenantRentCollection,
+          where: { status: ['paid'] },
+          required: false,
+          attributes: ['status', 'nextDueDate'],
+        },
+        {
+          model: TenantPayment,
+          where: { status: ['paid'] },
+          required: false,
+          attributes: ['status', 'startDate', 'endDate', 'paymentTypeId'],
+          include: [
+            {
+              model: BillType,
+              attributes: ['id', 'typeName'],
+            },
+          ],
+        },
+        {
+          model: WithdrawalRequest,
+          required: false,
+          attributes: ['terminationDate'],
+        },
+      ],
+    });
+
+    if (!tenant) {
+      return res.status(404).json({ message: 'Tenant not found.' });
+    }
+
+    const terminationDate = tenant.WithdrawRequest?.terminationDate
+      ? moment(tenant.WithdrawRequest.terminationDate)
+      : null;
+
+    const leaseEnd = tenant.leaseEndDate ? moment(tenant.leaseEndDate) : null;
+    const now = moment();
+
+    // Get latest rent based on nextDueDate
+    let latestRent = null;
+    if (tenant.TenantRentCollections?.length > 0) {
+      latestRent = tenant.TenantRentCollections.reduce((latest, current) => {
+        return moment(current.nextDueDate).isAfter(moment(latest.nextDueDate)) ? current : latest;
+      });
+    }
+
+    let rentNote = '';
+    if (latestRent && terminationDate) {
+      const diff = moment(latestRent.nextDueDate).diff(terminationDate, 'days');
+      if (diff > 0) {
+        rentNote = `${diff} day(s) remaining until termination.`;
+      } else if (diff < 0) {
+        rentNote = `Overdue by ${Math.abs(diff)} day(s) since termination.`;
+      } else {
+        rentNote = `Rent is due on the termination date.`;
+      }
+    } else if (!latestRent && leaseEnd) {
+      rentNote = `No rent payment recorded. Lease ended on ${leaseEnd.format('YYYY-MM-DD')}.`;
+    }
+
+    // Get latest payment per billTypeId
+    const latestPayments = new Map();
+    if (tenant.TenantPayments?.length > 0) {
+      tenant.TenantPayments.forEach(payment => {
+        const paymentTypeId = payment.paymentTypeId;
+        const existing = latestPayments.get(paymentTypeId);
+        if (!existing || moment(payment.endDate).isAfter(moment(existing.endDate))) {
+          latestPayments.set(paymentTypeId, payment);
+        }
+      });
+    }
+
+    const billNotes = [];
+    if (latestPayments.size > 0) {
+      for (const payment of latestPayments.values()) {
+        const endDate = moment(payment.endDate);
+        const billName = payment.BillType?.typeName || 'Unknown Bill';
+        const diff = now.diff(endDate, 'days');
+
+        if (diff > 0) {
+          billNotes.push(`${billName}: Overdue by ${diff} day(s).`);
+        } else if (diff < 0) {
+          billNotes.push(`${billName}: ${Math.abs(diff)} day(s) remaining.`);
+        } else {
+          billNotes.push(`${billName}: Due today.`);
+        }
+      }
+    } else if (leaseEnd) {
+      billNotes.push(`No bill payments made. Lease ended on ${leaseEnd.format('YYYY-MM-DD')}.`);
+    }
+
+    return res.status(200).json({
+      tenant,
+      rentNote,
+      billNotes,
+    });
+
+  } catch (error) {
+    console.error('Error fetching tenant details:', error);
+    return res.status(500).json({ message: 'Server error.', error: error.message });
+  }
+};
+
 // Admin finalizes exit process and refunds deposit
 const finalizeWithdrawalProcess = async (req, res) => {
     try {
@@ -352,4 +467,5 @@ module.exports = {
     getMyWithdrawalRequests,
     myAssignedRequests,
     deleteWithdrawalRequest,
+    getTenantDetails,
 };

@@ -153,7 +153,8 @@ exports.createTenant = async (req, res) => {
       const loginUrl = process.env.TENANT_PORTAL_URL;
       const downloadApk = process.env.DOWNLOAD_APK_URL;
       const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
-      const smsMessage = `Welcome ${fullName}!\n` +
+      const smsMessage =
+        `Welcome ${fullName}!\n` +
         `Your tenant account has been created successfully.\n` +
         `Floor: ${floor.floorNumber}, Unit: ${unit.unitNumber}\n` +
         `Phone: ${phoneNumber}\n` +
@@ -174,7 +175,6 @@ exports.createTenant = async (req, res) => {
         password: generatedPassword,
       });
     });
-
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
       const field = error.errors[0].path;
@@ -283,43 +283,40 @@ exports.updateTenant = async (req, res) => {
       return res.status(400).json({ error: "Invalid tenant ID" });
     }
 
-    // Handle file upload and process body inside middleware
     upload.single("document")(req, res, async (err) => {
       if (err) {
         return res.status(400).json({ error: err.message });
       }
 
-      // Log req.body after multer processes it
-      console.log("Received body:", JSON.stringify(req.body));
-
-      let tenant = await Tenant.findOne({ where: { id }, include: Unit });
+      const tenant = await Tenant.findOne({ where: { id }, include: Unit });
       if (!tenant) {
         return res.status(404).json({ message: "Tenant not found" });
       }
 
-      // Validate unitId if provided
+      // Validate unitId if provided, or keep current
       const unitId = req.body.unitId ? Number(req.body.unitId) : tenant.unitId;
       if (req.body.unitId && isNaN(unitId)) {
         return res.status(400).json({ error: "Invalid unit ID" });
       }
 
-      // Store the previous unitId for updating its status
+      // Store previous values for comparison
+      const previousStatus = tenant.status;
       const previousUnitId = tenant.unitId;
 
-      // Handle status update logic for unit
-      if (req.body.status === "inactive" && previousUnitId) {
+      // If tenant is going from active → inactive, free the unit
+      if (previousStatus === "active" && req.body.status === "inactive" && previousUnitId) {
         await Unit.update(
           { status: "available", vacatedDate: new Date(), rentedDate: null },
           { where: { id: previousUnitId } }
         );
       }
 
+      // If tenant status changes from inactive → active, mark unit as occupied
       if (req.body.status === "active" && unitId) {
         const unitExists = await Unit.findOne({ where: { id: unitId } });
         if (!unitExists) {
           return res.status(400).json({ error: "Unit not found" });
         }
-        // Update the new unit to occupied
         await Unit.update(
           {
             status: "occupied",
@@ -330,12 +327,8 @@ exports.updateTenant = async (req, res) => {
         );
       }
 
-      // If unitId has changed, set the previous unit to available
-      if (
-        req.body.unitId &&
-        Number(req.body.unitId) !== previousUnitId &&
-        previousUnitId
-      ) {
+      // If unitId changed, free the old unit
+      if (req.body.unitId && Number(req.body.unitId) !== previousUnitId && previousUnitId) {
         await Unit.update(
           { status: "available", vacatedDate: new Date(), rentedDate: null },
           { where: { id: previousUnitId } }
@@ -343,11 +336,9 @@ exports.updateTenant = async (req, res) => {
       }
 
       // Handle file upload
-      const filePath = req.file
-        ? `/Uploads/${req.file.filename}`
-        : tenant.document;
+      const filePath = req.file ? `/Uploads/${req.file.filename}` : tenant.document;
 
-      // Prepare updated data, exclude fields not in Tenant model
+      // Prepare updated tenant data
       const updatedData = {
         fullName: req.body.fullName || tenant.fullName,
         phoneNumber: req.body.phoneNumber || tenant.phoneNumber,
@@ -359,6 +350,7 @@ exports.updateTenant = async (req, res) => {
         additionalNotes: req.body.additionalNotes || tenant.additionalNotes,
         unitId: unitId,
         floorId: req.body.floorId ? Number(req.body.floorId) : tenant.floorId,
+        amount: req.body.amount || tenant.amount,
         advance: req.body.advance || tenant.advance,
         tin: req.body.tin || tenant.tin,
         status: req.body.status || tenant.status,
@@ -366,22 +358,14 @@ exports.updateTenant = async (req, res) => {
         document: filePath,
       };
 
-      // Update tenant record
       await tenant.update(updatedData);
 
-      // Re-fetch updated tenant + Unit info
       const updatedTenant = await Tenant.findOne({
         where: { id: tenant.id },
         include: [
           {
             model: Unit,
-            attributes: [
-              "id",
-              "unitNumber",
-              "status",
-              "vacatedDate",
-              "rentedDate",
-            ],
+            attributes: ["id", "unitNumber", "status", "vacatedDate", "rentedDate"],
           },
         ],
       });
@@ -393,6 +377,7 @@ exports.updateTenant = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // Delete tenant by ID
 exports.deleteTenant = async (req, res) => {

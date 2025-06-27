@@ -207,26 +207,46 @@ exports.massPaySalaries = async (req, res) => {
       }
 
       // Fetch all employees with role 'employee' and their salary details
-     const employees = await User.findAll({
-        include: [
-          {
-            model: Role,
-            required: true, // Must have *some* role (any name)
-          },
-          {
-            model: EmployeeDetails,
-            required: true, 
-          },
-        ],
+      const employees = await User.findAll({
+          include: [
+            {
+              model: Role,
+              required: true,
+            },
+            {
+              model: EmployeeDetails,
+              required: true,
+            },
+          ],
       });
 
       if (employees.length === 0) {
           return res.status(404).json({ message: "No employees found for salary payment" });
       }
 
-      // Prepare salary payment records
+      // Prepare salary payment records and duplicates list
       const salaryPayments = [];
       const skippedPayments = [];
+      const duplicateEmployees = [];
+
+      // Validate dates once outside loop
+      const fromDate = new Date(paymentFromDate);
+      const toDate = new Date(paymentToDate);
+
+      if (isNaN(fromDate) || isNaN(toDate)) {
+          return res.status(400).json({ message: "Invalid date format" });
+      }
+
+      if (fromDate > toDate) {
+          return res.status(400).json({ message: 'The payment "From Date" must be earlier than or equal to the "To Date".' });
+      }
+
+      // Ensure allowance is a valid number (if provided)
+      if (allowance && isNaN(allowance)) {
+          return res.status(400).json({ message: "Allowance must be a valid number" });
+      }
+
+      const validAllowance = parseFloat(allowance) || 0;
 
       // Loop through each employee to calculate their salary details
       for (const employee of employees) {
@@ -238,36 +258,20 @@ exports.massPaySalaries = async (req, res) => {
               continue;
           }
 
-          const fromDate = new Date(paymentFromDate);
-          const toDate = new Date(paymentToDate);
-
-          if (isNaN(fromDate) || isNaN(toDate)) {
-              return res.status(400).json({ message: "Invalid date format" });
-          }
-
-          if (fromDate > toDate) {
-              return res.status(400).json({ message: 'The payment "From Date" must be earlier than or equal to the "To Date".' });
-          }
-
-          // Ensure allowance is a valid number (if provided)
-          if (allowance && isNaN(allowance)) {
-              return res.status(400).json({ message: "Allowance must be a valid number" });
-          }
-
-          const validAllowance = parseFloat(allowance) || 0;
-
           // Check if there's already a payment for the same employee within the same date range
           const existingPayment = await SalaryPayment.findOne({
               where: {
                   employeeId: employee.id,
-                  paymentToDate: { [Op.gte]: paymentFromDate },  // payments that overlap on or after the given `paymentFromDate`
-                  paymentFromDate: { [Op.lte]: paymentToDate },  // payments that overlap on or before the given `paymentToDate`
+                  paymentToDate: { [Op.gte]: paymentFromDate },
+                  paymentFromDate: { [Op.lte]: paymentToDate },
                   status: 'Paid',
               },
           });
 
           if (existingPayment) {
-              return res.status(404).json({ message: 'Duplicate payment detected within the specified date range.' });
+              // Collect duplicate employee info and skip processing payment
+              duplicateEmployees.push(employee.fname );
+              continue;
           }
 
           // Calculate pension, income tax, and net salary using the salary calculation method
@@ -276,19 +280,28 @@ exports.massPaySalaries = async (req, res) => {
           // Add the calculated details to the salary payment record
           salaryPayments.push({
               employeeId: employee.id,
-              amount: employee.EmployeeDetail.salary,  // Gross salary from EmployeeDetails
+              amount: employee.EmployeeDetail.salary,
               paymentMethod,
-              paymentFromDate: paymentFromDate,
-              paymentToDate: paymentToDate,
-              status: status || "pending",  // Default status to "pending"
-              pensionContribution,          // Calculated pension contribution
-              incomeTax,                    // Calculated income tax
-              netSalary,                    // Calculated net salary after all deductions and allowance
-              allowance: validAllowance,    // Transport allowance or bonuses
+              paymentFromDate,
+              paymentToDate,
+              status: status || "pending",
+              pensionContribution,
+              incomeTax,
+              netSalary,
+              allowance: validAllowance,
           });
       }
 
-      // Bulk create salary payments
+      // If any duplicates found, return them in response and do NOT create any payments
+      if (duplicateEmployees.length > 0) {
+        return res.status(409).json({
+  message: "Duplicate payments detected for the following employees:",
+  duplicates: duplicateEmployees,
+});
+
+      }
+
+      // Bulk create salary payments for employees without duplicates
       if (salaryPayments.length > 0) {
           await SalaryPayment.bulkCreate(salaryPayments);
       }
@@ -313,7 +326,7 @@ exports.getEmployeeSalaryHistory = async (req, res) => {
     if (role === "admin") {
       return res.status(403).json({ message: "Admins are not allowed to access this" });
     }
-
+  
     const salaryPayments = await SalaryPayment.findAll({
       where: { employeeId },
       order: [["paymentToDate", "DESC"]],
@@ -376,12 +389,64 @@ exports.deleteSalaryPayment = async (req, res) => {
 exports.getAllSalaryPayments = async (req, res) => {
   try {
     const salaryPayments = await SalaryPayment.findAll({
-      include: [{ model: User, attributes: ["fname", "lname", "email"] }],
+      include: [
+        {
+          model: User,
+          attributes: ["fname", "lname", "email"],
+          include: [
+            {
+              model: EmployeeDetails,
+              attributes: ["bankAccount"],
+            },
+          ],
+        },
+      ],
       order: [["paymentToDate", "DESC"]],
     });
-    res.status(200).json({ message: "Salary payments retrieved", data: salaryPayments });
+
+    res.status(200).json({
+      message: "Salary payments retrieved",
+      data: salaryPayments,
+    });
   } catch (error) {
     console.error("Error fetching salary payments:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+exports.getSalaryPaymentsByDateRange = async (req, res) => {
+  try {
+    const { fromDate, toDate } = req.body;
+
+    if (!fromDate || !toDate) {
+      return res.status(400).json({ message: "Both fromDate and toDate are required" });
+    }
+
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+
+    if (isNaN(from) || isNaN(to)) {
+      return res.status(400).json({ message: "Invalid date format" });
+    }
+
+    const salaryPayments = await SalaryPayment.findAll({
+      where: {
+        paymentToDate: {
+          [Op.between]: [from, to],
+        },
+      },
+      include: [{ model: User, attributes: ["fname", "lname", "email"] }],
+      order: [["paymentToDate", "DESC"]],
+    });
+
+    if (!salaryPayments.length) {
+      return res.status(404).json({ message: "No salary payments found in the given range" });
+    }
+
+    res.status(200).json({ message: "Filtered salary payments retrieved", data: salaryPayments });
+  } catch (error) {
+    console.error("Error filtering salary payments:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+

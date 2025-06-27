@@ -48,8 +48,7 @@ exports.createChargingSession = async (req, res) => {
     }
 };
 
-// 2. Update the charging session (set price, charging end time, etc.)
-        const moment = require('moment');  // Importing moment.js for time calculations
+const moment = require('moment');  
 
 // 2. Update the charging session (set price, charging end time, etc.)
 exports.updateChargingSession = async (req, res) => {
@@ -95,17 +94,18 @@ exports.updateChargingSession = async (req, res) => {
         }
 
         // Calculate the charging cost using the default value from the Settings table
-        const chargingCost = durationInMinutes * (setting.chargingCost || 10); // Default to 10 if no chargingCost is set
+        const chargingCost = durationInMinutes * (setting.chargingCost || 10); 
 
         // Prepare the updated data
         const updatedData = {
             carPlate: carPlate || chargingSession.carPlate,
             carName: carName || chargingSession.carName,
             chargingEndTime,
-            chargingCost: chargingCost.toFixed(2),  // Ensure chargingCost is a string with two decimal places
-            status,  // status can be 'completed' or 'charging'
-            tenantId: isTenant ? tenantId : null,  // If isTenant is true, update tenantId
-            isTenant,  // Update isTenant flag
+            chargingCost: chargingCost.toFixed(2),  
+            status, 
+            tenantId: isTenant ? tenantId : null,  
+            isTenant, 
+            driverName: isTenant ? chargingSession.driverName : req.body.driverName || chargingSession.driverName, 
         };
 
         // Update the charging session with the new details

@@ -1,6 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const Vendor = require('./Vendor'); // Import the Vendor model
+const Vendor = require('./Vendor'); 
+const Purchase = require('./purchase'); 
 
 const Payment = sequelize.define('Payment', {
   id: {
@@ -44,7 +45,15 @@ const Payment = sequelize.define('Payment', {
   },
   item: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
+  },
+  purchaseId: {
+    type: DataTypes.INTEGER,
+    allowNull: true, 
+    references: {
+      model: Purchase, 
+      key: 'id',
+    },
   },
 }, {
   tableName: 'payments',
@@ -52,5 +61,13 @@ const Payment = sequelize.define('Payment', {
   charset: 'utf8',
   collate: 'utf8_general_ci',
 });
+
+// Payment.sync({ alter: true })
+//   .then(() => {
+//     console.log('Payment table synced (altered if needed).');
+//   })
+//   .catch((err) => {
+//     console.error('Error syncing Payment model:', err);
+//   });
 
 module.exports = Payment;

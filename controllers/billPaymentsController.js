@@ -99,16 +99,18 @@ cron.schedule('0 8 * * *', async () => {
   }
 });
 
-  
+
 exports.createBillPayment = async (req, res) => {
   try {
     const { billTypeId, amount, startDate, endDate, status, paymentMethod, description } = req.body;
 
+    // Validate bill type
     const billType = await BillType.findByPk(billTypeId);
     if (!billType) {
       return res.status(404).json({ message: "Bill type not found" });
     }
 
+    // Validate fields
     if (!amount || !startDate || !endDate || !status || !paymentMethod || !description) {
       return res.status(400).json({ message: "Please provide all required fields" });
     }
@@ -117,23 +119,42 @@ exports.createBillPayment = async (req, res) => {
       return res.status(400).json({ message: "Amount must be greater than 0" });
     }
 
-    if (new Date(startDate) > new Date(endDate)) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (start > end) {
       return res.status(400).json({ message: "Start date cannot be greater than end date" });
     }
 
-    // Create the BillPayment
+    // Check for overlapping or exact date range for same bill type
+    const existingPayment = await BillPayment.findOne({
+      where: {
+        billTypeId,
+        [Op.and]: [
+          { startDate: { [Op.lte]: end } },
+          { endDate: { [Op.gte]: start } },
+        ],
+      },
+    });
+
+    if (existingPayment) {
+      return res.status(409).json({
+        message: "A bill payment already exists for this bill type and overlapping date range.",
+      });
+    }
+
+    // Create the bill payment
     const billPayment = await BillPayment.create(req.body);
 
     let expense = null;
 
-    // Only create Expense if the bill payment status is "paid"
+    // Create expense if paid
     if (status.toLowerCase() === 'paid') {
       const type = billType.typeName;
 
       let expenseType = await ExpenseType.findOne({ where: { name: type } });
       if (!expenseType) {
         expenseType = await ExpenseType.create({ name: type, description: `Expense type for ${type}` });
-        console.log(`Created new expense type: ${type}`);
       }
 
       expense = await Expense.create({
@@ -147,7 +168,7 @@ exports.createBillPayment = async (req, res) => {
     return res.status(201).json({
       message: "Bill payment created successfully" + (expense ? " and expense recorded" : ""),
       billPayment,
-      ...(expense && { expense }) // Only include expense if it was created
+      ...(expense && { expense })
     });
 
   } catch (error) {

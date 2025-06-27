@@ -118,29 +118,58 @@ cron.schedule('0 0 * * *', async () => {
 // Create a new tenant payment
 exports.createPayment = async (req, res) => {
   try {
-    const { tenantId, billPaymentTypeId, amount, startDate, endDate, status, amountPaid, paymentMethod, paymentDate } = req.body;
+    const {
+      tenantId,
+      billPaymentTypeId, // alias for paymentTypeId
+      startDate,
+      endDate,
+      status,
+      amountPaid,
+      paymentMethod
+    } = req.body;
 
     // Ensure all required fields are provided
-    if (!tenantId || !billPaymentTypeId || !amount || !startDate || !endDate || !amountPaid || !paymentMethod || !paymentDate) {
+    if (!tenantId || !billPaymentTypeId || !startDate || !endDate || !amountPaid || !paymentMethod) {
       return res.status(400).json({ message: 'Please provide all required fields' });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (start > end) {
+      return res.status(400).json({ message: 'Start date cannot be after end date.' });
+    }
+
+    // Check for exact duplicate for same tenant, type, and exact date range
+    const existingPayment = await TenantPayment.findOne({
+      where: {
+        tenantId,
+        paymentTypeId: billPaymentTypeId,
+        startDate: startDate,
+        endDate: endDate
+      }
+    });
+
+    if (existingPayment) {
+      return res.status(409).json({
+        message: 'A payment for this tenant, type, and date range already exists.'
+      });
     }
 
     // Proceed with payment creation
     const payment = await TenantPayment.create({
       tenantId,
       paymentTypeId: billPaymentTypeId,
-      amount,
       startDate,
       endDate,
       status,
       amountPaid,
-      paymentMethod,
-      paymentDate
+      paymentMethod
     });
 
     res.status(201).json(payment);
   } catch (error) {
-    res.status(500).json({ message: 'Error creating payment', error });
+    res.status(500).json({ message: 'Error creating payment', error: error.message });
   }
 };
 
