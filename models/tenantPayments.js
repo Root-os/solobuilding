@@ -33,10 +33,6 @@ const TenantPayment = sequelize.define('TenantPayment', {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  paymentDate: {
-    type: DataTypes.DATE,
-    allowNull: false,
-  },
   status: {
     type: DataTypes.ENUM('paid', 'due', 'overdue'),
     defaultValue: 'due',

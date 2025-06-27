@@ -3,13 +3,12 @@ const Tenant = require("../models/tenant");
 const Floor = require("../models/floor");
 const Unit = require("../models/unit");
 const User = require("../models/user");
-const Role = require('../models/role');
+const Role = require("../models/role");
 const { Op } = require("sequelize");
 const { tenantRentCollectionSchema } = require("../helpers/schema");
 const cron = require("node-cron");
 const sendNotificationHelper = require("../helpers/sendAlert");
 const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
-
 
 //schedule a task to run every day at midnight (0 0 * * *)
 cron.schedule("0 8 * * *", async () => {
@@ -18,8 +17,8 @@ cron.schedule("0 8 * * *", async () => {
     console.log(`Current Date: ${today.toISOString()}`);
 
     // Calculate the dates 10 and 2 days from now
-    const tenDaysBefore = new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000); 
-    const twoDaysBefore = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000); 
+    const tenDaysBefore = new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000);
+    const twoDaysBefore = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000);
     console.log(`10 Days From Now: ${tenDaysBefore.toISOString()}`);
     console.log(`2 Days From Now: ${twoDaysBefore.toISOString()}`);
 
@@ -27,7 +26,7 @@ cron.schedule("0 8 * * *", async () => {
     const rentCollections = await TenantRentCollection.findAll({
       where: {
         nextDueDate: {
-          [Op.in]: [tenDaysBefore, twoDaysBefore], 
+          [Op.in]: [tenDaysBefore, twoDaysBefore],
         },
       },
       include: {
@@ -74,7 +73,6 @@ cron.schedule("0 8 * * *", async () => {
             });
           })
         );
-        
 
         // Send notification to tenant
         console.log(
@@ -105,7 +103,7 @@ const { sendSingleSMS } = createSingleSMSUtil({
 });
 
 // Days to notify before lease ends
-const NOTIFY_DAYS = [10, 5,4, 3, 2, 1, 0];
+const NOTIFY_DAYS = [10, 5, 4, 3, 2, 1, 0];
 
 cron.schedule("0 8 * * *", async () => {
   console.log("Running lease expiry SMS notifier...");
@@ -115,7 +113,9 @@ cron.schedule("0 8 * * *", async () => {
 
     // Get max days to look ahead
     const maxNotifyDay = Math.max(...NOTIFY_DAYS);
-    const futureDate = new Date(today.getTime() + maxNotifyDay * 24 * 60 * 60 * 1000);
+    const futureDate = new Date(
+      today.getTime() + maxNotifyDay * 24 * 60 * 60 * 1000
+    );
 
     // Find tenants with leaseEndDate between today and futureDate
     const tenants = await Tenant.findAll({
@@ -132,12 +132,12 @@ cron.schedule("0 8 * * *", async () => {
     }
 
     // Fetch all admin users by roleId (assuming admin roleId is 1)
-     const admins = await User.findAll({
-        include: {
-          model: Role,
-          where: { name: 'admin' }, // or whatever your Role name field is
-        },
-      });
+    const admins = await User.findAll({
+      include: {
+        model: Role,
+        where: { name: "admin" }, // or whatever your Role name field is
+      },
+    });
 
     if (admins.length === 0) {
       console.log("No admins found to send notifications.");
@@ -159,18 +159,25 @@ cron.schedule("0 8 * * *", async () => {
           await sendSingleSMS({ phone: tenant.phoneNumber, msg: tenantMsg });
           console.log(`SMS sent to tenant: ${tenant.fullName}`);
         } catch (err) {
-          console.error(`Failed to send SMS to tenant ${tenant.fullName}:`, err.message);
+          console.error(
+            `Failed to send SMS to tenant ${tenant.fullName}:`,
+            err.message
+          );
         }
       }
 
       // Send SMS to all admins
       for (const admin of admins) {
-        if (admin.phone) {  // Use 'phone' field from your User table
+        if (admin.phone) {
+          // Use 'phone' field from your User table
           try {
             await sendSingleSMS({ phone: admin.phone, msg: adminMsg });
             console.log(`SMS sent to admin: ${admin.id}`);
           } catch (err) {
-            console.error(`Failed to send SMS to admin ${admin.id}:`, err.message);
+            console.error(
+              `Failed to send SMS to admin ${admin.id}:`,
+              err.message
+            );
           }
         }
       }
@@ -189,14 +196,8 @@ exports.createRentPayment = async (req, res) => {
     if (error) {
       return res.status(400).json({ error: error.details[0].message });
     }
-    const {
-      tenantId,
-      paymentDate,
-      paymentMethod,
-      paymentFrequency,
-      nextDueDate,
-      status,
-    } = req.body;
+    const { tenantId, paymentDate, paymentMethod, nextDueDate, status } =
+      req.body;
 
     // Find the tenant and update their status and leaseEndDate
     const tenant = await Tenant.findByPk(tenantId);
@@ -244,20 +245,16 @@ exports.createRentPayment = async (req, res) => {
           .json({ message: "Tenant has already paid rent for this period" });
       }
       if (previousPayment.paymentDate >= paymentDateObj) {
-        return res
-          .status(400)
-          .json({
-            message:
-              "Payment date cannot be earlier or the same as the previous payment date",
-          });
+        return res.status(400).json({
+          message:
+            "Payment date cannot be earlier or the same as the previous payment date",
+        });
       }
       if (previousPayment.nextDueDate > paymentDateObj) {
-        return res
-          .status(400)
-          .json({
-            message:
-              "Rent payment date cannot be earlier than the last payment date",
-          });
+        return res.status(400).json({
+          message:
+            "Rent payment date cannot be earlier than the last payment date",
+        });
       }
     }
 
@@ -265,7 +262,6 @@ exports.createRentPayment = async (req, res) => {
       tenantId,
       paymentDate,
       paymentMethod,
-      paymentFrequency,
       nextDueDate,
       paidDays,
       amountPaid,
@@ -364,12 +360,10 @@ exports.getRentPaymentHistoryByTenantId = async (req, res) => {
       rentPayments,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error fetching rent payment history",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching rent payment history",
+      error: error.message,
+    });
   }
 };
 
@@ -381,7 +375,6 @@ exports.updateRentPayment = async (req, res) => {
       tenantId,
       paymentDate,
       paymentMethod,
-      paymentFrequency,
       nextDueDate,
       status,
     } = req.body;
@@ -396,7 +389,6 @@ exports.updateRentPayment = async (req, res) => {
       tenantId,
       paymentDate,
       paymentMethod,
-      paymentFrequency,
       nextDueDate,
       status,
     });
@@ -456,12 +448,10 @@ exports.getPaymentsByStatus = async (req, res) => {
 
     return res.status(200).json(payments);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error fetching payments by status",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching payments by status",
+      error: error.message,
+    });
   }
 };
 
@@ -472,7 +462,6 @@ exports.filterRentCollections = async (req, res) => {
       paymentDateTo,
       nextDueDateFrom,
       nextDueDateTo,
-      paymentFrequency,
       status,
     } = req.body;
 
@@ -488,9 +477,6 @@ exports.filterRentCollections = async (req, res) => {
       whereConditions.nextDueDate = {
         [Op.between]: [nextDueDateFrom, nextDueDateTo],
       };
-    }
-    if (paymentFrequency) {
-      whereConditions.paymentFrequency = paymentFrequency;
     }
 
     if (status) {
@@ -523,11 +509,9 @@ exports.filterRentCollections = async (req, res) => {
     }
     res.status(200).json(rentCollections);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error fetching rent collections",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching rent collections",
+      error: error.message,
+    });
   }
 };

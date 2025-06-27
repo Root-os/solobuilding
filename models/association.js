@@ -76,23 +76,22 @@ const defineAssociations = () => {
     Floor.hasMany(Unit, { foreignKey: 'floorId', onDelete: 'CASCADE' });
     Unit.belongsTo(Floor, { foreignKey: 'floorId', onDelete: 'CASCADE' });
 
+      // association.js (relevant section)
+    Notification.belongsTo(NotificationType, { foreignKey: "type_id", as: "type", onDelete: "CASCADE" });
+    NotificationType.hasMany(Notification, { foreignKey: "type_id", as: "notifications", onDelete: "CASCADE" });
 
-  // association.js (relevant section)
-Notification.belongsTo(NotificationType, { foreignKey: "type_id", as: "type", onDelete: "CASCADE" });
-NotificationType.hasMany(Notification, { foreignKey: "type_id", as: "notifications", onDelete: "CASCADE" });
+    // Polymorphic associations
+    Notification.belongsTo(User, {
+      as: "receiverStaff",
+      foreignKey: "receiver_id",
+      constraints: false, // Disable FK constraint for polymorphism
+    });
 
-// Polymorphic associations
-Notification.belongsTo(User, {
-  as: "receiverStaff",
-  foreignKey: "receiver_id",
-  constraints: false, // Disable FK constraint for polymorphism
-});
-
-Notification.belongsTo(Tenant, {
-  as: "receiverTenant",
-  foreignKey: "receiver_id",
-  constraints: false, // Disable FK constraint for polymorphism
-});
+    Notification.belongsTo(Tenant, {
+      as: "receiverTenant",
+      foreignKey: "receiver_id",
+      constraints: false, // Disable FK constraint for polymorphism
+    });
       
     
     Parking.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "CASCADE" });
@@ -119,7 +118,6 @@ Notification.belongsTo(Tenant, {
     Tenant.hasMany(TenantVehicle, { foreignKey: "tenantId", onDelete: "CASCADE" });
     TenantVehicle.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "SETNULL" });
 
-
     WithdrawalRequest.belongsTo(Tenant, { foreignKey: "tenantId", onDelete: "CASCADE" });
     Tenant.hasMany(WithdrawalRequest, { foreignKey: "tenantId", onDelete: "CASCADE" });
 
@@ -133,7 +131,6 @@ Notification.belongsTo(Tenant, {
 
     Purchase.belongsTo(ItemCategory, { foreignKey: "ItemCategoryId", onDelete: "CASCADE" });
     ItemCategory.hasMany(Purchase, { foreignKey: "ItemCategoryId", onDelete: "CASCADE" });
-
 
     purchaseRequest.belongsTo(Item, { foreignKey: "itemId",as: 'item', onDelete: "CASCADE" });
     Item.hasMany(purchaseRequest, { foreignKey: "itemId",as: 'item', onDelete: "CASCADE" });
@@ -156,9 +153,10 @@ Notification.belongsTo(Tenant, {
     Maintenance.belongsTo(Unit, { foreignKey: 'unitId', as: 'maintenanceUnit', onDelete: 'CASCADE' });
     Unit.hasMany(Maintenance, { foreignKey: 'unitId', as: 'unitMaintenances', onDelete: 'CASCADE' });
 
-    // fub 27 end
-
-
+   //association for purchase and payment 
+  Purchase.hasMany(payment, { foreignKey: 'purchaseId' });
+  payment.belongsTo(Purchase, { foreignKey: 'purchaseId' });
+    
     // Vendor to ServiceType
    Vendor.belongsTo(ServiceType, { foreignKey: 'serviceTypeId', onDelete: "CASCADE" });
    ServiceType.hasMany(Vendor, { foreignKey: 'serviceTypeId', onDelete: "CASCADE" });

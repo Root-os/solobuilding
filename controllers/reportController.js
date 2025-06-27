@@ -14,12 +14,13 @@ const User = require('../models/user');
 const EmployeeDetail = require('../models/employeeDetail');
 const OrderType = require('../models/orderType');
 const Vendor = require('../models/Vendor');
+const TenantPayment = require('../models/tenantPayments');
+const BillType = require('../models/billType');
 
 const getReport = async (req, res) => {
   const { startDate, endDate } = req.query;
 
   try {
-    // Build separate date filters for `createdAt` and `paymentDate`
     const createdAtFilter = {};
     const paymentDateFilter = {};
 
@@ -45,6 +46,12 @@ const getReport = async (req, res) => {
         [Op.lte]: new Date(endDate),
       };
     }
+    const tenants = await Tenant.findAll({
+      attributes: ['id', 'fullName', 'advance'],
+      where: {
+        ...createdAtFilter,
+      },
+    });
 
     // Fetch individual records for incomes
     const chargingRecords = await ElectricCarCharging.findAll({
@@ -79,6 +86,25 @@ const getReport = async (req, res) => {
         },
       ],
       attributes: ['id', 'paymentDate', 'tenantId', 'amountPaid'],
+    });
+
+    const tenantPayments = await TenantPayment.findAll({
+      where: {
+        ...createdAtFilter,
+        status: 'paid', 
+      },
+      include: [  
+        {
+          model: Tenant,
+          attributes: ['fullName'],
+        },
+        {
+          model:BillType, 
+          attributes: ['typeName'],
+        },
+      ],
+       
+      attributes: ['id', 'amountPaid', 'createdAt'],
     });
 
     // Fetch individual records for outcomes
@@ -143,6 +169,16 @@ const getReport = async (req, res) => {
       where: createdAtFilter,
     });
 
+    // Aggregate tenant payments
+    const totalTenantPayments = tenantPayments.reduce((sum, record) => {
+      return sum + (parseFloat(record.amountPaid) || 0);
+    }, 0);
+
+    // Add  advance from tenants
+    const totalTenantAmount = tenants.reduce((sum, tenant) => {
+      return sum  + (parseFloat(tenant.advance) || 0);
+    }, 0);  
+
     // Aggregate rent collection income by summing the `amount` from Tenant
     const totalRentCollection = rentCollectionRecords.reduce((sum, record) => {
       return sum + (parseFloat(record.amountPaid) || 0);
@@ -177,10 +213,8 @@ const getReport = async (req, res) => {
     });
 
     const totalSalaryPayments = (totalNetSalary || 0) + (totalAllowance || 0);
-
-
     // Calculate totals safely
-    const income = (totalCharging || 0) + (totalParking || 0) + (totalRentCollection || 0) + (totalOrder || 0);
+    const income = (totalCharging || 0) + (totalParking || 0) + (totalRentCollection || 0) + (totalOrder || 0)  + (totalTenantPayments || 0) + (totalTenantAmount || 0);
     const outcome =  (totalExpenses || 0) + (totalMaintenance || 0) + (totalPayments || 0) + (totalSalaryPayments || 0);
     const netIncome = income - outcome;
 
@@ -218,10 +252,23 @@ const getReport = async (req, res) => {
             
           }))          
         },
+          tenants: {
+        totalTenantAmount: totalTenantAmount || 0,
+        records: tenants.map(tenant => ({
+          fullName: tenant.fullName,
+          advance: tenant.advance,
+        })),},
+      tenantPayments: {
+        totalTenantPayments: totalTenantPayments || 0,
+        records: tenantPayments.map(record => ({
+          tenant: record.Tenant?.fullName || '',
+          amountPaid: parseFloat(record.amountPaid) || 0,
+          date: record.createdAt,
+        })),},
         totalIncome: income,
       },
+    
       outcomes: {
-       
         expenses: {
           totalExpenses: totalExpenses || 0,
           records: expenseRecords.map(record => ({
@@ -257,13 +304,10 @@ const getReport = async (req, res) => {
           date: record.createdAt,
         })),
       },
-
         totalOutcome: outcome,
       },
       netIncome,
     };
-    
-
     // Return the detailed report
     res.json(report);
   } catch (error) {
@@ -271,7 +315,6 @@ const getReport = async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error', error: error.message });
   }
 };
-
 module.exports = {
   getReport,
 };

@@ -11,26 +11,36 @@ exports.createPayment = async (req, res) => {
   try {
     const { error } = paymentValidationSchema.validate(req.body);
     if (error) {
-      return res
-        .status(400)
-        .json({ message: "Validation Error", error: error.details[0].message });
+      return res.status(400).json({ message: "Validation Error", error: error.details[0].message });
     }
 
-    // Destructure all the necessary fields, including item and description
-    const { vendorId, price, paymentMethod, status, paymentDate, item, description } = req.body;
+    const { vendorId, price, paymentMethod, status, paymentDate, item, description, purchaseId } = req.body;
 
-    // Fetch the total price from the purchase table for the vendor
-    const purchase = await Purchase.findOne({ where: { vendorId } });
+    // Fetch the specific purchase by purchaseId and vendorId
+    const purchase = await Purchase.findOne({ where: { id: purchaseId, vendorId } });
 
     if (!purchase) {
-      return res
-        .status(404)
-        .json({ message: "Purchase not found for the vendor" });
+      return res.status(404).json({ message: "Purchase not found for the vendor" });
     }
 
-    const leftMoney = purchase.totalPrice - price;
+    // Calculate total amount paid so far for this purchase
+    const payments = await Payment.findAll({ where: { purchaseId } });
+    const totalPaid = payments.reduce((sum, p) => sum + p.price, 0);
 
-    // Create the payment, including item and description
+    // Calculate remaining balance
+    const remainingBalance = purchase.totalPrice - totalPaid;
+
+    if (price > remainingBalance) {
+      return res.status(400).json({
+        message: "Overpayment not allowed",
+        remainingBalance,
+      });
+    }
+
+    // Calculate new leftMoney after this payment
+    const leftMoney = remainingBalance - price;
+
+    // Create the payment record
     const payment = await Payment.create({
       vendorId,
       price,
@@ -38,15 +48,23 @@ exports.createPayment = async (req, res) => {
       status,
       leftMoney,
       paymentDate,
-      item, // Add item here
-      description, // Add description here
+      item,
+      description,
+      purchaseId,
     });
 
-    res.status(201).json(payment);
+    // Respond with detailed info including total, paid, and remaining
+    res.status(201).json({
+      payment,
+      totalPrice: purchase.totalPrice,
+      paidPrice: totalPaid + price,
+      remaining: leftMoney,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 exports.getAllPayments = async (req, res) => {
   try {

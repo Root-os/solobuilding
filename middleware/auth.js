@@ -48,14 +48,28 @@ const verifyToken = (req, res,next) => {
   next();
 };
 
- const tenantAuth = (req, res, next) => {
+ const tenantAuth = async (req, res, next) => {
   const user = verifyToken(req, res);
   if (!user) return; // Stop if token verification fails
 
   if (user.role !== "tenant") {
     return res.status(403).json({ success: false, message: "Access denied. Tenants only." });
   }
-  next();
+
+  try {
+    const Tenant = require('../models/tenant'); // Adjust the path if needed
+    const tenant = await Tenant.findByPk(user.id);
+
+    if (!tenant) {
+      return res.status(404).json({ success: false, message: "Tenant not found" });
+    }
+
+    req.tenant = tenant; // 🔑 Attach tenant object to request
+    next();
+  } catch (err) {
+    console.error('Tenant fetch error:', err.message);
+    res.status(500).json({ success: false, message: "Failed to load tenant", error: err.message });
+  }
 };
 
 const employeeAuth = async (req, res, next) => {

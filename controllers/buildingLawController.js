@@ -1,4 +1,5 @@
 const BuildingRule = require('../models/buildingLaw');
+const { Op } = require('sequelize');
 
 // Create a new building rule
 exports.createRule = async (req, res) => {

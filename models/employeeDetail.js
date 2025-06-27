@@ -16,7 +16,6 @@ const EmployeeDetails = sequelize.define(
       position: { type: DataTypes.STRING, allowNull: false },
       hireDate: { type: DataTypes.DATE, allowNull: false },
       shift: { type: DataTypes.ENUM("day", "night", "flexible"), allowNull: false, defaultValue: "flexible" },
-      department: { type: DataTypes.STRING, allowNull: false },
       employeementType: { type: DataTypes.ENUM("full-time", "part-time", "contract"), allowNull: false, defaultValue: "full-time" },
       emergencyContact: { type: DataTypes.STRING, allowNull: true },
       address: { type: DataTypes.TEXT, allowNull: true },
