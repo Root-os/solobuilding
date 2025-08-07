@@ -304,7 +304,11 @@ exports.updateTenant = async (req, res) => {
       const previousUnitId = tenant.unitId;
 
       // If tenant is going from active → inactive, free the unit
-      if (previousStatus === "active" && req.body.status === "inactive" && previousUnitId) {
+      if (
+        previousStatus === "active" &&
+        req.body.status === "inactive" &&
+        previousUnitId
+      ) {
         await Unit.update(
           { status: "available", vacatedDate: new Date(), rentedDate: null },
           { where: { id: previousUnitId } }
@@ -328,15 +332,52 @@ exports.updateTenant = async (req, res) => {
       }
 
       // If unitId changed, free the old unit
-      if (req.body.unitId && Number(req.body.unitId) !== previousUnitId && previousUnitId) {
+      if (
+        req.body.unitId &&
+        Number(req.body.unitId) !== previousUnitId &&
+        previousUnitId
+      ) {
         await Unit.update(
           { status: "available", vacatedDate: new Date(), rentedDate: null },
           { where: { id: previousUnitId } }
         );
       }
+      // Floor validation logic
+      const newFloorId = req.body.floorId
+        ? Number(req.body.floorId)
+        : tenant.floorId;
+      const isFloorChanged = req.body.floorId && newFloorId !== tenant.floorId;
+
+      if (isFloorChanged) {
+        // Rule 1: Prevent floor update without also changing the unit
+        const isUnitChanged =
+          req.body.unitId && Number(req.body.unitId) !== tenant.unitId;
+        if (!isUnitChanged) {
+          return res.status(400).json({
+            error:
+              "You cannot change the floor without also changing the unit.",
+          });
+        }
+
+        // Rule 2: Prevent setting floor to inactive or underconstruction
+        const targetFloor = await Floor.findOne({ where: { id: newFloorId } });
+        if (!targetFloor) {
+          return res.status(400).json({ error: "Selected floor not found." });
+        }
+
+        const floorStatus = targetFloor.status.toLowerCase();
+        if (["inActive", "under_construction"].includes(floorStatus)) {
+          return res.status(400).json({
+            error:
+              "Cannot assign a tenant to an inactive or under-construction floor.",
+          });
+        }
+      } 
 
       // Handle file upload
-      const filePath = req.file ? `/Uploads/${req.file.filename}` : tenant.document;
+      const filePath = req.file
+        ? `/Uploads/${req.file.filename}`
+        : tenant.document;
 
       // Prepare updated tenant data
       const updatedData = {
@@ -365,7 +406,13 @@ exports.updateTenant = async (req, res) => {
         include: [
           {
             model: Unit,
-            attributes: ["id", "unitNumber", "status", "vacatedDate", "rentedDate"],
+            attributes: [
+              "id",
+              "unitNumber",
+              "status",
+              "vacatedDate",
+              "rentedDate",
+            ],
           },
         ],
       });
@@ -377,7 +424,6 @@ exports.updateTenant = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // Delete tenant by ID
 exports.deleteTenant = async (req, res) => {
