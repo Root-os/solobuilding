@@ -69,4 +69,7 @@ router.use("/roles", require("./roleRoutes"));
 //sms
 router.use("/sms", require("./smsRoutes"));
 
+//booking
+router.use("/booking", require("./bookingRoute"));
+
 module.exports = router;

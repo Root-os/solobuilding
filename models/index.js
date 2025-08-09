@@ -38,6 +38,7 @@ const LetterResponse = require("./letterResponse");
 const TenantInventory = require("./tenantInventory");
 const TenantInventoryItem = require("./itemOutRequest")
 const ApprovedOutRequest = require("./approvedItemOutRequest")
+const Booking = require("./bookRoom");
 const sequelize = require('../config/database');
 
 module.exports = {
@@ -81,5 +82,6 @@ module.exports = {
   Message,
   TenantInventory,
   TenantInventoryItem,
-  ApprovedOutRequest
+  ApprovedOutRequest,
+  Booking
 };
