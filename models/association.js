@@ -36,6 +36,7 @@ const {
     Permission,
     Task,
     LetterResponse,
+    Booking
     
 } = require('./index');
 
@@ -215,6 +216,14 @@ Message.belongsTo(User, {
   as: 'user',
   constraints: false, // disables FK constraint for polymorphism
 }); 
+
+Booking.belongsTo(Unit, {
+  foreignKey: 'unitId'
+});
+Unit.hasMany(Booking, {
+  foreignKey: 'unitId',
+  onDelete: 'CASCADE'
+});
   
 };
 
