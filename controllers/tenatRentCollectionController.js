@@ -4,6 +4,8 @@ const Floor = require("../models/floor");
 const Unit = require("../models/unit");
 const User = require("../models/user");
 const Role = require("../models/role");
+const PaymentType = require("../models/paymentType");
+const PaymentRequest = require("../models/paymentRequests");
 const { Op } = require("sequelize");
 const { tenantRentCollectionSchema } = require("../helpers/schema");
 const cron = require("node-cron");
@@ -135,7 +137,7 @@ cron.schedule("0 8 * * *", async () => {
     const admins = await User.findAll({
       include: {
         model: Role,
-        where: { name: "admin" }, // or whatever your Role name field is
+        where: { name: "admin" },
       },
     });
 
@@ -145,15 +147,25 @@ cron.schedule("0 8 * * *", async () => {
     }
 
     for (const tenant of tenants) {
-      const leaseEnd = new Date(tenant.leaseEndDate);
-      const diffDays = Math.floor((leaseEnd - today) / (1000 * 60 * 60 * 24));
+      function toDateOnly(date) {
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      }
+
+      const leaseEndDateOnly = toDateOnly(new Date(tenant.leaseEndDate));
+      const todayDateOnly = toDateOnly(new Date());
+
+      const diffDays = Math.floor(
+        (leaseEndDateOnly - todayDateOnly) / (1000 * 60 * 60 * 24)
+      );
+
+      console.log(`diffDays for ${tenant.fullName}:`, diffDays);
 
       if (!NOTIFY_DAYS.includes(diffDays)) continue;
 
       const tenantMsg = `Dear ${tenant.fullName}, your lease ends in ${diffDays} day(s). Contact management for renewal or move-out process.`;
       const adminMsg = `Lease for tenant ${tenant.fullName} ends in ${diffDays} day(s).`;
 
-      // Send SMS to tenant if phone exists
+      // Tenant SMS
       if (tenant.phoneNumber) {
         try {
           await sendSingleSMS({ phone: tenant.phoneNumber, msg: tenantMsg });
@@ -166,10 +178,9 @@ cron.schedule("0 8 * * *", async () => {
         }
       }
 
-      // Send SMS to all admins
+      // Admin SMS
       for (const admin of admins) {
         if (admin.phone) {
-          // Use 'phone' field from your User table
           try {
             await sendSingleSMS({ phone: admin.phone, msg: adminMsg });
             console.log(`SMS sent to admin: ${admin.id}`);
@@ -179,6 +190,58 @@ cron.schedule("0 8 * * *", async () => {
               err.message
             );
           }
+        }
+      }
+
+      // --- EXTRA LOGIC: Send payment request if 10 days left ---
+      if (diffDays === 10) {
+        try {
+          const paymentType = await PaymentType.findOne({
+            where: { name: "Rent" },
+          });
+          if (!paymentType) {
+            console.error("Payment type 'Rent' not found.");
+            continue;
+          }
+
+          const monthly = "monthly"; // Assuming monthly payment type
+          const leaseEnd = new Date(tenant.leaseEndDate);
+          const level = "medium";
+
+          await PaymentRequest.create({
+            tenantId: tenant.id,
+            message: "Final rent payment before lease expiry.",
+            paymentTypeId: paymentType.id,
+            level: level,
+            amount: tenant.amount,
+            dueDate: leaseEnd,
+            repeatedFor: monthly,
+          });
+
+          const floor = await Floor.findByPk(tenant.floorId);
+          const unit = await Unit.findByPk(tenant.unitId);
+
+          const loginUrl = process.env.TENANT_PORTAL_URL;
+          const paymentMsg = `Hi ${tenant.fullName}, your ${
+            paymentType.name
+          } is due by ${leaseEnd.toDateString()} for your room ( ${
+            floor?.floorNumber
+          }, Unit ${unit?.unitNumber}). Check your dashboard for details.`;
+
+          await sendSingleSMS({
+            phone: tenant.phoneNumber,
+            msg: paymentMsg + `\nLogin here: ${loginUrl}`,
+            callback: process.env.GEEZSMS_WEBHOOK_URL,
+          });
+
+          console.log(
+            `Payment request created and SMS sent for tenant: ${tenant.fullName}`
+          );
+        } catch (err) {
+          console.error(
+            `Failed to create/send payment request for ${tenant.fullName}:`,
+            err.message
+          );
         }
       }
     }

@@ -331,6 +331,7 @@ const unitSchema = Joi.object({
   problems: Joi.array().items(Joi.string()).optional(),
   rentedDate: Joi.date().optional(),
   vacatedDate: Joi.date().optional(),
+  images: Joi.array().items(Joi.string()).optional(),
 });
 
 const withdrawalRequestSchema = Joi.object({
