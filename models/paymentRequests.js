@@ -33,7 +33,7 @@ const PaymentRequest = sequelize.define('PaymentRequest', {
     type: DataTypes.FLOAT,
     allowNull: false,
     validate: {
-      min: 0.01, // Prevent negative payments
+      min: 0.01, 
     },
   },
   paymentTypeId: {

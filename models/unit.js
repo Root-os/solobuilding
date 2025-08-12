@@ -48,6 +48,7 @@ const Unit = sequelize.define('Unit', {
     },
     allowNull: false,
   },
+  images: { type: DataTypes.JSON } ,
 }, {
   tableName: 'units', // Explicit table name
   timestamps: true,
