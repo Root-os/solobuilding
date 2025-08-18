@@ -158,6 +158,7 @@ exports.createTenant = async (req, res) => {
         `Your tenant account has been created successfully.\n` +
         `Floor: ${floor.floorNumber}, Unit: ${unit.unitNumber}\n` +
         `Phone: ${phoneNumber}\n` +
+        `Rented from: ${leaseStartDate} To ${leaseEndDate}\n` +
         `Username: ${email}\nPassword: ${generatedPassword}\n` +
         `Please log in to your account: ${loginUrl}\n` +
         `Download our app: ${downloadApk}\n` +
