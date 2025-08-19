@@ -143,7 +143,15 @@ exports.createTenant = async (req, res) => {
         email,
         fullName,
         generatedPassword,
+        phoneNumber,
+        floorNumber: floor.floorNumber,
+        unitNumber: unit.unitNumber,
+        leaseStartDate,
+        leaseEndDate,
+        loginUrl: process.env.TENANT_PORTAL_URL,
+        downloadApk: process.env.DOWNLOAD_APK_URL,
       });
+
       //const emailResponse = await sendEmail(email, emailSubject, emailBody);
       if (!emailResponse.success) {
         console.error("Email sending failed:", emailResponse.error);
@@ -153,12 +161,15 @@ exports.createTenant = async (req, res) => {
       const loginUrl = process.env.TENANT_PORTAL_URL;
       const downloadApk = process.env.DOWNLOAD_APK_URL;
       const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
+      const leaseEndDateDisplay = leaseEndDate
+        ? leaseEndDate
+        : "not specified yet";
       const smsMessage =
         `Welcome ${fullName}!\n` +
         `Your tenant account has been created successfully.\n` +
         `Floor: ${floor.floorNumber}, Unit: ${unit.unitNumber}\n` +
         `Phone: ${phoneNumber}\n` +
-        `Rented from: ${leaseStartDate} To ${leaseEndDate}\n` +
+        `Rented from: ${leaseStartDate} To ${leaseEndDateDisplay}\n` +
         `Username: ${email}\nPassword: ${generatedPassword}\n` +
         `Please log in to your account: ${loginUrl}\n` +
         `Download our app: ${downloadApk}\n` +
@@ -206,20 +217,20 @@ exports.getAllTenants = async (req, res) => {
       include: [
         {
           model: Unit,
-          attributes: ["unitNumber"], // Only select the unit number
+          attributes: ["unitNumber"],
         },
         {
           model: Floor,
-          attributes: ["floorNumber"], // Only select the floor number
+          attributes: ["floorNumber"],
         },
         {
-          model: TenantVehicle, // Include tenant vehicle information
-          attributes: ["carPlate", "carName", "color"], // Select car details
+          model: TenantVehicle,
+          attributes: ["carPlate", "carName", "color"],
         },
       ],
     });
 
-    const baseUploadPath = path.join(__dirname, "../uploads"); // Path to your 'uploads' directory
+    const baseUploadPath = path.join(__dirname, "../uploads"); // Path to 'uploads' directory
 
     // Map through tenants to add the full document path and date calculations
     const tenantsWithDetails = tenants.map((tenant) => {
@@ -227,9 +238,9 @@ exports.getAllTenants = async (req, res) => {
         ? `${BASE_URL}${tenant.document}`
         : null;
       // Convert lease dates to moment objects
-      const leaseStartDate = moment(tenant.leaseStartDate);
-      const leaseEndDate = moment(tenant.leaseEndDate);
-      const currentDate = moment();
+      const leaseStartDate = moment(tenant.leaseStartDate).startOf("day");
+      const leaseEndDate = moment(tenant.leaseEndDate).startOf("day");
+      const currentDate = moment().startOf("day");
 
       // Months paid calculation: full months between leaseStartDate and leaseEndDate
       const monthsPaid = leaseEndDate.diff(leaseStartDate, "months");
@@ -240,7 +251,7 @@ exports.getAllTenants = async (req, res) => {
         ...tenant.toJSON(),
         documentFullPath,
         monthsPaid,
-        remainingDays: remainingDays > 0 ? remainingDays : 0, // Return 0 if the lease has already expired
+        remainingDays: remainingDays > 0 ? remainingDays : 0, // Return 0 if the lease has already expired or inserted null
       };
     });
 
@@ -373,7 +384,7 @@ exports.updateTenant = async (req, res) => {
               "Cannot assign a tenant to an inactive or under-construction floor.",
           });
         }
-      } 
+      }
 
       // Handle file upload
       const filePath = req.file
@@ -609,9 +620,9 @@ const processTenantDetails = (tenants) => {
       ? path.join(baseUploadPath, tenant.document)
       : null;
 
-    const leaseStartDate = moment(tenant.leaseStartDate);
-    const leaseEndDate = moment(tenant.leaseEndDate);
-    const currentDate = moment();
+    const leaseStartDate = moment(tenant.leaseStartDate).startOf("day");
+    const leaseEndDate = moment(tenant.leaseEndDate).startOf("day");
+    const currentDate = moment().startOf("day");
 
     const monthsPaid = leaseEndDate.diff(leaseStartDate, "months");
     const remainingDays = leaseEndDate.diff(currentDate, "days");

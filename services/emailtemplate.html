@@ -1,68 +1,173 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome Email</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f9;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f9; padding: 20px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
-          <!-- Header -->
-          <tr>
-            <td style="background-color: #4a90e2; padding: 20px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Welcome to Your Tenant Portal!</h1>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding: 30px;">
-              <h2 style="color: #333333; font-size: 20px; margin-top: 0;">Hello {{fullName}},</h2>
-              <p style="color: #666666; font-size: 16px; line-height: 1.5;">
-                We're thrilled to have you on board! Your tenant portal account is ready. Below are your login credentials:
-              </p>
-              <p style="color: #c22020; font-size: 16px; line-height: 1.5;">
-             please not that click this link and and login to the portal and follow the rent services and download the app on the page and follow app communication with building administration 
-              </p>
-              <table role="presentation" style="width: 100%; margin: 20px 0; border-collapse: collapse;">
-                <tr>
-                  <td style="padding: 10px; font-size: 16px; color: #333333;"><strong>Email:</strong></td>
-                  <td style="padding: 10px; font-size: 16px; color: #333333;">{{email}}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 10px; font-size: 16px; color: #333333;"><strong>Password:</strong></td>
-                  <td style="padding: 10px; font-size: 16px; color: #333333;">{{generatedPassword}}</td>
-                </tr>
-              </table>
-              <p style="color: #666666; font-size: 16px; line-height: 1.5;">
-                Please log in and change your password as soon as possible for security.
-              </p>
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="{{loginUrl}}" 
-                   style="display: inline-block; padding: 12px 24px; background-color: #4a90e2; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: bold;">
-                  Log in to Tenant Portal
-                </a>
-              </div>
-              <p style="color: #666666; font-size: 14px; line-height: 1.5;">
-                If you need assistance, feel free to <a href="mailto:support@apartmentfront.com" style="color: #4a90e2; text-decoration: none;">contact our support team</a>.
-              </p>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="background-color: #f4f4f9; padding: 20px; text-align: center;">
-              <p style="color: #999999; font-size: 12px; margin: 0;">
-                Regards,<br>
-                <strong>Apartment Management System </strong><br>
-                Designed by Abyssinia software technology P.L.C | <a href="https://www.abyssiniasoftware.com/" style="color: #4a90e2; text-decoration: none;">https://www.abyssiniasoftware.com</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome Email</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+    "
+  >
+    <table
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="background-color: #f4f4f9; padding: 20px"
+    >
+      <tr>
+        <td align="center">
+          <table
+            width="100%"
+            style="
+              max-width: 600px;
+              background-color: #ffffff;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            "
+          >
+            <!-- Header -->
+            <tr>
+              <td
+                style="
+                  background-color: #4a90e2;
+                  padding: 20px;
+                  text-align: center;
+                "
+              >
+                <h1 style="color: #ffffff; margin: 0; font-size: 24px">
+                  🎉 Welcome to the Tenant Portal!
+                </h1>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding: 30px">
+                <h2 style="color: #333">Hello {{fullName}},</h2>
+                <p style="color: #555; font-size: 16px; line-height: 1.6">
+                  We're excited to have you as a valued tenant! Your account has
+                  been successfully created. Below are your details and login
+                  credentials:
+                </p>
+
+                <table
+                  style="width: 100%; border-collapse: collapse; margin: 20px 0"
+                >
+                  <tr>
+                    <td style="padding: 8px"><strong>📧 Email:</strong></td>
+                    <td style="padding: 8px">{{email}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px"><strong>🔒 Password:</strong></td>
+                    <td style="padding: 8px">{{generatedPassword}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px"><strong>📱 Phone:</strong></td>
+                    <td style="padding: 8px">{{phoneNumber}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px"><strong>🏢 Floor:</strong></td>
+                    <td style="padding: 8px">{{floorNumber}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px"><strong>🚪 Unit:</strong></td>
+                    <td style="padding: 8px">{{unitNumber}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px">
+                      <strong>📅 Lease Start:</strong>
+                    </td>
+                    <td style="padding: 8px">{{leaseStartDate}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px"><strong>📅 Lease End:</strong></td>
+                    <td style="padding: 8px">{{leaseEndDate}}</td>
+                  </tr>
+                </table>
+
+                <p style="color: #c22020; font-size: 15px">
+                  🔑 Please log in using the credentials above and change your
+                  password immediately for security.
+                </p>
+
+                <div style="text-align: center; margin: 30px 0">
+                  <a
+                    href="{{loginUrl}}"
+                    style="
+                      padding: 12px 24px;
+                      background-color: #4a90e2;
+                      color: white;
+                      text-decoration: none;
+                      border-radius: 6px;
+                      font-weight: bold;
+                    "
+                  >
+                    🔗 Log In to Tenant Portal
+                  </a>
+                </div>
+
+                <p style="color: #555; font-size: 16px; line-height: 1.6">
+                  📲 You can also download our tenant app directly from the link
+                  below:
+                </p>
+
+                <div style="text-align: center; margin-bottom: 30px">
+                  <a
+                    href="{{downloadApk}}"
+                    style="
+                      padding: 10px 20px;
+                      background-color: #28a745;
+                      color: white;
+                      text-decoration: none;
+                      border-radius: 6px;
+                    "
+                  >
+                    📥 Download Tenant App
+                  </a>
+                </div>
+
+                <p style="font-size: 14px; color: #666">
+                  If you have any questions or need help, please don’t hesitate
+                  to
+                  <a
+                    href="mailto:support@apartmentfront.com"
+                    style="color: #4a90e2"
+                    >contact our support team</a
+                  >.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                style="
+                  background-color: #f4f4f9;
+                  padding: 20px;
+                  text-align: center;
+                "
+              >
+                <p style="color: #999; font-size: 12px; margin: 0">
+                  Regards,<br />
+                  <strong>Apartment Management System</strong><br />
+                  Designed by Abyssinia Software Technology P.L.C |
+                  <a
+                    href="https://www.abyssiniasoftware.com"
+                    style="color: #4a90e2"
+                    >www.abyssiniasoftware.com</a
+                  >
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
 </html>

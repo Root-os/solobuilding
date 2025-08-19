@@ -275,7 +275,7 @@ const tenatSchema = Joi.object({
   nationalId: Joi.string().required(),
   leaseStartDate: Joi.date().required(),
   leaseEndDate: Joi.date().optional(),
-  additionalNotes: Joi.string().min(5).max(500).optional(),
+  additionalNotes: Joi.string().allow().optional(),
   amount: Joi.number().min(0).required(),
   advance: Joi.number().min(0).required(),
   tin: Joi.string().required(),
