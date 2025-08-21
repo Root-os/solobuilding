@@ -25,7 +25,7 @@ exports.createPurchase = async (req, res) => {
       itemId,
       ItemCategoryId ,
     } = req.body;
-console.log(req.body);
+    console.log(req.body);
     const totalPrice = amount * price;
 
     // 1. Create purchase record

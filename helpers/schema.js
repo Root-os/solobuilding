@@ -412,7 +412,7 @@ const purchaseValidationSchema = Joi.object({
   date: Joi.date().required(),
   price: Joi.number().positive().precision(2).required(),
   description: Joi.string().optional().allow(null),
-  expirationDate: Joi.date().optional().allow(null),
+  expirationDate: Joi.date().optional().allow(null, ""),
   itemId: Joi.number().integer().required(),
   ItemCategoryId: Joi.number().integer().required(),
 });
