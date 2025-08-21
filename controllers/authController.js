@@ -40,9 +40,7 @@ const employeeRegistrationSchema = Joi.object({
     'date.base': 'Hire date must be a valid date',
   }),
   shift: Joi.string().valid('day', 'night', 'flexible').optional(),
-  department: Joi.string().required().messages({
-    'any.required': 'Department is required',
-  }),
+
   employmentType: Joi.string().valid('full-time', 'part-time', 'contract').optional(),
   emergencyContact: Joi.string().optional().allow(null, ''),
   address: Joi.string().optional().allow(null, ''),
@@ -118,11 +116,11 @@ exports.registerUserEmployee = async (req, res) => {
     });
   }  
   try {
-    const { fname, lname, email, password, phone, salary, position, hireDate, shift, department, employmentType, emergencyContact, address, bankAccount,roleId } = req.body;
+    const { fname, lname, email, password, phone, salary, position, hireDate, shift, employmentType, emergencyContact, address, bankAccount,roleId } = req.body;
 
     // Check if the required fields are provided
-    if (!fname || !lname || !email || !password || !salary || !position || !hireDate || !department) {
-      return res.status(400).json({ success: false, message: "All fields are required: fname, lname, email, password, salary, position, hireDate, department" });
+    if (!fname || !lname || !email || !password || !salary || !position || !hireDate ) {
+      return res.status(400).json({ success: false, message: "All fields are required: fname, lname, email, password, salary, position, hireDate" });
     }
     
  let user;
@@ -157,7 +155,6 @@ const role = await Role.findByPk(roleId);
         position,
         hireDate,
         shift: shift || 'flexible',  // default value if shift is not provided
-        department,
         employeementType: employmentType || 'full-time',  // default value if employmentType is not provided
         emergencyContact,
         address,
@@ -249,7 +246,7 @@ exports.updateUser = async (req, res) => {
 exports.updateEmployee = async (req, res) => {
   try {
     const { id } = req.params;  // Get the employee ID from the URL parameter
-    const { fname, lname, phone, roleId, salary, position, department, hireDate, shift, employmentType, emergencyContact, address, bankAccount } = req.body;
+    const { fname, lname, phone, roleId, salary, position, hireDate, shift, employmentType, emergencyContact, address, bankAccount } = req.body;
 
     // Find the employee by ID
     const user = await User.findOne({ where: { id } });
@@ -272,7 +269,6 @@ exports.updateEmployee = async (req, res) => {
 
     employeeDetails.salary = salary || employeeDetails.salary;
     employeeDetails.position = position || employeeDetails.position;
-    employeeDetails.department = department || employeeDetails.department;
     employeeDetails.hireDate = hireDate || employeeDetails.hireDate;
     employeeDetails.shift = shift || employeeDetails.shift;
     employeeDetails.employmentType = employmentType || employeeDetails.employmentType;
