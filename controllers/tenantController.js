@@ -547,6 +547,10 @@ exports.filterTenants = async (req, res) => {
           model: Floor,
           attributes: ["floorNumber"],
         },
+        {
+          model: TenantVehicle,
+          attributes: ["carPlate", "carName"],
+        },
       ],
     });
 
@@ -596,6 +600,10 @@ exports.getTenantsWithExpiringLease = async (req, res) => {
         {
           model: Floor,
           attributes: ["floorNumber"],
+        },
+        {
+          model: TenantVehicle,
+          attributes: ["carPlate", "carName",],
         },
       ],
     });
