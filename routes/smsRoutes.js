@@ -11,6 +11,7 @@ const {
   adminAuth,
   tenantAuth,
   AdminOrTenantAuth,
+  adminOrEmployeeAuth 
 } = require("../middleware/auth");
 
 const router = express.Router();
@@ -22,8 +23,9 @@ const otpLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-router.post("/send-sms", adminAuth, singleSMSController.sendSingleSMS);
-router.post("/send-bulk-sms", adminAuth, bulkSMSController.sendBulkSMS);
+router.post("/send-sms", adminOrEmployeeAuth, singleSMSController.sendSingleSMS);
+
+router.post("/send-bulk-sms", adminOrEmployeeAuth, bulkSMSController.sendBulkSMS);
 router.post(
   "/send-otp",
   AdminOrTenantAuth,
