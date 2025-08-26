@@ -11,7 +11,7 @@ const {
   adminAuth,
   tenantAuth,
   AdminOrTenantAuth,
-  adminOrEmployeeAuth 
+  adminOrEmployeeAuth,
 } = require("../middleware/auth");
 
 const router = express.Router();
@@ -39,7 +39,7 @@ router.post(
   advancedOtpController.verifyAdvancedOtp
 );
 router.post("/webhook", webhookController.handleWebhook);
-router.get("/", AdminOrTenantAuth, messageController.getMessages);
-router.delete("/:id", AdminOrTenantAuth, messageController.deleteMessage);
+router.get("/",  messageController.getMessages);
+router.delete("/:id",  messageController.deleteMessage);
 
 module.exports = router;
