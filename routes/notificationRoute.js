@@ -17,16 +17,16 @@ createNotificationForUser,
 const { adminAuth,EmployeeOrTenantAuth,adminOrEmployeeAuth,tenantAuth } = require("../middleware/auth");
 
 // Create notification for user
-router.post("/create", adminAuth, createNotificationForUser);
+router.post("/create", adminOrEmployeeAuth, createNotificationForUser);
 
 // Update notification
 router.put(
-  "/update/:id",adminAuth,
+  "/update/:id",adminOrEmployeeAuth,
   updateNotification
 );
 
 // Create notification for all users
-router.post("/group", adminAuth, createNotificationForGroup);
+router.post("/group", adminOrEmployeeAuth, createNotificationForGroup);
 
 // Get my notifications with pagination and filters
 router.get("/my-notification",tenantAuth,getMyNotifications);
@@ -35,11 +35,11 @@ router.get("/my-notification",tenantAuth,getMyNotifications);
 router.put("/mark-as-read/:id",tenantAuth, markAsRead);
 
 // Get all notifications (admin only)
-router.get("/all", adminAuth,getAllNotifications);
+router.get("/all", adminOrEmployeeAuth,getAllNotifications);
 
 // Delete notification
 router.delete("/delete/:id",EmployeeOrTenantAuth,deleteNotification);
-router.delete("/delete-admin/:id",adminAuth,  deleteNotificationAdmin);
+router.delete("/delete-admin/:id",adminOrEmployeeAuth,  deleteNotificationAdmin);
 router.get("/get-by-id/:id",fetchNotificationById);
 
 //staff notification

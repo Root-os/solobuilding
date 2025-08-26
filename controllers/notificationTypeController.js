@@ -4,10 +4,6 @@ const NotificationType = require("../models/notificationType");
 // Controller for creating notification type
 const createNotificationType = async (req, res) => {
   try {
-    
-if (req.user.role!=="admin") {
-  return res.status(403).json({ message: "You are not authorized to perform this action" });
-}
     const { name } = req.body;
     if (!name) {
       return res.status(400).json({ message: "Name of notification is required." });

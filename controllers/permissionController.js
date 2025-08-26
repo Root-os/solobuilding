@@ -34,7 +34,8 @@ const assignPermissionToRole = async (req, res) => {
       return res.status(400).json({ message: 'One or more permissions not found' });
     }
 
-    await role.setPermissions(permissions);
+    await role.addPermissions(permissions);
+
     res.json({ message: 'Permissions assigned to role successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });

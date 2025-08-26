@@ -158,10 +158,6 @@ const markAsRead = async (req, res) => {
 const getAllNotifications = async (req, res) => {
   try {
     // Ensure the user has admin role
-    if (req.user.role !== "admin") {
-      return res.status(403).json({ message: "Access denied." });
-    }
-
     const { type } = req.query;
     const whereClause = {};
 

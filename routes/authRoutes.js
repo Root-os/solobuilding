@@ -21,7 +21,7 @@ router.post("/reset-password/:resetToken", userController.resetPassword);
 
 // User Management (Admin Only)
 router.get("/users",adminAuth, userController.getAllUsers);
-router.get("/employee",adminAuth,userController.getAllEmployeeUsers)
+router.get("/employee",adminOrEmployeeAuth,userController.getAllEmployeeUsers)
 router.get("/user/:id",adminAuth, userController.getUserById);
 router.delete("/delete/:id",adminAuth, userController.deleteUser);
 router.delete("/delete-my-account",adminOrEmployeeAuth, userController.deleteMyAccount);
