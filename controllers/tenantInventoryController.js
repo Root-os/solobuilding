@@ -16,12 +16,6 @@ const createInventory = async (req, res) => {
         .status(400)
         .json({ success: false, message: error.details[0].message });
     const checkedBy = req.user.id;
-    if (req.user.role !== "admin" && req.user.role !== "employee") {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Admins or employees only.",
-      });
-    }
     const { tenantId, type, items, notes } = req.body;
     const tenant = await Tenant.findByPk(tenantId);
     if (!tenant)
@@ -79,13 +73,6 @@ const updateInventory = async (req, res) => {
         .json({ success: false, message: errorBody.details[0].message });
 
     const checkedBy = req.user.id;
-    if (req.user.role !== "admin" && req.user.role !== "employee") {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Admins or employees only.",
-      });
-    }
-
     const inventory = await TenantInventory.findByPk(req.params.id);
     if (!inventory)
       return res

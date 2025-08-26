@@ -47,12 +47,7 @@ exports.getTenantItemsByTenantId = async (req, res) => {
 
 exports.getAllTenantItemsForAdmin = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res.status(403).json({ error: "Only admins can access this resource." });
-    }
-
     const items = await TenantItem.findAll();
-
     res.json(items);
   } catch (error) {
     console.error("Admin fetch error:", error);

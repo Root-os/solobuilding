@@ -315,60 +315,33 @@ const webhookController = {
 const messageController = {
   async getMessages(req, res, next) {
     try {
-      const { userId, role } = req.user;
-      let messages;
-
-      if (role.toLowerCase() === "admin") {
-        // Admins get all Tenant messages
-        messages = await Message.findAll({
-          // where: {
-          //   referenceType: "Tenant",
-          // },
-          include: [
-            {
-              model: Tenant,
-              as: "tenant",
-              attributes: ["fullName"],
-              required: false,
-              where: { id: { [Op.col]: "Message.referenceId" } },
-            },
-            {
-              model: User,
-              as: "user",
-              attributes: ["fname", "lname"],
-              required: false,
-              where: { id: { [Op.col]: "Message.referenceId" } },
-            },
-          ],
-          order: [["createdAt", "DESC"]],
-        });
-      } else if (role.toLowerCase() === "tenant") {
-        // Tenants get only their own messages
-        messages = await Message.findAll({
-          where: {
-            referenceType: "Tenant",
-            referenceId: userId,
+      const messages = await Message.findAll({
+        include: [
+          {
+            model: Tenant,
+            as: "tenant",
+            attributes: ["fullName"],
+            required: false,
+            where: { id: { [Op.col]: "Message.referenceId" } },
           },
-          order: [["createdAt", "DESC"]],
-        });
-      } else {
-        throw new Error("Unauthorized role for accessing messages");
-      }
+          {
+            model: User,
+            as: "user",
+            attributes: ["fname", "lname"],
+            required: false,
+            where: { id: { [Op.col]: "Message.referenceId" } },
+          },
+        ],
+        order: [["createdAt", "DESC"]],
+      });
 
-      logger.info(
-        { userId, role, count: messages.length },
-        "Messages retrieved"
-      );
       res.status(200).json({
         success: true,
         count: messages.length,
         data: messages,
       });
     } catch (error) {
-      logger.error(
-        { error: error.message, userId: req.user?.userId },
-        "Failed to retrieve messages"
-      );
+      console.error("Failed to retrieve messages:", error.message);
       next(error);
     }
   },
@@ -376,49 +349,21 @@ const messageController = {
   async deleteMessage(req, res, next) {
     try {
       const { id } = req.params;
-      const { userId, role } = req.user;
 
       const message = await Message.findByPk(id);
       if (!message) {
-        throw new Error("Message not found");
-      }
-
-      if (role.toLowerCase() === "admin") {
-        // Admins can delete any Tenant message
-        // if (message.referenceType !== "Tenant") {
-        //   throw new Error("Admins can only delete Tenant messages");
-        // }
-      } else if (role.toLowerCase() === "tenant") {
-        // Tenants can only delete their own messages
-        if (
-          message.referenceType !== "Tenant" ||
-          message.referenceId !== userId
-        ) {
-          throw new Error("Unauthorized to delete this message");
-        }
-      } else {
-        throw new Error("Unauthorized role for deleting messages");
+        return res.status(404).json({ success: false, message: "Message not found" });
       }
 
       await message.destroy();
-      logger.info({ userId, role, messageId: id }, "Message deleted");
-      res.status(200).json({
-        success: true,
-        message: "Message deleted successfully",
-      });
+      res.status(200).json({ success: true, message: "Message deleted successfully" });
     } catch (error) {
-      logger.error(
-        {
-          error: error.message,
-          userId: req.user?.userId,
-          messageId: req.params.id,
-        },
-        "Failed to delete message"
-      );
+      console.error("Failed to delete message:", error.message);
       next(error);
     }
   },
 };
+
 module.exports = {
   singleSMSController,
   bulkSMSController,
