@@ -256,6 +256,7 @@ const settingSchema = Joi.object({
   value: Joi.string().required(),
   unit: Joi.string().optional(),
   description: Joi.string().optional(),
+  punishmentPercentage: Joi.number().required(),
   phoneNumber: Joi.string()
     .pattern(/^(09|07)\d{8}$/)
     .required()
@@ -309,6 +310,8 @@ const tenantRentCollectionSchema = Joi.object({
   nextDueDate: Joi.date().required(),
   status: Joi.string().valid("Paid", "Pending", "Overdue").optional(),
   proofOfPayment: Joi.string().optional(),
+  punishment: Joi.string().required(),
+  isPaid: Joi.string().required(),
 });
 const tenantVehicleSchema = Joi.object({
   tenantId: Joi.number().integer().min(0).required(),
@@ -332,6 +335,8 @@ const unitSchema = Joi.object({
   rentedDate: Joi.date().optional(),
   vacatedDate: Joi.date().optional(),
   images: Joi.array().items(Joi.string()).optional(),
+  pricePerSquare: Joi.number().min(0).required(),
+  rentAmount: Joi.number().required()
 });
 
 const withdrawalRequestSchema = Joi.object({

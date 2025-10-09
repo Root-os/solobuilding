@@ -44,6 +44,14 @@ const TenantRentCollection = sequelize.define(
       defaultValue: "Pending",
       allowNull: false,
     },
+    punishment: {
+      type: DataTypes.FLOAT,
+      allowNull:false
+    },
+    isPaid: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false
+    },
     proofOfPayment: { type: DataTypes.STRING }, 
   },
   {
