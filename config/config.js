@@ -12,11 +12,9 @@ module.exports = {
     
   },
   
-  
   CORS_ORIGIN: process.env.CORS_ORIGIN?? "http://localhost:3000",
 
   JWT_SECRET: process.env.JWT_SECRET,
-
   EMAIL_HOST: process.env.EMAIL_HOST,
   EMAIL_PORT: process.env.EMAIL_PORT,
   EMAIL_USER: process.env.EMAIL_USER,
