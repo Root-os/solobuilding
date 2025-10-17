@@ -17,7 +17,14 @@ const Unit = sequelize.define('Unit', {
     type: DataTypes.FLOAT,
     allowNull: false,
   },
-  
+  pricePerSquare:{
+    type: DataTypes.FLOAT,
+    allowNull:false
+  },
+  rentAmount: {
+    type: DataTypes.FLOAT,
+    allowNull:false
+  },
   status: {
     type: DataTypes.ENUM('available', 'occupied', 'under_maintenance'),
     defaultValue: 'available',
@@ -55,5 +62,6 @@ const Unit = sequelize.define('Unit', {
   charset: 'utf8', 
   collate: 'utf8_general_ci',
 });
+
 
 module.exports = Unit;
