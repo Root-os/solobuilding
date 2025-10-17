@@ -5,10 +5,10 @@ const { adminAuth,verifyToken, tenantAuth, employeeAuth,adminOrEmployeeAuth } = 
 
 router.post("/",tenantAuth, ItemOutController.createRequest);
 router.get("/",tenantAuth, ItemOutController.getAllRequests);
-router.get("/admin",adminAuth, ItemOutController.getAllRequestsForAdmin);
+router.get("/admin",adminOrEmployeeAuth, ItemOutController.getAllRequestsForAdmin);
 router.get("/:id",tenantAuth, ItemOutController.getItemById);
 router.put("/:id",tenantAuth, ItemOutController.updateRequest);
 router.delete("/:id",tenantAuth, ItemOutController.deleteItem);
-router.patch("/:id/status", adminAuth, ItemOutController.updateStatus);
+router.patch("/:id/status", adminOrEmployeeAuth, ItemOutController.updateStatus);
 
 module.exports = router;

@@ -5,7 +5,7 @@ const { adminAuth,verifyToken, tenantAuth, employeeAuth,adminOrEmployeeAuth } = 
 
 router.get("/my-items", tenantAuth, TenantItemsController.getTenantItems);
 router.get("/", TenantItemsController.getAllTenantItemsForAdmin);
-router.get('/tenant/:tenantId', adminAuth,TenantItemsController. getTenantItemsByTenantId);
+router.get('/tenant/:tenantId', adminOrEmployeeAuth,TenantItemsController. getTenantItemsByTenantId);
 
 
 

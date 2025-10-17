@@ -1,7 +1,7 @@
 const Payment = require("../models/payment");
 const Vendor = require("../models/Vendor");
 const Purchase = require("../models/purchase");
-const { paymentValidationSchema } = require("../helpers/schema");
+const { paymentValidationSchema, updatePaymentValidationSchema } = require("../helpers/schema");
 const { paramsSchema } = require("../helpers/schema");
 const Joi = require('joi');
 const { Op } = require('sequelize');
@@ -82,7 +82,6 @@ exports.getAllPayments = async (req, res) => {
   }
 };
 
-
 // Get Payment by ID
 exports.getPaymentById = async (req, res) => {
   try {
@@ -109,45 +108,79 @@ exports.getPaymentById = async (req, res) => {
 // Update Payment
 exports.updatePayment = async (req, res) => {
   try {
-    const { error } = paymentValidationSchema.validate(req.body);
+    // Validate body
+    const { error } = updatePaymentValidationSchema.validate(req.body);
     if (error) {
-      return res
-        .status(400)
-        .json({ message: "Validation Error", error: error.details[0].message });
+      return res.status(400).json({ 
+        message: "Validation Error", 
+        error: error.details[0].message 
+      });
     }
-    const { vendorId, price, paymentMethod, status,paymentDate } = req.body;
-    const { errorId } = paramsSchema.validate(req.params);
-    if (errorId) {
-      return res
-        .status(400)
-        .json({ message: "Validation Error", error: error.details[0].message });
-    }
-    const payment = await Payment.findByPk(req.params.id);
 
+    // Validate params
+    const { error: paramError } = paramsSchema.validate(req.params);
+    if (paramError) {
+      return res.status(400).json({ 
+        message: "Validation Error", 
+        error: paramError.details[0].message 
+      });
+    }
+
+    const { vendorId, price, paymentMethod, status, paymentDate, description } = req.body;
+
+    // Fetch existing payment
+    const payment = await Payment.findByPk(req.params.id);
     if (!payment) {
       return res.status(404).json({ message: "Payment not found" });
     }
 
-    // Fetch the total price from the purchase table for the vendor
-    const purchase = await Purchase.findOne({ where: { vendorId } });
+    // Fetch the purchase linked to this payment & vendor
+    const purchase = await Purchase.findOne({ 
+      where: { id: payment.purchaseId, vendorId } 
+    });
 
     if (!purchase) {
-      return res
-        .status(404)
-        .json({ message: "Purchase not found for the vendor" });
+      return res.status(404).json({ message: "Purchase not found for the vendor" });
     }
 
-    const leftMoney = purchase.totalPrice - price;
-    payment.paymentDate = paymentDate;
+    // Calculate all other payments for this purchase
+    const payments = await Payment.findAll({ 
+      where: { 
+        purchaseId: payment.purchaseId,
+        id: { [Op.ne]: payment.id } // exclude current payment
+      } 
+    });
+
+    const totalPaidExcludingCurrent = payments.reduce((sum, p) => sum + p.price, 0);
+
+    // New total with the updated payment
+    const newTotalPaid = totalPaidExcludingCurrent + price;
+    const remainingBalance = purchase.totalPrice - newTotalPaid;
+
+    if (remainingBalance < 0) {
+      return res.status(400).json({
+        message: "Overpayment not allowed",
+        remainingBalance: purchase.totalPrice - totalPaidExcludingCurrent
+      });
+    }
+
+    // Update fields
     payment.vendorId = vendorId;
     payment.price = price;
     payment.paymentMethod = paymentMethod;
     payment.status = status;
-    payment.leftMoney = leftMoney;
+    payment.paymentDate = paymentDate;
+    payment.leftMoney = remainingBalance;
+    payment.description = description;
 
     await payment.save();
 
-    res.status(200).json(payment);
+    res.status(200).json({
+      payment,
+      totalPrice: purchase.totalPrice,
+      paidPrice: newTotalPaid,
+      remaining: remainingBalance
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

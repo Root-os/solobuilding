@@ -232,11 +232,7 @@ exports.getAllRequests = async (req, res) => {
 //Admin can see all
 exports.getAllRequestsForAdmin = async (req, res) => {
   try {
-    // Ensure only admins can access
-    if (req.user.role !== "admin") {
-      return res.status(403).json({ error: "Access denied." });
-    }
-
+   
     // Fetch all requests
     const requests = await TenantOutRequest.findAll();
 

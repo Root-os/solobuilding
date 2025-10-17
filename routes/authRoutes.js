@@ -5,7 +5,7 @@ const { adminAuth,verifyToken, tenantAuth, employeeAuth,adminOrEmployeeAuth } = 
 
 // Authentication & User Management
 router.post("/register", userController.registerUser);
-router.post("/register/employee", adminAuth,userController.registerUserEmployee);
+router.post("/register/employee", adminOrEmployeeAuth,userController.registerUserEmployee);
 
 router.post("/login", userController.login);
 router.post("/logout",adminOrEmployeeAuth, userController.logout);
@@ -23,9 +23,9 @@ router.post("/reset-password/:resetToken", userController.resetPassword);
 router.get("/users",adminAuth, userController.getAllUsers);
 router.get("/employee",adminOrEmployeeAuth,userController.getAllEmployeeUsers)
 router.get("/user/:id",adminAuth, userController.getUserById);
-router.delete("/delete/:id",adminAuth, userController.deleteUser);
+router.delete("/delete/:id",adminOrEmployeeAuth, userController.deleteUser);
 router.delete("/delete-my-account",adminOrEmployeeAuth, userController.deleteMyAccount);
-router.put("/update-employee/:id", adminAuth, userController.updateEmployee);
+router.put("/update-employee/:id", adminOrEmployeeAuth, userController.updateEmployee);
 // Session Verification
 router.get("/verify-session",adminOrEmployeeAuth, userController.verifySession);
 
