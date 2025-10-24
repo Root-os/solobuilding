@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const settingController = require("../controllers/settingController");
-const upload = require("../middleware/settingUpload"); // Import multer config
+const upload = require("../middleware/settingUpload"); 
 
 // Get All Settings
 router.get("/", settingController.getAllSettings);

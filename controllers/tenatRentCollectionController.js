@@ -127,7 +127,7 @@ cron.schedule("0 8 * * *", async () => {
     const tenants = await Tenant.findAll({
       where: {
         leaseEndDate: {
-          [Op.lte]: futureDate, // includes overdue tenants
+          [Op.lte]: futureDate, 
         },
       },
     });
@@ -244,63 +244,63 @@ cron.schedule("0 8 * * *", async () => {
       // --------------------------
       // 3) Punishment notifications for overdue tenants
       // --------------------------
-if (diffDays < 0) {
-  const overdueDays = Math.abs(diffDays);
+    if (diffDays < 0) {
+      const overdueDays = Math.abs(diffDays);
 
-  const dayOnePunishment = tenant.amount * (punishmentPercentage / 100);
-  let punishmentAmount = dayOnePunishment;
-  for (let day = 2; day <= overdueDays; day++) {
-    punishmentAmount += dayOnePunishment / 2;
-  }
-  punishmentAmount = parseFloat(punishmentAmount.toFixed(2));
+      const dayOnePunishment = tenant.amount * (punishmentPercentage / 100);
+      let punishmentAmount = dayOnePunishment;
+      for (let day = 2; day <= overdueDays; day++) {
+        punishmentAmount += dayOnePunishment / 2;
+      }
+      punishmentAmount = parseFloat(punishmentAmount.toFixed(2));
 
-  const tenantMsg = `Dear ${tenant.fullName}, your lease expired ${overdueDays} day(s) ago. Today's punishment amount is ${punishmentAmount} ETB.`;
-  const adminMsg = `Tenant ${tenant.fullName} is ${overdueDays} day(s) overdue. Today's punishment amount: ${punishmentAmount} ETB.`;
+      const tenantMsg = `Dear ${tenant.fullName}, your lease expired ${overdueDays} day(s) ago. Today's punishment amount is ${punishmentAmount} ETB.`;
+      const adminMsg = `Tenant ${tenant.fullName} is ${overdueDays} day(s) overdue. Today's punishment amount: ${punishmentAmount} ETB.`;
 
-  // 📌 Store or update punishment record
-  let punishment = await Punishment.findOne({
-    where: { tenantId: tenant.id, status: "unpaid" }, // only unpaid punishments
-  });
+      // 📌 Store or update punishment record
+      let punishment = await Punishment.findOne({
+        where: { tenantId: tenant.id, status: "unpaid" }, // only unpaid punishments
+      });
 
-  if (punishment) {
-    // Update punishment amount & description
-    punishment.amount = punishmentAmount;
-    punishment.description = `Overdue by ${overdueDays} day(s)`;
-    await punishment.save();
-    console.log(`Updated punishment for tenant ${tenant.fullName}`);
-  } else {
-    // Create new punishment record
-    await Punishment.create({
-      tenantId: tenant.id,
-      amount: punishmentAmount,
-      description: `Overdue by ${overdueDays} day(s)`,
-      status: "unpaid", // false means unpaid
-    });
-    console.log(`Created punishment for tenant ${tenant.fullName}`);
-  }
+      if (punishment) {
+        // Update punishment amount & description
+        punishment.amount = punishmentAmount;
+        punishment.description = `Overdue by ${overdueDays} day(s)`;
+        await punishment.save();
+        console.log(`Updated punishment for tenant ${tenant.fullName}`);
+      } else {
+        // Create new punishment record
+        await Punishment.create({
+          tenantId: tenant.id,
+          amount: punishmentAmount,
+          description: `Overdue by ${overdueDays} day(s)`,
+          status: "unpaid", // false means unpaid
+        });
+        console.log(`Created punishment for tenant ${tenant.fullName}`);
+      }
 
-  // 🔔 Send SMS to tenant
-  if (tenant.phoneNumber) {
-    try {
-      await sendSingleSMS({ phone: tenant.phoneNumber, msg: tenantMsg });
-      console.log(`Punishment SMS sent to tenant: ${tenant.fullName}`);
-    } catch (err) {
-      console.error(`Failed to send punishment SMS to tenant ${tenant.fullName}:`, err.message);
-    }
-  }
+      // 🔔 Send SMS to tenant
+      if (tenant.phoneNumber) {
+        try {
+          await sendSingleSMS({ phone: tenant.phoneNumber, msg: tenantMsg });
+          console.log(`Punishment SMS sent to tenant: ${tenant.fullName}`);
+        } catch (err) {
+          console.error(`Failed to send punishment SMS to tenant ${tenant.fullName}:`, err.message);
+        }
+      }
 
-  // 🔔 Send SMS to admins
-  for (const admin of admins) {
-    if (admin.phone) {
-      try {
-        await sendSingleSMS({ phone: admin.phone, msg: adminMsg });
-        console.log(`Punishment SMS sent to admin: ${admin.id}`);
-      } catch (err) {
-        console.error(`Failed to send punishment SMS to admin ${admin.id}:`, err.message);
+      // 🔔 Send SMS to admins
+      for (const admin of admins) {
+        if (admin.phone) {
+          try {
+            await sendSingleSMS({ phone: admin.phone, msg: adminMsg });
+            console.log(`Punishment SMS sent to admin: ${admin.id}`);
+          } catch (err) {
+            console.error(`Failed to send punishment SMS to admin ${admin.id}:`, err.message);
+          }
+        }
       }
     }
-  }
-}
 
     }
     console.log("Lease expiry & punishment notifications complete.");
@@ -389,13 +389,13 @@ exports.createRentPayment = async (req, res) => {
       isPaid
     });
 
-    if (status === "paid") {
+    if (status === "Paid") {
       tenant.paymentStatus = "paid";
       tenant.leaseEndDate = nextDueDate;
       await tenant.save();
     }
 
-    if(status === "paid" && isPaid && punishment > 0) {
+    if(status === "Paid" && isPaid === true && punishment > 0) {
       const punishmentRecord = await Punishment.findOne({
         where : {tenantId, status : "unpaid",
         }
@@ -508,6 +508,8 @@ exports.updateRentPayment = async (req, res) => {
       paymentMethod,
       nextDueDate,
       status,
+      punishment,
+      isPaid
     } = req.body;
 
     const rentPayment = await TenantRentCollection.findByPk(req.params.id);
@@ -515,20 +517,48 @@ exports.updateRentPayment = async (req, res) => {
       return res.status(404).json({ message: "Rent payment not found" });
     }
 
+    // Update only fields provided
     await rentPayment.update({
-      amountPaid,
-      tenantId,
-      paymentDate,
-      paymentMethod,
-      nextDueDate,
-      status,
+      amountPaid: amountPaid !== undefined ? amountPaid : rentPayment.amountPaid,
+      tenantId: tenantId !== undefined ? tenantId : rentPayment.tenantId,
+      paymentDate: paymentDate || rentPayment.paymentDate,
+      paymentMethod: paymentMethod || rentPayment.paymentMethod,
+      nextDueDate: nextDueDate || rentPayment.nextDueDate,
+      status: status || rentPayment.status,
+      punishment: punishment !== undefined ? punishment : rentPayment.punishment,
+      isPaid: isPaid !== undefined ? isPaid : rentPayment.isPaid,
     });
 
-    res
-      .status(200)
-      .json({ message: "Rent payment updated successfully", rentPayment });
+    // Fetch tenant to update leaseEndDate
+    const tenant = await Tenant.findByPk(rentPayment.tenantId);
+    if (!tenant) {
+      return res.status(404).json({ message: "Tenant not found" });
+    }
+
+    // Three-condition logic
+    if (rentPayment.status === "Paid" && rentPayment.isPaid && rentPayment.punishment > 0) {
+      // Update Punishment table
+      const punishmentRecord = await Punishment.findOne({
+        where: { tenantId: rentPayment.tenantId, status: "unpaid" },
+      });
+
+      if (punishmentRecord) {
+        punishmentRecord.status = "paid";
+        await punishmentRecord.save();
+      }
+
+      // Update Tenant leaseEndDate
+      tenant.leaseEndDate = rentPayment.nextDueDate;
+      await tenant.save();
+    }
+
+    res.status(200).json({
+      message: "Rent payment updated successfully",
+      rentPayment,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error updating rent payment", error });
+    console.error(error);
+    res.status(500).json({ message: "Error updating rent payment", error: error.message });
   }
 };
 
