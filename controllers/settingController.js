@@ -10,7 +10,8 @@ exports.createSetting = async (req, res) => {
             phoneNumber,
             postOfficeAddress,
             chargingCost,
-            parkingCost
+            parkingCost,
+            punishmentPercentage
         } = req.body;
 
         let logoPath = null;
@@ -39,14 +40,15 @@ exports.createSetting = async (req, res) => {
             seal: sealPath,
             qrImage: qrImagePath,
             chargingCost,
-            parkingCost
+            parkingCost,
+            punishmentPercentage
         });
 
         const fullSetting = await Setting.findOne({
             where: { id: setting.id },
             attributes: ['id', 'buildingName', 'buildingAddress', 'email', 'phoneNumber',
                 'postOfficeAddress', 'logos', 'seal', 'qrImage', 'chargingCost', 'parkingCost',
-                'createdAt', 'updatedAt']
+                'createdAt', 'updatedAt', 'punishmentPercentage']
         });
 
         res.status(201).json(fullSetting);
