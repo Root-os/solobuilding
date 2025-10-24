@@ -36,7 +36,8 @@ const {
     Permission,
     Task,
     LetterResponse,
-    Booking
+    Booking,
+    Punishment
     
 } = require('./index');
 
@@ -203,27 +204,14 @@ const defineAssociations = () => {
     LetterResponse.belongsTo(Letter, { foreignKey: "letterId", onDelete: "CASCADE" });
     Letter.hasMany(LetterResponse, { foreignKey: "letterId", onDelete: "CASCADE" });
 
-    Message.belongsTo(Tenant, {
-  foreignKey: 'referenceId',
-  targetKey: 'id',
-  as: 'tenant',
-  constraints: false, // disables FK constraint for polymorphism
-});
+    Message.belongsTo(Tenant, {foreignKey: 'referenceId', targetKey: 'id', as: 'tenant', constraints: false, });
+    Message.belongsTo(User, {foreignKey: 'referenceId', targetKey: 'id', as: 'user', constraints: false, }); 
 
-Message.belongsTo(User, {
-  foreignKey: 'referenceId',
-  targetKey: 'id',
-  as: 'user',
-  constraints: false, // disables FK constraint for polymorphism
-}); 
+    Booking.belongsTo(Unit, {foreignKey: 'unitId'});
+    Unit.hasMany(Booking, {foreignKey: 'unitId', onDelete: 'CASCADE'});
 
-Booking.belongsTo(Unit, {
-  foreignKey: 'unitId'
-});
-Unit.hasMany(Booking, {
-  foreignKey: 'unitId',
-  onDelete: 'CASCADE'
-});
+    Tenant.hasMany(Punishment, {foreignKey: 'tenantId'});
+    Punishment.belongsTo(Tenant, {foreignKey: 'tenantId'})
   
 };
 

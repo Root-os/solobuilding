@@ -39,6 +39,7 @@ const TenantInventory = require("./tenantInventory");
 const TenantInventoryItem = require("./itemOutRequest")
 const ApprovedOutRequest = require("./approvedItemOutRequest")
 const Booking = require("./bookRoom");
+const Punishment = require("./punishment");
 const sequelize = require('../config/database');
 
 module.exports = {
@@ -83,5 +84,6 @@ module.exports = {
   TenantInventory,
   TenantInventoryItem,
   ApprovedOutRequest,
-  Booking
+  Booking,
+  Punishment
 };

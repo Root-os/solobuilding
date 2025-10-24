@@ -72,4 +72,8 @@ router.use("/sms", require("./smsRoutes"));
 //booking
 router.use("/booking", require("./bookingRoute"));
 
+//punishment
+router.use("/punishments", require("./punishmentRoutes"))
+
+
 module.exports = router;
