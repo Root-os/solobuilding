@@ -323,9 +323,6 @@ exports.getEmployeeSalaryHistory = async (req, res) => {
     const { id: employeeId, role } = req.user;
 
     // Only admin should be restricted
-    if (role === "admin") {
-      return res.status(403).json({ message: "Admins are not allowed to access this" });
-    }
   
     const salaryPayments = await SalaryPayment.findAll({
       where: { employeeId },
@@ -440,7 +437,9 @@ exports.getSalaryPaymentsByDateRange = async (req, res) => {
     });
 
     if (!salaryPayments.length) {
-      return res.status(404).json({ message: "No salary payments found in the given range" });
+      return res.status(200).json({ 
+        message: "No salary payments found in the given range" });
+        data: []  
     }
 
     res.status(200).json({ message: "Filtered salary payments retrieved", data: salaryPayments });

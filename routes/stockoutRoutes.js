@@ -5,13 +5,13 @@ const { employeeAuth,adminAuth,adminOrEmployeeAuth } = require("../middleware/au
 
 router.post("/request", employeeAuth, stockoutController.createStockoutRequest);
 router.put('/approve/:id', adminAuth, stockoutController.approveStockout);
-router.get("/", adminAuth, stockoutController.getStockoutRequests);
+router.get("/", adminOrEmployeeAuth, stockoutController.getStockoutRequests);
 router.get("/my-request", adminOrEmployeeAuth, stockoutController.mySetStockoutRequest);
 router.get("/:id", adminOrEmployeeAuth, stockoutController.getStockoutRequestById);
 router.put("/:id", adminOrEmployeeAuth, stockoutController.updateStockoutRequest);
 router.delete("/:id", adminAuth, stockoutController.deleteStockoutRequest);
 router.put("/cance-request/:id", employeeAuth, stockoutController.cancelStockoutRequest);
-router.get("/low-stock/check", adminAuth, stockoutController.checkLowStock);
+router.get("/low-stock/check", adminOrEmployeeAuth, stockoutController.checkLowStock);
 router.get("/export", adminAuth, stockoutController.exportStockoutReport);
 router.get("/movements", adminAuth, stockoutController.getStockMovementOverview);
 
