@@ -310,8 +310,9 @@ const tenantRentCollectionSchema = Joi.object({
   nextDueDate: Joi.date().required(),
   status: Joi.string().valid("Paid", "Pending", "Overdue").optional(),
   proofOfPayment: Joi.string().optional(),
-  punishment: Joi.string().required(),
-  isPaid: Joi.string().required(),
+  punishment: Joi.number().optional().default(0),
+  isPaid: Joi.boolean().required()
+
 });
 const tenantVehicleSchema = Joi.object({
   tenantId: Joi.number().integer().min(0).required(),
