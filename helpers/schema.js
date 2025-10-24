@@ -443,6 +443,15 @@ const paymentValidationSchema = Joi.object({
   purchaseId: Joi.number().integer().required(),
 });
 
+const updatePaymentValidationSchema = Joi.object({
+  vendorId: Joi.number().required(),
+  price: Joi.number().positive().required(),
+  paymentMethod: Joi.string().valid('cash', 'credit', 'bank transfer', 'other').required(),
+  status: Joi.string().valid('complete', 'partial', 'pending').required(),
+  paymentDate: Joi.date().required(),
+  description: Joi.string().optional(),
+});
+
 const serviceTypeValidationSchema = Joi.object({
   name: Joi.string().max(255).required(),
   description: Joi.string().optional().allow(""),
@@ -602,6 +611,7 @@ module.exports = {
   purchaseValidationSchema,
   purchaseRequestValidationSchema,
   paymentValidationSchema,
+  updatePaymentValidationSchema,
   serviceTypeValidationSchema,
   returnValidationSchema,
   vendorValidationSchema,
