@@ -337,7 +337,8 @@ const unitSchema = Joi.object({
   vacatedDate: Joi.date().optional(),
   images: Joi.array().items(Joi.string()).optional(),
   pricePerSquare: Joi.number().min(0).required(),
-  rentAmount: Joi.number().required()
+  rentAmount: Joi.number().required(),
+  taxedRentAmount: Joi.number().required()
 });
 
 const withdrawalRequestSchema = Joi.object({

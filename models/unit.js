@@ -25,6 +25,10 @@ const Unit = sequelize.define('Unit', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull:false
   },
+  taxedRentAmount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull:false
+  },
   status: {
     type: DataTypes.ENUM('available', 'occupied', 'under_maintenance'),
     defaultValue: 'available',
