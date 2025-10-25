@@ -106,6 +106,7 @@ const { sendSingleSMS } = createSingleSMSUtil({
   token: process.env.GEEZSMS_TOKEN,
 });
 
+
 // Days to notify before lease ends
 const NOTIFY_DAYS = [10, 5, 4, 3, 2, 1, 0];
 
