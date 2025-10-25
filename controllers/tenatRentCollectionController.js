@@ -168,7 +168,7 @@ cron.schedule("0 8 * * *", async () => {
       // 1) Lease expiry notifications
       // --------------------------
       if (NOTIFY_DAYS.includes(diffDays)) {
-        const tenantMsg = `Dear ${tenant.fullName}, your lease ends in ${diffDays} day(s). Contact management for renewal or move-out process.`;
+        const tenantMsg = `Dear ${tenant.fullName}, your lease ends in ${diffDays} day(s). your rent amount is ${tenant.amount}. pay before it ends or Contact management for renewal or move-out process.`;
         const adminMsg = `Lease for tenant ${tenant.fullName} ends in ${diffDays} day(s).`;
 
         if (tenant.phoneNumber) {
