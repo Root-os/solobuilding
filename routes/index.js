@@ -75,8 +75,7 @@ router.use("/booking", require("./bookingRoute"));
 //punishment
 router.use("/punishments", require("./punishmentRoutes"));
 
-//calender
-router.use("/calendar", require("./calenderRoutes"));
+
 
 
 module.exports = router;

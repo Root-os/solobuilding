@@ -12,6 +12,7 @@ exports.createSetting = async (req, res) => {
       chargingCost,
       parkingCost,
       punishmentPercentage,
+      isGregorian,
     } = req.body;
 
     let logoPath = null;
@@ -30,6 +31,11 @@ exports.createSetting = async (req, res) => {
       }
     }
 
+    const existing = await Setting.findOne();
+    if (existing) {
+      return res.status(400).json({ message: "Setting already exists" });
+    }
+
     const setting = await Setting.create({
       buildingName,
       buildingAddress,
@@ -42,6 +48,7 @@ exports.createSetting = async (req, res) => {
       chargingCost,
       parkingCost,
       punishmentPercentage,
+      isGregorian: isGregorian ?? true,
     });
 
     const fullSetting = await Setting.findOne({
@@ -61,6 +68,7 @@ exports.createSetting = async (req, res) => {
         "createdAt",
         "updatedAt",
         "punishmentPercentage",
+        "isGregorian",
       ],
     });
 
@@ -198,5 +206,30 @@ exports.deleteSetting = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error deleting setting", error: error.message });
+  }
+};
+
+exports.getCalendarSetting = async (req, res) => {
+  try {
+    const setting = await Setting.findOne();
+    if (!setting) return res.status(404).json({ message: "Setting not found" });
+    res.json({ isGregorian: setting.isGregorian });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateCalendarSetting = async (req, res) => {
+  try {
+    const { isGregorian } = req.body;
+    let setting = await Setting.findOne();
+    if (!setting) return res.status(404).json({ message: "Setting not found" });
+
+    setting.isGregorian = isGregorian;
+    await setting.save();
+
+    res.json({ message: "Calendar updated successfully", isGregorian });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

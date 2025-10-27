@@ -45,13 +45,16 @@ const Setting = sequelize.define("Setting", {
     },
       qrImage: {  
         type: DataTypes.STRING,
-        allowNull: true,
+        allowNull: true, 
     },
     punishmentPercentage: {
         type: DataTypes.FLOAT,
         allowNull: false
     },
-    
+    isGregorian: {            
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+    },
 }, {
     tableName: "settings",
     timestamps: true,

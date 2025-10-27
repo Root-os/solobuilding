@@ -5,6 +5,8 @@ const upload = require("../middleware/settingUpload");
 
 // Get All Settings
 router.get("/", settingController.getAllSettings);
+router.get("/calendar", settingController.getCalendarSetting);
+router.put("/calendar", settingController.updateCalendarSetting);
 
 // Get Setting by ID
 router.get("/:id", settingController.getSettingById);
