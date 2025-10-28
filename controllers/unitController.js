@@ -85,8 +85,8 @@ exports.getAllUnits = async (req, res) => {
     const units = await Unit.findAll({
       include: {
         model: Floor,
-        attributes: ["id", "floorNumber"], 
-      }
+        attributes: ["id", "floorNumber"],
+      },
     });
 
     const unitsWithFullImageUrls = units.map((unit) => {
@@ -175,7 +175,6 @@ exports.updateUnit = async (req, res) => {
     const newFloorId = req.body.floorId;
 
     if (newFloorId && newFloorId.toString() !== unit.floorId.toString()) {
-
       const floor = await Floor.findByPk(newFloorId);
 
       if (!floor) {
@@ -201,11 +200,16 @@ exports.updateUnit = async (req, res) => {
     }
 
     // Parse availableEquipments and problems JSON strings if needed
-    if (req.body.availableEquipments && typeof req.body.availableEquipments === "string") {
+    if (
+      req.body.availableEquipments &&
+      typeof req.body.availableEquipments === "string"
+    ) {
       try {
         req.body.availableEquipments = JSON.parse(req.body.availableEquipments);
       } catch (err) {
-        return res.status(400).json({ error: '"availableEquipments" must be a valid JSON array' });
+        return res
+          .status(400)
+          .json({ error: '"availableEquipments" must be a valid JSON array' });
       }
     }
 
@@ -213,7 +217,9 @@ exports.updateUnit = async (req, res) => {
       try {
         req.body.problems = JSON.parse(req.body.problems);
       } catch (err) {
-        return res.status(400).json({ error: '"problems" must be a valid JSON array' });
+        return res
+          .status(400)
+          .json({ error: '"problems" must be a valid JSON array' });
       }
     }
 
@@ -223,14 +229,16 @@ exports.updateUnit = async (req, res) => {
       try {
         existingImages = JSON.parse(req.body.existingImages);
       } catch (err) {
-        return res.status(400).json({ error: '"existingImages" must be a valid JSON array' });
+        return res
+          .status(400)
+          .json({ error: '"existingImages" must be a valid JSON array' });
       }
     }
 
     // Process new uploaded images (files)
     let uploadedImages = [];
     if (req.files && req.files.length > 0) {
-      uploadedImages = req.files.map(file => file.path.replace(/\\/g, '/')); // normalize slashes if needed
+      uploadedImages = req.files.map((file) => file.path.replace(/\\/g, "/")); // normalize slashes if needed
     }
 
     // Combine existing images and new uploads
