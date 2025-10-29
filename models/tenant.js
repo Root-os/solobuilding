@@ -16,7 +16,6 @@ const Tenant = sequelize.define('Tenant', {
   phoneNumber: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique:true,
     validate: {
       is: /^[0-9]{10}$/,
     },
@@ -24,7 +23,6 @@ const Tenant = sequelize.define('Tenant', {
   email: {
     type: DataTypes.STRING,
     allowNull: true,
-    unique: true,
     validate: {
       isEmail: true,
     },
@@ -57,7 +55,6 @@ const Tenant = sequelize.define('Tenant', {
   tin: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique:true,
   },
   password: {
     type: DataTypes.STRING,

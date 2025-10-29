@@ -13,6 +13,8 @@ const { tenatSchema } = require("../helpers/schema");
 const sendTenantWelcomeEmail = require("../services/sendEmail");
 const { BASE_URL } = require("../config/config");
 const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
+const Setting = require("../models/setting");
+const { toEthiopian } = require('ethiopian-date');
 
 // Set up multer storage for file uploads
 const storage = multer.diskStorage({
@@ -137,8 +139,38 @@ exports.createTenant = async (req, res) => {
         { where: { id: unitId } }
       );
 
-      // Send email with login credentials
+      const setting = await Setting.findOne();
+      let displayLeaseStartDate = leaseStartDate;
+      let displayLeaseEndDate = leaseEndDate;
 
+      if (setting && setting.isGregorian === false) {
+        if (leaseStartDate) {
+          const dateObj = new Date(leaseStartDate);
+          const [ethioYearStart, ethioMonthStart, ethioDayStart] = toEthiopian(
+            dateObj.getFullYear(),
+            dateObj.getMonth() + 1,
+            dateObj.getDate()
+          );
+          displayLeaseStartDate = `${ethioDayStart}-${ethioMonthStart}-${ethioYearStart}`;
+        }
+
+        if (leaseEndDate) {
+          const dateObj = new Date(leaseEndDate);
+          const [ethioYearEnd, ethioMonthEnd, ethioDayEnd] = toEthiopian(
+            dateObj.getFullYear(),
+            dateObj.getMonth() + 1,
+            dateObj.getDate()
+          );
+          displayLeaseEndDate = `${ethioDayEnd}-${ethioMonthEnd}-${ethioYearEnd}`;
+        }
+      }
+
+      console.log("Converted Dates =>", {
+        displayLeaseStartDate,
+        displayLeaseEndDate,
+        isGregorian: setting?.isGregorian,
+      });
+      // Send email with login credentials
       const emailResponse = await sendTenantWelcomeEmail({
         email,
         fullName,
@@ -146,8 +178,8 @@ exports.createTenant = async (req, res) => {
         phoneNumber,
         floorNumber: floor.floorNumber,
         unitNumber: unit.unitNumber,
-        leaseStartDate,
-        leaseEndDate,
+        leaseStartDate: displayLeaseStartDate,
+        leaseEndDate: displayLeaseEndDate,
         loginUrl: process.env.TENANT_PORTAL_URL,
         downloadApk: process.env.DOWNLOAD_APK_URL,
       });
@@ -161,15 +193,13 @@ exports.createTenant = async (req, res) => {
       const loginUrl = process.env.TENANT_PORTAL_URL;
       const downloadApk = process.env.DOWNLOAD_APK_URL;
       const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
-      const leaseEndDateDisplay = leaseEndDate
-        ? leaseEndDate
-        : "not specified yet";
+      const leaseEndDateDisplay = displayLeaseEndDate ? displayLeaseEndDate : "not specified yet";
       const smsMessage =
         `Welcome ${fullName}!\n` +
         `Your tenant account has been created successfully.\n` +
         `Floor: ${floor.floorNumber}, Unit: ${unit.unitNumber}\n` +
         `Phone: ${phoneNumber}\n` +
-        `Rented from: ${leaseStartDate} To ${leaseEndDateDisplay}\n` +
+        `Rented from: ${displayLeaseStartDate} To ${leaseEndDateDisplay}\n` +
         `Username: ${email}\nPassword: ${generatedPassword}\n` +
         `Please log in to your account: ${loginUrl}\n` +
         `Download our app: ${downloadApk}\n` +
