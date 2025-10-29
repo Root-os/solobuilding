@@ -49,6 +49,7 @@ exports.createTenant = async (req, res) => {
         unitId,
         leaseStartDate,
         leaseEndDate,
+        contractEndDate,
         email,
         fullName,
         nationalId,
@@ -75,27 +76,6 @@ exports.createTenant = async (req, res) => {
       const floor = await Floor.findByPk(floorId);
       if (!floor) return res.status(404).json({ error: "Floor not found" });
 
-      // Check for existing tenant with the same email, nationalId, phoneNumber, or tin
-      const existingTenant = await Tenant.findOne({
-        where: {
-          [Op.or]: [{ email }, { nationalId }, { phoneNumber }, { tin }],
-        },
-      });
-
-      if (existingTenant) {
-        let errorMessage = "";
-        if (existingTenant.email === email) {
-          errorMessage = "A tenant with the same email already exists";
-        } else if (existingTenant.nationalId === nationalId) {
-          errorMessage = "A tenant with the same national ID already exists";
-        } else if (existingTenant.phoneNumber === phoneNumber) {
-          errorMessage = "A tenant with the same phone number already exists";
-        } else if (existingTenant.tin === tin) {
-          errorMessage = "A tenant with the same tin already exists";
-        }
-        return res.status(400).json({ error: errorMessage });
-      }
-
       // Generate a 4-digit numeric password
       const generatedPassword = Math.floor(
         1000 + Math.random() * 9000
@@ -108,6 +88,7 @@ exports.createTenant = async (req, res) => {
         unitId,
         leaseStartDate,
         leaseEndDate,
+        contractEndDate,
         email,
         fullName,
         nationalId,
@@ -429,6 +410,7 @@ exports.updateTenant = async (req, res) => {
         nationalId: req.body.nationalId || tenant.nationalId,
         leaseStartDate: req.body.leaseStartDate || tenant.leaseStartDate,
         leaseEndDate: req.body.leaseEndDate || tenant.leaseEndDate,
+        contractEndDate: req.body.contractEndDate || tenant.contractEndDate,
         paymentStatus: req.body.paymentStatus || tenant.paymentStatus,
         additionalNotes: req.body.additionalNotes || tenant.additionalNotes,
         unitId: unitId,

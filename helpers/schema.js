@@ -268,7 +268,7 @@ const settingSchema = Joi.object({
 });
 
 const tenatSchema = Joi.object({
-  fullName: Joi.string().min(3).max(50).required(),
+  fullName: Joi.string().min(3).max(70).required(),
   email: Joi.string().email().required(),
   phoneNumber: Joi.string()
     .pattern(/^[0-9]+$/)
@@ -276,6 +276,27 @@ const tenatSchema = Joi.object({
   nationalId: Joi.string().required(),
   leaseStartDate: Joi.date().required(),
   leaseEndDate: Joi.date().optional(),
+  contractEndDate: Joi.date()
+    .required()
+    .custom((value, helpers) => {
+      const { leaseStartDate, leaseEndDate } = helpers.state.ancestors[0];
+
+      // Check it's after leaseStartDate
+      if (leaseStartDate && new Date(value) <= new Date(leaseStartDate)) {
+        return helpers.message(
+          '"contractEndDate" must be after "leaseStartDate"'
+        );
+      }
+
+      // Check it's after leaseEndDate if leaseEndDate exists
+      if (leaseEndDate && new Date(value) <= new Date(leaseEndDate)) {
+        return helpers.message(
+          '"contractEndDate" must be after "leaseEndDate"'
+        );
+      }
+
+      return value;
+    }),
   additionalNotes: Joi.string().allow().optional(),
   amount: Joi.number().min(0).required(),
   advance: Joi.number().min(0).required(),
@@ -291,6 +312,7 @@ const tenatSchema = Joi.object({
   carName: Joi.string().min(3).max(20).optional(),
   color: Joi.string().optional(),
 });
+
 const tenantPaymentSchema = Joi.object({
   tenantId: Joi.number().integer().min(0).required(),
   amountPaid: Joi.number().min(0).required(),
