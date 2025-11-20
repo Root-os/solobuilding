@@ -14,7 +14,7 @@ const sendTenantWelcomeEmail = require("../services/sendEmail");
 const { BASE_URL } = require("../config/config");
 const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
 const Setting = require("../models/setting");
-const { toEthiopian } = require('ethiopian-date');
+const { toEthiopian } = require("ethiopian-date");
 
 // Set up multer storage for file uploads
 const storage = multer.diskStorage({
@@ -40,6 +40,17 @@ exports.createTenant = async (req, res) => {
       }
 
       const filePath = req.file ? `/uploads/${req.file.filename}` : null;
+      // Normalize incoming date fields (multipart/form-data can produce arrays)
+      ["leaseStartDate", "leaseEndDate", "contractEndDate"].forEach((key) => {
+        if (req.body[key] && Array.isArray(req.body[key])) {
+          req.body[key] = req.body[key][0];
+        }
+        if (typeof req.body[key] === "string") {
+          req.body[key] = req.body[key].trim();
+          if (req.body[key] === "") req.body[key] = undefined;
+        }
+      });
+
       const { error } = tenatSchema.validate(req.body);
       if (error) {
         return res.status(400).json({ error: error.details[0].message });
@@ -84,6 +95,24 @@ exports.createTenant = async (req, res) => {
       const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
       // Prepare tenant data
+      // Normalize optional identifier fields: convert empty strings to null
+      const normalizedNationalId =
+        typeof nationalId === "string" && nationalId.trim() === ""
+          ? null
+          : nationalId;
+      const normalizedTin =
+        typeof tin === "string" && tin.trim() === "" ? null : tin;
+
+      // Keep `null` for missing identifier fields so DB stores NULL
+      // (model allows null). This replaces prior behavior that inserted
+      // placeholder values or empty strings.
+      const finalTin =
+        typeof normalizedTin === "undefined" ? null : normalizedTin;
+      const finalNationalId =
+        typeof normalizedNationalId === "undefined"
+          ? null
+          : normalizedNationalId;
+
       const tenantData = {
         unitId,
         leaseStartDate,
@@ -91,9 +120,9 @@ exports.createTenant = async (req, res) => {
         contractEndDate,
         email,
         fullName,
-        nationalId,
+        nationalId: finalNationalId,
         phoneNumber,
-        tin,
+        tin: finalTin,
         floorId,
         amount,
         advance,
@@ -152,29 +181,36 @@ exports.createTenant = async (req, res) => {
         isGregorian: setting?.isGregorian,
       });
       // Send email with login credentials
-      const emailResponse = await sendTenantWelcomeEmail({
-        email,
-        fullName,
-        generatedPassword,
-        phoneNumber,
-        floorNumber: floor.floorNumber,
-        unitNumber: unit.unitNumber,
-        leaseStartDate: displayLeaseStartDate,
-        leaseEndDate: displayLeaseEndDate,
-        loginUrl: process.env.TENANT_PORTAL_URL,
-        downloadApk: process.env.DOWNLOAD_APK_URL,
-      });
-
-      //const emailResponse = await sendEmail(email, emailSubject, emailBody);
-      if (!emailResponse.success) {
-        console.error("Email sending failed:", emailResponse.error);
+    if (email&&email!=="") {
+      try {
+        const emailResponse = await sendTenantWelcomeEmail({
+          email,
+          fullName,
+          generatedPassword,
+          phoneNumber,
+          floorNumber: floor.floorNumber,
+          unitNumber: unit.unitNumber,
+          leaseStartDate: displayLeaseStartDate,
+          leaseEndDate: displayLeaseEndDate,
+          loginUrl: process.env.TENANT_PORTAL_URL,
+          downloadApk: process.env.DOWNLOAD_APK_URL,
+        });
+    
+        if (!emailResponse.success) {
+          console.error("Email sending failed:", emailResponse.error);
+        }
+      } catch (err) {
+        console.error("Unexpected error while sending email:", err);
       }
+    }
 
       // Send SMS notification
       const loginUrl = process.env.TENANT_PORTAL_URL;
       const downloadApk = process.env.DOWNLOAD_APK_URL;
       const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
-      const leaseEndDateDisplay = displayLeaseEndDate ? displayLeaseEndDate : "not specified yet";
+      const leaseEndDateDisplay = displayLeaseEndDate
+        ? displayLeaseEndDate
+        : "not specified yet";
       const smsMessage =
         `Welcome ${fullName}!\n` +
         `Your tenant account has been created successfully.\n` +
@@ -203,12 +239,12 @@ exports.createTenant = async (req, res) => {
       const field = error.errors[0].path;
       let errorMessage = "";
       switch (field) {
-        case "email":
-          errorMessage = "A tenant with the same email already exists";
-          break;
-        case "nationalId":
-          errorMessage = "A tenant with the same national ID already exists";
-          break;
+        // case "email":
+        //   errorMessage = "A tenant with the same email already exists";
+        //   break;
+        // case "nationalId":
+        //   errorMessage = "A tenant with the same national ID already exists";
+        //   break;
         case "phoneNumber":
           errorMessage = "A tenant with the same phone number already exists";
           break;
@@ -402,24 +438,79 @@ exports.updateTenant = async (req, res) => {
         ? `/Uploads/${req.file.filename}`
         : tenant.document;
 
-      // Prepare updated tenant data
+      // Normalize update inputs: if a field is omitted, keep existing value;
+      // if provided as an empty string, store `null` (for identifiers).
+      const normalizeNullableField = (fieldName, currentValue) => {
+        if (!Object.prototype.hasOwnProperty.call(req.body, fieldName)) {
+          return currentValue;
+        }
+        const val = req.body[fieldName];
+        if (typeof val === "string" && val.trim() === "") return null;
+        return val;
+      };
+
       const updatedData = {
-        fullName: req.body.fullName || tenant.fullName,
-        phoneNumber: req.body.phoneNumber || tenant.phoneNumber,
-        email: req.body.email || tenant.email,
-        nationalId: req.body.nationalId || tenant.nationalId,
-        leaseStartDate: req.body.leaseStartDate || tenant.leaseStartDate,
-        leaseEndDate: req.body.leaseEndDate || tenant.leaseEndDate,
-        contractEndDate: req.body.contractEndDate || tenant.contractEndDate,
-        paymentStatus: req.body.paymentStatus || tenant.paymentStatus,
-        additionalNotes: req.body.additionalNotes || tenant.additionalNotes,
+        fullName: Object.prototype.hasOwnProperty.call(req.body, "fullName")
+          ? req.body.fullName
+          : tenant.fullName,
+        phoneNumber: Object.prototype.hasOwnProperty.call(
+          req.body,
+          "phoneNumber"
+        )
+          ? req.body.phoneNumber
+          : tenant.phoneNumber,
+        email: Object.prototype.hasOwnProperty.call(req.body, "email")
+          ? req.body.email
+          : tenant.email,
+        nationalId: normalizeNullableField("nationalId", tenant.nationalId),
+        leaseStartDate: Object.prototype.hasOwnProperty.call(
+          req.body,
+          "leaseStartDate"
+        )
+          ? req.body.leaseStartDate
+          : tenant.leaseStartDate,
+        leaseEndDate: Object.prototype.hasOwnProperty.call(
+          req.body,
+          "leaseEndDate"
+        )
+          ? req.body.leaseEndDate
+          : tenant.leaseEndDate,
+        contractEndDate: Object.prototype.hasOwnProperty.call(
+          req.body,
+          "contractEndDate"
+        )
+          ? req.body.contractEndDate
+          : tenant.contractEndDate,
+        paymentStatus: Object.prototype.hasOwnProperty.call(
+          req.body,
+          "paymentStatus"
+        )
+          ? req.body.paymentStatus
+          : tenant.paymentStatus,
+        additionalNotes: Object.prototype.hasOwnProperty.call(
+          req.body,
+          "additionalNotes"
+        )
+          ? req.body.additionalNotes
+          : tenant.additionalNotes,
         unitId: unitId,
         floorId: req.body.floorId ? Number(req.body.floorId) : tenant.floorId,
-        amount: req.body.amount || tenant.amount,
-        advance: req.body.advance || tenant.advance,
-        tin: req.body.tin || tenant.tin,
-        status: req.body.status || tenant.status,
-        description: req.body.description || tenant.description,
+        amount: Object.prototype.hasOwnProperty.call(req.body, "amount")
+          ? req.body.amount
+          : tenant.amount,
+        advance: Object.prototype.hasOwnProperty.call(req.body, "advance")
+          ? req.body.advance
+          : tenant.advance,
+        tin: normalizeNullableField("tin", tenant.tin),
+        status: Object.prototype.hasOwnProperty.call(req.body, "status")
+          ? req.body.status
+          : tenant.status,
+        description: Object.prototype.hasOwnProperty.call(
+          req.body,
+          "description"
+        )
+          ? req.body.description
+          : tenant.description,
         document: filePath,
       };
 
@@ -615,7 +706,7 @@ exports.getTenantsWithExpiringLease = async (req, res) => {
         },
         {
           model: TenantVehicle,
-          attributes: ["carPlate", "carName",],
+          attributes: ["carPlate", "carName"],
         },
       ],
     });

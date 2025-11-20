@@ -29,7 +29,7 @@ const Tenant = sequelize.define('Tenant', {
   },
   nationalId: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
     unique:true,
   },
   leaseStartDate: {
@@ -58,7 +58,7 @@ const Tenant = sequelize.define('Tenant', {
   },
   tin: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
   },
   password: {
     type: DataTypes.STRING,

@@ -1,6 +1,22 @@
 const Setting = require("../models/setting");
 require("dotenv").config();
 
+// Helper to produce a fully-qualified URL for stored file paths
+const formatUrl = (val, req) => {
+  if (!val) return val;
+  try {
+    if (typeof val !== "string") return val;
+    if (val.startsWith("http://") || val.startsWith("https://")) return val;
+    // Remove accidental 'undefined' prefix
+    const cleaned = val.replace(/^undefined\/?/, "");
+    const base = process.env.BASE_URL || `${req.protocol}://${req.get("host")}`;
+    if (cleaned.startsWith("/")) return `${base}${cleaned}`;
+    return `${base}/${cleaned}`;
+  } catch (err) {
+    return val;
+  }
+};
+
 exports.createSetting = async (req, res) => {
   try {
     const {
@@ -72,7 +88,15 @@ exports.createSetting = async (req, res) => {
       ],
     });
 
-    res.status(201).json(fullSetting);
+    // Ensure returned file fields are full URLs
+    const fullObj = fullSetting ? fullSetting.toJSON() : null;
+    if (fullObj) {
+      fullObj.logos = formatUrl(fullObj.logos, req);
+      fullObj.seal = formatUrl(fullObj.seal, req);
+      fullObj.qrImage = formatUrl(fullObj.qrImage, req);
+    }
+
+    res.status(201).json(fullObj);
   } catch (error) {
     res
       .status(500)
@@ -118,7 +142,8 @@ exports.updateSetting = async (req, res) => {
     setting.postOfficeAddress = postOfficeAddress || setting.postOfficeAddress;
     setting.chargingCost = chargingCost || setting.chargingCost;
     setting.parkingCost = parkingCost || setting.parkingCost;
-    setting.punishmentPercentage = punishmentPercentage || setting.punishmentPercentage;
+    setting.punishmentPercentage =
+      punishmentPercentage || setting.punishmentPercentage;
 
     await setting.save();
 
@@ -142,7 +167,14 @@ exports.updateSetting = async (req, res) => {
       ],
     });
 
-    res.status(200).json(updatedSetting);
+    const updatedObj = updatedSetting ? updatedSetting.toJSON() : null;
+    if (updatedObj) {
+      updatedObj.logos = formatUrl(updatedObj.logos, req);
+      updatedObj.seal = formatUrl(updatedObj.seal, req);
+      updatedObj.qrImage = formatUrl(updatedObj.qrImage, req);
+    }
+
+    res.status(200).json(updatedObj);
   } catch (error) {
     res
       .status(500)
@@ -153,7 +185,14 @@ exports.updateSetting = async (req, res) => {
 exports.getAllSettings = async (req, res) => {
   try {
     const settings = await Setting.findAll();
-    res.status(200).json(settings);
+    const mapped = settings.map((s) => {
+      const o = s.toJSON();
+      o.logos = formatUrl(o.logos, req);
+      o.seal = formatUrl(o.seal, req);
+      o.qrImage = formatUrl(o.qrImage, req);
+      return o;
+    });
+    res.status(200).json(mapped);
   } catch (error) {
     res
       .status(500)
@@ -184,7 +223,11 @@ exports.getSettingById = async (req, res) => {
     if (!setting) {
       return res.status(404).json({ message: "Setting not found" });
     }
-    res.status(200).json(setting);
+    const obj = setting.toJSON();
+    obj.logos = formatUrl(obj.logos, req);
+    obj.seal = formatUrl(obj.seal, req);
+    obj.qrImage = formatUrl(obj.qrImage, req);
+    res.status(200).json(obj);
   } catch (error) {
     res
       .status(500)
