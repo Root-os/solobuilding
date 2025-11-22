@@ -17,16 +17,8 @@ const Unit = sequelize.define('Unit', {
     type: DataTypes.FLOAT,
     allowNull: false,
   },
-  pricePerSquare:{
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull:false
-  },
   rentAmount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull:false
-  },
-  taxedRentAmount: {
-    type: DataTypes.DECIMAL(10, 2),
+    type: DataTypes.DECIMAL(12, 2),
     allowNull:false
   },
   status: {
@@ -60,12 +52,11 @@ const Unit = sequelize.define('Unit', {
     allowNull: false,
   },
   images: { type: DataTypes.JSON } ,
-}, {
+  }, {
   tableName: 'units', // Explicit table name
   timestamps: true,
   charset: 'utf8', 
   collate: 'utf8_general_ci',
 });
-
 
 module.exports = Unit;

@@ -23,7 +23,7 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: "*", 
+    origin: "*",
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   })
@@ -48,10 +48,23 @@ connectDB();
 defineAssociation();
 
 sequelize
-
   .sync({ force: false, alter: false })
-  .then(() => {
+  .then(async () => {
     console.log("Database & tables are up to date!");
+    // Ensure `nationalId` column allows NULL to match the model definition.
+    try {
+      // MySQL: modify column to allow NULL (keeps VARCHAR(255) as default mapping)
+      await sequelize.query(
+        "ALTER TABLE `tenants` MODIFY COLUMN `nationalId` VARCHAR(255) NULL;"
+      );
+      console.log("Ensured tenants.nationalId allows NULL in DB.");
+    } catch (alterErr) {
+      // Log but don't crash the server; alteration may not be necessary or permitted
+      console.error(
+        "Could not alter tenants.nationalId column (may already match):",
+        alterErr.message || alterErr
+      );
+    }
   })
   .catch((err) => {
     console.error("Error syncing database:", err);

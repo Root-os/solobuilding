@@ -42,7 +42,7 @@ const Tenant = sequelize.define('Tenant', {
   },
   contractEndDate: {
     type: DataTypes.DATE,
-    allowNull: false, 
+    allowNull: true, 
   },
   amount: {
     type: DataTypes.FLOAT,

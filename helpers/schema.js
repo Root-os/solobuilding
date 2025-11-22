@@ -277,7 +277,7 @@ const tenatSchema = Joi.object({
   leaseStartDate: Joi.date().required(),
   leaseEndDate: Joi.date().optional(),
   contractEndDate: Joi.date()
-    .required()
+    .optional()
     .custom((value, helpers) => {
       const { leaseStartDate, leaseEndDate } = helpers.state.ancestors[0];
 
@@ -356,9 +356,7 @@ const unitSchema = Joi.object({
   rentedDate: Joi.date().optional(),
   vacatedDate: Joi.date().optional(),
   images: Joi.array().items(Joi.string()).optional(),
-  pricePerSquare: Joi.number().min(0).required(),
   rentAmount: Joi.number().required(),
-  taxedRentAmount: Joi.number().required(),
 });
 
 const withdrawalRequestSchema = Joi.object({
