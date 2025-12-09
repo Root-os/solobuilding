@@ -21,7 +21,6 @@ exports.createFloor = async (req, res) => {
 };
 
 
-
 exports.getAllFloors = async (req, res) => {
   try {
     const floors = await Floor.findAll({
@@ -81,7 +80,6 @@ exports.getFloorById = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // Update a floor
 exports.updateFloor = async (req, res) => {

@@ -337,206 +337,135 @@ exports.getTenantById = async (req, res) => {
 // Update tenant details
 exports.updateTenant = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ error: "Invalid tenant ID" });
-    }
-
     upload.single("document")(req, res, async (err) => {
       if (err) {
         return res.status(400).json({ error: err.message });
       }
 
-      const tenant = await Tenant.findOne({ where: { id }, include: Unit });
+      const tenant = await Tenant.findByPk(req.params.id, {
+        include: [
+          { model: Unit, attributes: ["id", "status", "vacatedDate", "rentedDate"] },
+          { model: Floor, attributes: ["id", "floorNumber"] }
+        ]
+      });
+
       if (!tenant) {
         return res.status(404).json({ message: "Tenant not found" });
       }
 
-      // Validate unitId if provided, or keep current
-      const unitId = req.body.unitId ? Number(req.body.unitId) : tenant.unitId;
-      if (req.body.unitId && isNaN(unitId)) {
-        return res.status(400).json({ error: "Invalid unit ID" });
-      }
+      // Convert empty strings to null
+      Object.keys(req.body).forEach((key) => {
+        if (req.body[key] === "") req.body[key] = null;
+      });
 
-      // Store previous values for comparison
+      // Extract file path if a new file was uploaded
+      const filePath = req.file ? `/uploads/${req.file.filename}` : tenant.document;
+
+      // ---- Save original values BEFORE update ----
       const previousStatus = tenant.status;
       const previousUnitId = tenant.unitId;
 
-      // If tenant is going from active → inactive, free the unit
-      if (
-        previousStatus === "active" &&
-        req.body.status === "inactive" &&
-        previousUnitId
-      ) {
-        await Unit.update(
-          { status: "available", vacatedDate: new Date(), rentedDate: null },
-          { where: { id: previousUnitId } }
-        );
-      }
-
-      // If tenant status changes from inactive → active, mark unit as occupied
-      if (req.body.status === "active" && unitId) {
-        const unitExists = await Unit.findOne({ where: { id: unitId } });
-        if (!unitExists) {
-          return res.status(400).json({ error: "Unit not found" });
-        }
-        await Unit.update(
-          {
-            status: "occupied",
-            rentedDate: req.body.leaseStartDate || new Date(),
-            vacatedDate: null,
-          },
-          { where: { id: unitId } }
-        );
-      }
-
-      // If unitId changed, free the old unit
-      if (
-        req.body.unitId &&
-        Number(req.body.unitId) !== previousUnitId &&
-        previousUnitId
-      ) {
-        await Unit.update(
-          { status: "available", vacatedDate: new Date(), rentedDate: null },
-          { where: { id: previousUnitId } }
-        );
-      }
-      // Floor validation logic
-      const newFloorId = req.body.floorId
-        ? Number(req.body.floorId)
-        : tenant.floorId;
-      const isFloorChanged = req.body.floorId && newFloorId !== tenant.floorId;
-
-      if (isFloorChanged) {
-        // Rule 1: Prevent floor update without also changing the unit
-        const isUnitChanged =
-          req.body.unitId && Number(req.body.unitId) !== tenant.unitId;
-        if (!isUnitChanged) {
-          return res.status(400).json({
-            error:
-              "You cannot change the floor without also changing the unit.",
-          });
-        }
-
-        // Rule 2: Prevent setting floor to inactive or underconstruction
-        const targetFloor = await Floor.findOne({ where: { id: newFloorId } });
-        if (!targetFloor) {
-          return res.status(400).json({ error: "Selected floor not found." });
-        }
-
-        const floorStatus = targetFloor.status.toLowerCase();
-        if (["inActive", "under_construction"].includes(floorStatus)) {
-          return res.status(400).json({
-            error:
-              "Cannot assign a tenant to an inactive or under-construction floor.",
-          });
-        }
-      }
-
-      // Handle file upload
-      const filePath = req.file
-        ? `/Uploads/${req.file.filename}`
-        : tenant.document;
-
-      // Normalize update inputs: if a field is omitted, keep existing value;
-      // if provided as an empty string, store `null` (for identifiers).
-      const normalizeNullableField = (fieldName, currentValue) => {
-        if (!Object.prototype.hasOwnProperty.call(req.body, fieldName)) {
-          return currentValue;
-        }
-        const val = req.body[fieldName];
-        if (typeof val === "string" && val.trim() === "") return null;
-        return val;
-      };
-
+      // ---- Prepare updated data ----
       const updatedData = {
-        fullName: Object.prototype.hasOwnProperty.call(req.body, "fullName")
-          ? req.body.fullName
-          : tenant.fullName,
-        phoneNumber: Object.prototype.hasOwnProperty.call(
-          req.body,
-          "phoneNumber"
-        )
-          ? req.body.phoneNumber
-          : tenant.phoneNumber,
-        email: Object.prototype.hasOwnProperty.call(req.body, "email")
-          ? req.body.email
-          : tenant.email,
-        nationalId: normalizeNullableField("nationalId", tenant.nationalId),
-        leaseStartDate: Object.prototype.hasOwnProperty.call(
-          req.body,
-          "leaseStartDate"
-        )
-          ? req.body.leaseStartDate
-          : tenant.leaseStartDate,
-        leaseEndDate: Object.prototype.hasOwnProperty.call(
-          req.body,
-          "leaseEndDate"
-        )
-          ? req.body.leaseEndDate
-          : tenant.leaseEndDate,
-        contractEndDate: Object.prototype.hasOwnProperty.call(
-          req.body,
-          "contractEndDate"
-        )
-          ? req.body.contractEndDate
-          : tenant.contractEndDate,
-        paymentStatus: Object.prototype.hasOwnProperty.call(
-          req.body,
-          "paymentStatus"
-        )
-          ? req.body.paymentStatus
-          : tenant.paymentStatus,
-        additionalNotes: Object.prototype.hasOwnProperty.call(
-          req.body,
-          "additionalNotes"
-        )
-          ? req.body.additionalNotes
-          : tenant.additionalNotes,
-        unitId: unitId,
-        floorId: req.body.floorId ? Number(req.body.floorId) : tenant.floorId,
-        amount: Object.prototype.hasOwnProperty.call(req.body, "amount")
-          ? req.body.amount
-          : tenant.amount,
-        advance: Object.prototype.hasOwnProperty.call(req.body, "advance")
-          ? req.body.advance
-          : tenant.advance,
-        tin: normalizeNullableField("tin", tenant.tin),
-        status: Object.prototype.hasOwnProperty.call(req.body, "status")
-          ? req.body.status
-          : tenant.status,
-        description: Object.prototype.hasOwnProperty.call(
-          req.body,
-          "description"
-        )
-          ? req.body.description
-          : tenant.description,
-        document: filePath,
+        fullName: req.body.fullName ?? tenant.fullName,
+        email: req.body.email ?? tenant.email,
+        phoneNumber: req.body.phoneNumber ?? tenant.phoneNumber,
+        nationalId: req.body.nationalId ?? tenant.nationalId,
+        leaseStartDate: req.body.leaseStartDate ?? tenant.leaseStartDate,
+        leaseEndDate: req.body.leaseEndDate ?? tenant.leaseEndDate,
+        contractEndDate: req.body.contractEndDate ?? tenant.contractEndDate,
+        additionalNotes: req.body.additionalNotes ?? tenant.additionalNotes,
+        amount: req.body.amount ?? tenant.amount,
+        advance: req.body.advance ?? tenant.advance,
+        tin: req.body.tin ?? tenant.tin,
+        document: filePath, // ✔ updated or kept original
+        status: req.body.status ?? tenant.status,
+        floorId: req.body.floorId ?? tenant.floorId,
+        unitId: req.body.unitId ?? tenant.unitId,
       };
 
       await tenant.update(updatedData);
 
-      const updatedTenant = await Tenant.findOne({
-        where: { id: tenant.id },
+      // ---- Fetch updated values ----
+      const newStatus = updatedData.status;
+      const newUnitId = updatedData.unitId;
+
+      const normalizedPreviousStatus = previousStatus?.toLowerCase();
+      const normalizedNewStatus = newStatus?.toLowerCase();
+
+      // ======================================================================
+      // 🔥 ACTIVE → INACTIVE → Set previous unit to AVAILABLE
+      // ======================================================================
+      if (
+        normalizedPreviousStatus === "active" &&
+        normalizedNewStatus === "inactive"
+      ) {
+        if (previousUnitId) {
+          await Unit.update(
+            {
+              status: "available",
+              vacatedDate: new Date(),
+            },
+            { where: { id: previousUnitId } }
+          );
+        }
+      }
+
+      // ======================================================================
+      // 🔥 INACTIVE → ACTIVE → Set unit to OCCUPIED
+      // ======================================================================
+      if (
+        normalizedPreviousStatus === "inactive" &&
+        normalizedNewStatus === "active"
+      ) {
+        if (newUnitId) {
+          await Unit.update(
+            {
+              status: "occupied",
+              rentedDate: updatedData.leaseStartDate || new Date(),
+            },
+            { where: { id: newUnitId } }
+          );
+        }
+      }
+
+      // ======================================================================
+      // 🔥 Unit change (unitId updated) — handle move
+      // ======================================================================
+      if (newUnitId !== previousUnitId) {
+        // Free old unit
+        if (previousUnitId) {
+          await Unit.update(
+            { status: "available", vacatedDate: new Date() },
+            { where: { id: previousUnitId } }
+          );
+        }
+
+        // Occupy new unit, only if tenant is active
+        if (normalizedNewStatus === "active" && newUnitId) {
+          await Unit.update(
+            {
+              status: "occupied",
+              rentedDate: updatedData.leaseStartDate || new Date(),
+            },
+            { where: { id: newUnitId } }
+          );
+        }
+      }
+
+      // ---- Return updated tenant ----
+      const updatedTenant = await Tenant.findByPk(tenant.id, {
         include: [
-          {
-            model: Unit,
-            attributes: [
-              "id",
-              "unitNumber",
-              "status",
-              "vacatedDate",
-              "rentedDate",
-            ],
-          },
-        ],
+          { model: Unit, attributes: ["id", "unitNumber", "status", "vacatedDate", "rentedDate"] },
+          { model: Floor, attributes: ["id", "floorNumber"] }
+        ]
       });
 
-      return res.status(200).json(updatedTenant);
+      res.status(200).json(updatedTenant);
     });
   } catch (error) {
-    console.error("Error updating tenant:", error);
-    res.status(500).json({ error: error.message });
+    console.error("❌ Error updating tenant:", error);
+    res.status(500).json({ message: "Internal server error", error });
   }
 };
 
