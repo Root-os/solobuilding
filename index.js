@@ -20,14 +20,10 @@ const PORT = process.env.PORT || 5000;
 app.use("/uploads", express.static(path.join(__dirname, "uploads/")));
 // Security & Performance Middlewares
 app.use(helmet());
-// app.use(rateLimit({
-//   windowMs: 15 * 60 * 1000,
-//   max: 100,
-//   message: "Too many requests from this IP, please try again later.",
-// }));
+
 app.use(
   cors({
-    origin: "*", //config.CORS_ORIGIN?? "http://localhost:3000",
+    origin: "*", 
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   })

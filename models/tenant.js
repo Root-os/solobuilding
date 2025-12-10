@@ -16,7 +16,6 @@ const Tenant = sequelize.define('Tenant', {
   phoneNumber: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique:true,
     validate: {
       is: /^[0-9]{10}$/,
     },
@@ -24,14 +23,13 @@ const Tenant = sequelize.define('Tenant', {
   email: {
     type: DataTypes.STRING,
     allowNull: true,
-    unique: true,
     validate: {
       isEmail: true,
     },
   },
   nationalId: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
     unique:true,
   },
   leaseStartDate: {
@@ -41,6 +39,10 @@ const Tenant = sequelize.define('Tenant', {
   leaseEndDate: {
     type: DataTypes.DATE,
     allowNull: true,
+  },
+  contractEndDate: {
+    type: DataTypes.DATE,
+    allowNull: false, 
   },
   amount: {
     type: DataTypes.FLOAT,
@@ -56,8 +58,7 @@ const Tenant = sequelize.define('Tenant', {
   },
   tin: {
     type: DataTypes.STRING,
-    allowNull: false,
-    unique:true,
+    allowNull: true,
   },
   password: {
     type: DataTypes.STRING,

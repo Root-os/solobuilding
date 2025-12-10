@@ -268,18 +268,38 @@ const settingSchema = Joi.object({
 });
 
 const tenatSchema = Joi.object({
-  fullName: Joi.string().min(3).max(50).required(),
-  email: Joi.string().email().required(),
+  fullName: Joi.string().min(3).max(70).required(),
+  email: Joi.string().email().allow("").optional(),
   phoneNumber: Joi.string()
     .pattern(/^[0-9]+$/)
     .required(),
-  nationalId: Joi.string().required(),
+  nationalId: Joi.string().allow("", null).optional(),
   leaseStartDate: Joi.date().required(),
   leaseEndDate: Joi.date().optional(),
+  contractEndDate: Joi.date()
+    .required()
+    .custom((value, helpers) => {
+      const { leaseStartDate, leaseEndDate } = helpers.state.ancestors[0];
+
+      // Check it's after leaseStartDate
+      if (leaseStartDate && new Date(value) <= new Date(leaseStartDate)) {
+        return helpers.message(
+          '"contractEndDate" must be after "leaseStartDate"'
+        );
+      }
+
+      // Check it's after leaseEndDate if leaseEndDate exists
+      if (leaseEndDate && new Date(value) <= new Date(leaseEndDate)) {
+        return helpers.message(
+          '"contractEndDate" must be after "leaseEndDate"'
+        );
+      }
+      return value;
+    }),
   additionalNotes: Joi.string().allow().optional(),
   amount: Joi.number().min(0).required(),
   advance: Joi.number().min(0).required(),
-  tin: Joi.string().required(),
+  tin: Joi.string().allow("", null).optional(),
   password: Joi.string().min(6).max(25).optional(),
   document: Joi.string().optional(),
   status: Joi.string().valid("active", "inactive", "terminated").optional(),
@@ -291,6 +311,7 @@ const tenatSchema = Joi.object({
   carName: Joi.string().min(3).max(20).optional(),
   color: Joi.string().optional(),
 });
+
 const tenantPaymentSchema = Joi.object({
   tenantId: Joi.number().integer().min(0).required(),
   amountPaid: Joi.number().min(0).required(),
@@ -311,8 +332,7 @@ const tenantRentCollectionSchema = Joi.object({
   status: Joi.string().valid("Paid", "Pending", "Overdue").optional(),
   proofOfPayment: Joi.string().optional(),
   punishment: Joi.number().optional().default(0),
-  isPaid: Joi.boolean().required()
-
+  isPaid: Joi.boolean().required(),
 });
 const tenantVehicleSchema = Joi.object({
   tenantId: Joi.number().integer().min(0).required(),
@@ -337,7 +357,8 @@ const unitSchema = Joi.object({
   vacatedDate: Joi.date().optional(),
   images: Joi.array().items(Joi.string()).optional(),
   pricePerSquare: Joi.number().min(0).required(),
-  rentAmount: Joi.number().required()
+  rentAmount: Joi.number().required(),
+  taxedRentAmount: Joi.number().required(),
 });
 
 const withdrawalRequestSchema = Joi.object({
@@ -452,8 +473,10 @@ const paymentValidationSchema = Joi.object({
 const updatePaymentValidationSchema = Joi.object({
   vendorId: Joi.number().required(),
   price: Joi.number().positive().required(),
-  paymentMethod: Joi.string().valid('cash', 'credit', 'bank transfer', 'other').required(),
-  status: Joi.string().valid('complete', 'partial', 'pending').required(),
+  paymentMethod: Joi.string()
+    .valid("cash", "credit", "bank transfer", "other")
+    .required(),
+  status: Joi.string().valid("complete", "partial", "pending").required(),
   paymentDate: Joi.date().required(),
   description: Joi.string().optional(),
 });

@@ -47,7 +47,7 @@ exports.login = async (req, res) => {
       }
   
       // Generate JWT token
-      const token = jwt.sign({ id: tenant.id, fullName: tenant.fullName, role: 'tenant' }, process.env.JWT_SECRET, { expiresIn: '3h' });
+      const token = jwt.sign({ id: tenant.id, fullName: tenant.fullName, role: 'tenant', email: tenant.email, phone: tenant.phoneNumber }, process.env.JWT_SECRET, { expiresIn: '3h' });
   
       // Set the cookie
       res.cookie('authToken', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
