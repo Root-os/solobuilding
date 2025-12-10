@@ -1,6 +1,22 @@
 const Setting = require("../models/setting");
 require("dotenv").config();
 
+// Helper to produce a fully-qualified URL for stored file paths
+const formatUrl = (val, req) => {
+  if (!val) return val;
+  try {
+    if (typeof val !== "string") return val;
+    if (val.startsWith("http://") || val.startsWith("https://")) return val;
+    // Remove accidental 'undefined' prefix
+    const cleaned = val.replace(/^undefined\/?/, "");
+    const base = process.env.BASE_URL || `${req.protocol}://${req.get("host")}`;
+    if (cleaned.startsWith("/")) return `${base}${cleaned}`;
+    return `${base}/${cleaned}`;
+  } catch (err) {
+    return val;
+  }
+};
+
 exports.createSetting = async (req, res) => {
   try {
     const {
@@ -12,6 +28,7 @@ exports.createSetting = async (req, res) => {
       chargingCost,
       parkingCost,
       punishmentPercentage,
+      isGregorian,
     } = req.body;
 
     let logoPath = null;
@@ -30,6 +47,11 @@ exports.createSetting = async (req, res) => {
       }
     }
 
+    const existing = await Setting.findOne();
+    if (existing) {
+      return res.status(400).json({ message: "Setting already exists" });
+    }
+
     const setting = await Setting.create({
       buildingName,
       buildingAddress,
@@ -42,6 +64,7 @@ exports.createSetting = async (req, res) => {
       chargingCost,
       parkingCost,
       punishmentPercentage,
+      isGregorian: isGregorian ?? true,
     });
 
     const fullSetting = await Setting.findOne({
@@ -61,10 +84,19 @@ exports.createSetting = async (req, res) => {
         "createdAt",
         "updatedAt",
         "punishmentPercentage",
+        "isGregorian",
       ],
     });
 
-    res.status(201).json(fullSetting);
+    // Ensure returned file fields are full URLs
+    const fullObj = fullSetting ? fullSetting.toJSON() : null;
+    if (fullObj) {
+      fullObj.logos = formatUrl(fullObj.logos, req);
+      fullObj.seal = formatUrl(fullObj.seal, req);
+      fullObj.qrImage = formatUrl(fullObj.qrImage, req);
+    }
+
+    res.status(201).json(fullObj);
   } catch (error) {
     res
       .status(500)
@@ -110,7 +142,8 @@ exports.updateSetting = async (req, res) => {
     setting.postOfficeAddress = postOfficeAddress || setting.postOfficeAddress;
     setting.chargingCost = chargingCost || setting.chargingCost;
     setting.parkingCost = parkingCost || setting.parkingCost;
-    setting.punishmentPercentage = punishmentPercentage || setting.punishmentPercentage;
+    setting.punishmentPercentage =
+      punishmentPercentage || setting.punishmentPercentage;
 
     await setting.save();
 
@@ -134,7 +167,14 @@ exports.updateSetting = async (req, res) => {
       ],
     });
 
-    res.status(200).json(updatedSetting);
+    const updatedObj = updatedSetting ? updatedSetting.toJSON() : null;
+    if (updatedObj) {
+      updatedObj.logos = formatUrl(updatedObj.logos, req);
+      updatedObj.seal = formatUrl(updatedObj.seal, req);
+      updatedObj.qrImage = formatUrl(updatedObj.qrImage, req);
+    }
+
+    res.status(200).json(updatedObj);
   } catch (error) {
     res
       .status(500)
@@ -145,7 +185,14 @@ exports.updateSetting = async (req, res) => {
 exports.getAllSettings = async (req, res) => {
   try {
     const settings = await Setting.findAll();
-    res.status(200).json(settings);
+    const mapped = settings.map((s) => {
+      const o = s.toJSON();
+      o.logos = formatUrl(o.logos, req);
+      o.seal = formatUrl(o.seal, req);
+      o.qrImage = formatUrl(o.qrImage, req);
+      return o;
+    });
+    res.status(200).json(mapped);
   } catch (error) {
     res
       .status(500)
@@ -176,7 +223,11 @@ exports.getSettingById = async (req, res) => {
     if (!setting) {
       return res.status(404).json({ message: "Setting not found" });
     }
-    res.status(200).json(setting);
+    const obj = setting.toJSON();
+    obj.logos = formatUrl(obj.logos, req);
+    obj.seal = formatUrl(obj.seal, req);
+    obj.qrImage = formatUrl(obj.qrImage, req);
+    res.status(200).json(obj);
   } catch (error) {
     res
       .status(500)
@@ -198,5 +249,30 @@ exports.deleteSetting = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error deleting setting", error: error.message });
+  }
+};
+
+exports.getCalendarSetting = async (req, res) => {
+  try {
+    const setting = await Setting.findOne();
+    if (!setting) return res.status(404).json({ message: "Setting not found" });
+    res.json({ isGregorian: setting.isGregorian });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateCalendarSetting = async (req, res) => {
+  try {
+    const { isGregorian } = req.body;
+    let setting = await Setting.findOne();
+    if (!setting) return res.status(404).json({ message: "Setting not found" });
+
+    setting.isGregorian = isGregorian;
+    await setting.save();
+
+    res.json({ message: "Calendar updated successfully", isGregorian });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

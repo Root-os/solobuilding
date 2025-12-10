@@ -13,6 +13,8 @@ const { tenatSchema } = require("../helpers/schema");
 const sendTenantWelcomeEmail = require("../services/sendEmail");
 const { BASE_URL } = require("../config/config");
 const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
+const Setting = require("../models/setting");
+const { toEthiopian } = require("ethiopian-date");
 
 // Set up multer storage for file uploads
 const storage = multer.diskStorage({
@@ -38,6 +40,17 @@ exports.createTenant = async (req, res) => {
       }
 
       const filePath = req.file ? `/uploads/${req.file.filename}` : null;
+      // Normalize incoming date fields (multipart/form-data can produce arrays)
+      ["leaseStartDate", "leaseEndDate", "contractEndDate"].forEach((key) => {
+        if (req.body[key] && Array.isArray(req.body[key])) {
+          req.body[key] = req.body[key][0];
+        }
+        if (typeof req.body[key] === "string") {
+          req.body[key] = req.body[key].trim();
+          if (req.body[key] === "") req.body[key] = undefined;
+        }
+      });
+
       const { error } = tenatSchema.validate(req.body);
       if (error) {
         return res.status(400).json({ error: error.details[0].message });
@@ -47,6 +60,7 @@ exports.createTenant = async (req, res) => {
         unitId,
         leaseStartDate,
         leaseEndDate,
+        contractEndDate,
         email,
         fullName,
         nationalId,
@@ -73,27 +87,6 @@ exports.createTenant = async (req, res) => {
       const floor = await Floor.findByPk(floorId);
       if (!floor) return res.status(404).json({ error: "Floor not found" });
 
-      // Check for existing tenant with the same email, nationalId, phoneNumber, or tin
-      const existingTenant = await Tenant.findOne({
-        where: {
-          [Op.or]: [{ email }, { nationalId }, { phoneNumber }, { tin }],
-        },
-      });
-
-      if (existingTenant) {
-        let errorMessage = "";
-        if (existingTenant.email === email) {
-          errorMessage = "A tenant with the same email already exists";
-        } else if (existingTenant.nationalId === nationalId) {
-          errorMessage = "A tenant with the same national ID already exists";
-        } else if (existingTenant.phoneNumber === phoneNumber) {
-          errorMessage = "A tenant with the same phone number already exists";
-        } else if (existingTenant.tin === tin) {
-          errorMessage = "A tenant with the same tin already exists";
-        }
-        return res.status(400).json({ error: errorMessage });
-      }
-
       // Generate a 4-digit numeric password
       const generatedPassword = Math.floor(
         1000 + Math.random() * 9000
@@ -102,15 +95,34 @@ exports.createTenant = async (req, res) => {
       const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
       // Prepare tenant data
+      // Normalize optional identifier fields: convert empty strings to null
+      const normalizedNationalId =
+        typeof nationalId === "string" && nationalId.trim() === ""
+          ? null
+          : nationalId;
+      const normalizedTin =
+        typeof tin === "string" && tin.trim() === "" ? null : tin;
+
+      // Keep `null` for missing identifier fields so DB stores NULL
+      // (model allows null). This replaces prior behavior that inserted
+      // placeholder values or empty strings.
+      const finalTin =
+        typeof normalizedTin === "undefined" ? null : normalizedTin;
+      const finalNationalId =
+        typeof normalizedNationalId === "undefined"
+          ? null
+          : normalizedNationalId;
+
       const tenantData = {
         unitId,
         leaseStartDate,
         leaseEndDate,
+        contractEndDate,
         email,
         fullName,
-        nationalId,
+        nationalId: finalNationalId,
         phoneNumber,
-        tin,
+        tin: finalTin,
         floorId,
         amount,
         advance,
@@ -137,39 +149,74 @@ exports.createTenant = async (req, res) => {
         { where: { id: unitId } }
       );
 
-      // Send email with login credentials
+      const setting = await Setting.findOne();
+      let displayLeaseStartDate = leaseStartDate;
+      let displayLeaseEndDate = leaseEndDate;
 
-      const emailResponse = await sendTenantWelcomeEmail({
-        email,
-        fullName,
-        generatedPassword,
-        phoneNumber,
-        floorNumber: floor.floorNumber,
-        unitNumber: unit.unitNumber,
-        leaseStartDate,
-        leaseEndDate,
-        loginUrl: process.env.TENANT_PORTAL_URL,
-        downloadApk: process.env.DOWNLOAD_APK_URL,
-      });
+      if (setting && setting.isGregorian === false) {
+        if (leaseStartDate) {
+          const dateObj = new Date(leaseStartDate);
+          const [ethioYearStart, ethioMonthStart, ethioDayStart] = toEthiopian(
+            dateObj.getFullYear(),
+            dateObj.getMonth() + 1,
+            dateObj.getDate()
+          );
+          displayLeaseStartDate = `${ethioDayStart}-${ethioMonthStart}-${ethioYearStart}`;
+        }
 
-      //const emailResponse = await sendEmail(email, emailSubject, emailBody);
-      if (!emailResponse.success) {
-        console.error("Email sending failed:", emailResponse.error);
+        if (leaseEndDate) {
+          const dateObj = new Date(leaseEndDate);
+          const [ethioYearEnd, ethioMonthEnd, ethioDayEnd] = toEthiopian(
+            dateObj.getFullYear(),
+            dateObj.getMonth() + 1,
+            dateObj.getDate()
+          );
+          displayLeaseEndDate = `${ethioDayEnd}-${ethioMonthEnd}-${ethioYearEnd}`;
+        }
       }
+
+      console.log("Converted Dates =>", {
+        displayLeaseStartDate,
+        displayLeaseEndDate,
+        isGregorian: setting?.isGregorian,
+      });
+      // Send email with login credentials
+    if (email&&email!=="") {
+      try {
+        const emailResponse = await sendTenantWelcomeEmail({
+          email,
+          fullName,
+          generatedPassword,
+          phoneNumber,
+          floorNumber: floor.floorNumber,
+          unitNumber: unit.unitNumber,
+          leaseStartDate: displayLeaseStartDate,
+          leaseEndDate: displayLeaseEndDate,
+          loginUrl: process.env.TENANT_PORTAL_URL,
+          downloadApk: process.env.DOWNLOAD_APK_URL,
+        });
+    
+        if (!emailResponse.success) {
+          console.error("Email sending failed:", emailResponse.error);
+        }
+      } catch (err) {
+        console.error("Unexpected error while sending email:", err);
+      }
+    }
 
       // Send SMS notification
       const loginUrl = process.env.TENANT_PORTAL_URL;
       const downloadApk = process.env.DOWNLOAD_APK_URL;
       const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
-      const leaseEndDateDisplay = leaseEndDate
-        ? leaseEndDate
+      const leaseEndDateDisplay = displayLeaseEndDate
+        ? displayLeaseEndDate
         : "not specified yet";
       const smsMessage =
         `Welcome ${fullName}!\n` +
         `Your tenant account has been created successfully.\n` +
         `Floor: ${floor.floorNumber}, Unit: ${unit.unitNumber}\n` +
         `Phone: ${phoneNumber}\n` +
-        `Rented from: ${leaseStartDate} To ${leaseEndDateDisplay}\n` +
+        `Rented from: ${displayLeaseStartDate} To ${leaseEndDateDisplay}\n` +
         `Username: ${email}\nPassword: ${generatedPassword}\n` +
         `Please log in to your account: ${loginUrl}\n` +
         `Download our app: ${downloadApk}\n` +
@@ -192,12 +239,12 @@ exports.createTenant = async (req, res) => {
       const field = error.errors[0].path;
       let errorMessage = "";
       switch (field) {
-        case "email":
-          errorMessage = "A tenant with the same email already exists";
-          break;
-        case "nationalId":
-          errorMessage = "A tenant with the same national ID already exists";
-          break;
+        // case "email":
+        //   errorMessage = "A tenant with the same email already exists";
+        //   break;
+        // case "nationalId":
+        //   errorMessage = "A tenant with the same national ID already exists";
+        //   break;
         case "phoneNumber":
           errorMessage = "A tenant with the same phone number already exists";
           break;
@@ -290,150 +337,135 @@ exports.getTenantById = async (req, res) => {
 // Update tenant details
 exports.updateTenant = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ error: "Invalid tenant ID" });
-    }
-
     upload.single("document")(req, res, async (err) => {
       if (err) {
         return res.status(400).json({ error: err.message });
       }
 
-      const tenant = await Tenant.findOne({ where: { id }, include: Unit });
+      const tenant = await Tenant.findByPk(req.params.id, {
+        include: [
+          { model: Unit, attributes: ["id", "status", "vacatedDate", "rentedDate"] },
+          { model: Floor, attributes: ["id", "floorNumber"] }
+        ]
+      });
+
       if (!tenant) {
         return res.status(404).json({ message: "Tenant not found" });
       }
 
-      // Validate unitId if provided, or keep current
-      const unitId = req.body.unitId ? Number(req.body.unitId) : tenant.unitId;
-      if (req.body.unitId && isNaN(unitId)) {
-        return res.status(400).json({ error: "Invalid unit ID" });
-      }
+      // Convert empty strings to null
+      Object.keys(req.body).forEach((key) => {
+        if (req.body[key] === "") req.body[key] = null;
+      });
 
-      // Store previous values for comparison
+      // Extract file path if a new file was uploaded
+      const filePath = req.file ? `/uploads/${req.file.filename}` : tenant.document;
+
+      // ---- Save original values BEFORE update ----
       const previousStatus = tenant.status;
       const previousUnitId = tenant.unitId;
 
-      // If tenant is going from active → inactive, free the unit
-      if (
-        previousStatus === "active" &&
-        req.body.status === "inactive" &&
-        previousUnitId
-      ) {
-        await Unit.update(
-          { status: "available", vacatedDate: new Date(), rentedDate: null },
-          { where: { id: previousUnitId } }
-        );
-      }
-
-      // If tenant status changes from inactive → active, mark unit as occupied
-      if (req.body.status === "active" && unitId) {
-        const unitExists = await Unit.findOne({ where: { id: unitId } });
-        if (!unitExists) {
-          return res.status(400).json({ error: "Unit not found" });
-        }
-        await Unit.update(
-          {
-            status: "occupied",
-            rentedDate: req.body.leaseStartDate || new Date(),
-            vacatedDate: null,
-          },
-          { where: { id: unitId } }
-        );
-      }
-
-      // If unitId changed, free the old unit
-      if (
-        req.body.unitId &&
-        Number(req.body.unitId) !== previousUnitId &&
-        previousUnitId
-      ) {
-        await Unit.update(
-          { status: "available", vacatedDate: new Date(), rentedDate: null },
-          { where: { id: previousUnitId } }
-        );
-      }
-      // Floor validation logic
-      const newFloorId = req.body.floorId
-        ? Number(req.body.floorId)
-        : tenant.floorId;
-      const isFloorChanged = req.body.floorId && newFloorId !== tenant.floorId;
-
-      if (isFloorChanged) {
-        // Rule 1: Prevent floor update without also changing the unit
-        const isUnitChanged =
-          req.body.unitId && Number(req.body.unitId) !== tenant.unitId;
-        if (!isUnitChanged) {
-          return res.status(400).json({
-            error:
-              "You cannot change the floor without also changing the unit.",
-          });
-        }
-
-        // Rule 2: Prevent setting floor to inactive or underconstruction
-        const targetFloor = await Floor.findOne({ where: { id: newFloorId } });
-        if (!targetFloor) {
-          return res.status(400).json({ error: "Selected floor not found." });
-        }
-
-        const floorStatus = targetFloor.status.toLowerCase();
-        if (["inActive", "under_construction"].includes(floorStatus)) {
-          return res.status(400).json({
-            error:
-              "Cannot assign a tenant to an inactive or under-construction floor.",
-          });
-        }
-      }
-
-      // Handle file upload
-      const filePath = req.file
-        ? `/Uploads/${req.file.filename}`
-        : tenant.document;
-
-      // Prepare updated tenant data
+      // ---- Prepare updated data ----
       const updatedData = {
-        fullName: req.body.fullName || tenant.fullName,
-        phoneNumber: req.body.phoneNumber || tenant.phoneNumber,
-        email: req.body.email || tenant.email,
-        nationalId: req.body.nationalId || tenant.nationalId,
-        leaseStartDate: req.body.leaseStartDate || tenant.leaseStartDate,
-        leaseEndDate: req.body.leaseEndDate || tenant.leaseEndDate,
-        paymentStatus: req.body.paymentStatus || tenant.paymentStatus,
-        additionalNotes: req.body.additionalNotes || tenant.additionalNotes,
-        unitId: unitId,
-        floorId: req.body.floorId ? Number(req.body.floorId) : tenant.floorId,
-        amount: req.body.amount || tenant.amount,
-        advance: req.body.advance || tenant.advance,
-        tin: req.body.tin || tenant.tin,
-        status: req.body.status || tenant.status,
-        description: req.body.description || tenant.description,
-        document: filePath,
+        fullName: req.body.fullName ?? tenant.fullName,
+        email: req.body.email ?? tenant.email,
+        phoneNumber: req.body.phoneNumber ?? tenant.phoneNumber,
+        nationalId: req.body.nationalId ?? tenant.nationalId,
+        leaseStartDate: req.body.leaseStartDate ?? tenant.leaseStartDate,
+        leaseEndDate: req.body.leaseEndDate ?? tenant.leaseEndDate,
+        contractEndDate: req.body.contractEndDate ?? tenant.contractEndDate,
+        additionalNotes: req.body.additionalNotes ?? tenant.additionalNotes,
+        amount: req.body.amount ?? tenant.amount,
+        advance: req.body.advance ?? tenant.advance,
+        tin: req.body.tin ?? tenant.tin,
+        document: filePath, // ✔ updated or kept original
+        status: req.body.status ?? tenant.status,
+        floorId: req.body.floorId ?? tenant.floorId,
+        unitId: req.body.unitId ?? tenant.unitId,
       };
 
       await tenant.update(updatedData);
 
-      const updatedTenant = await Tenant.findOne({
-        where: { id: tenant.id },
+      // ---- Fetch updated values ----
+      const newStatus = updatedData.status;
+      const newUnitId = updatedData.unitId;
+
+      const normalizedPreviousStatus = previousStatus?.toLowerCase();
+      const normalizedNewStatus = newStatus?.toLowerCase();
+
+      // ======================================================================
+      // 🔥 ACTIVE → INACTIVE → Set previous unit to AVAILABLE
+      // ======================================================================
+      if (
+        normalizedPreviousStatus === "active" &&
+        normalizedNewStatus === "inactive"
+      ) {
+        if (previousUnitId) {
+          await Unit.update(
+            {
+              status: "available",
+              vacatedDate: new Date(),
+            },
+            { where: { id: previousUnitId } }
+          );
+        }
+      }
+
+      // ======================================================================
+      // 🔥 INACTIVE → ACTIVE → Set unit to OCCUPIED
+      // ======================================================================
+      if (
+        normalizedPreviousStatus === "inactive" &&
+        normalizedNewStatus === "active"
+      ) {
+        if (newUnitId) {
+          await Unit.update(
+            {
+              status: "occupied",
+              rentedDate: updatedData.leaseStartDate || new Date(),
+            },
+            { where: { id: newUnitId } }
+          );
+        }
+      }
+
+      // ======================================================================
+      // 🔥 Unit change (unitId updated) — handle move
+      // ======================================================================
+      if (newUnitId !== previousUnitId) {
+        // Free old unit
+        if (previousUnitId) {
+          await Unit.update(
+            { status: "available", vacatedDate: new Date() },
+            { where: { id: previousUnitId } }
+          );
+        }
+
+        // Occupy new unit, only if tenant is active
+        if (normalizedNewStatus === "active" && newUnitId) {
+          await Unit.update(
+            {
+              status: "occupied",
+              rentedDate: updatedData.leaseStartDate || new Date(),
+            },
+            { where: { id: newUnitId } }
+          );
+        }
+      }
+
+      // ---- Return updated tenant ----
+      const updatedTenant = await Tenant.findByPk(tenant.id, {
         include: [
-          {
-            model: Unit,
-            attributes: [
-              "id",
-              "unitNumber",
-              "status",
-              "vacatedDate",
-              "rentedDate",
-            ],
-          },
-        ],
+          { model: Unit, attributes: ["id", "unitNumber", "status", "vacatedDate", "rentedDate"] },
+          { model: Floor, attributes: ["id", "floorNumber"] }
+        ]
       });
 
-      return res.status(200).json(updatedTenant);
+      res.status(200).json(updatedTenant);
     });
   } catch (error) {
-    console.error("Error updating tenant:", error);
-    res.status(500).json({ error: error.message });
+    console.error("❌ Error updating tenant:", error);
+    res.status(500).json({ message: "Internal server error", error });
   }
 };
 
@@ -603,7 +635,7 @@ exports.getTenantsWithExpiringLease = async (req, res) => {
         },
         {
           model: TenantVehicle,
-          attributes: ["carPlate", "carName",],
+          attributes: ["carPlate", "carName"],
         },
       ],
     });
