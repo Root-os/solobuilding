@@ -7,13 +7,13 @@ const Unit = require("../models/unit");
 exports.createFloor = async (req, res) => {
   try {
     console.log(req.body); // Log the request body
-    const { floorNumber, noUnits, status } = req.body;
+    const { floorNumber, status } = req.body;
     
-    if (noUnits === undefined) {
-      return res.status(400).json({ error: "noUnits is required" });
-    }
+    // if (noUnits === undefined) {
+    //   return res.status(400).json({ error: "noUnits is required" });
+    // }
 
-    const newFloor = await Floor.create({ floorNumber, noUnits, status });
+    const newFloor = await Floor.create({ floorNumber, status });
     res.status(201).json(newFloor);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -42,7 +42,7 @@ exports.getAllFloors = async (req, res) => {
       return {
         id: floor.id,
         floorNumber: floor.floorNumber,
-        noUnits: floor.noUnits,  
+        // noUnits: floor.noUnits,  
         totalUnits,
         rentedUnits,
         freeUnits,
@@ -87,14 +87,14 @@ exports.getFloorById = async (req, res) => {
 exports.updateFloor = async (req, res) => {
   try {
     const { id } = req.params;
-    const {  floorNumber, noUnits, status } = req.body;
+    const {  floorNumber, status } = req.body;
 
     const floor = await Floor.findByPk(id);
     if (!floor) {
       return res.status(404).json({ message: 'Floor not found' });
     }
 
-    await floor.update({ floorNumber, noUnits, status });
+    await floor.update({ floorNumber, status });
     res.status(200).json(floor);
   } catch (error) {
     res.status(500).json({ error: error.message });

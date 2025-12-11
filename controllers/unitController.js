@@ -66,11 +66,11 @@ exports.createUnit = async (req, res) => {
     const currentUnitCount = await Unit.count({
       where: { floorId: req.body.floorId },
     });
-    if (floor.noUnits && currentUnitCount >= parseInt(floor.noUnits)) {
-      return res.status(400).json({
-        error: "Maximum number of units for this floor has been reached.",
-      });
-    }
+    // if (floor.noUnits && currentUnitCount >= parseInt(floor.noUnits)) {
+    //   return res.status(400).json({
+    //     error: "Maximum number of units for this floor has been reached.",
+    //   });
+    // }
 
     const unit = await Unit.create(unitData);
     res.status(201).json(unit);
@@ -119,7 +119,7 @@ exports.getUnitById = async (req, res) => {
     const unit = await Unit.findByPk(req.params.id, {
       include: {
         model: Floor,
-        attributes: ["id", "floorNumber", "noUnits", "status"], // Return relevant floor info
+        attributes: ["id", "floorNumber", "status"], // Return relevant floor info
       },
     });
     if (!unit) {
@@ -187,16 +187,16 @@ exports.updateUnit = async (req, res) => {
         });
       }
 
-      const maxUnits = parseInt(floor.noUnits, 10);
+      // const maxUnits = parseInt(floor.noUnits, 10);
       const currentUnitsCount = await Unit.count({
         where: { floorId: newFloorId },
       });
 
-      if (currentUnitsCount >= maxUnits) {
-        return res.status(400).json({
-          message: `Floor ${floor.floorNumber} has reached its unit limit (${maxUnits}).`,
-        });
-      }
+      // if (currentUnitsCount >= maxUnits) {
+      //   return res.status(400).json({
+      //     message: `Floor ${floor.floorNumber} has reached its unit limit (${maxUnits}).`,
+      //   });
+      // }
     }
 
     // Parse availableEquipments and problems JSON strings if needed
