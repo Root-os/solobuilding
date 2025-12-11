@@ -264,7 +264,7 @@ exports.getAllTenants = async (req, res) => {
       include: [
         {
           model: Unit,
-          attributes: ["unitNumber"],
+          attributes: ["unitNumber", "status"],
         },
         {
           model: Floor,
