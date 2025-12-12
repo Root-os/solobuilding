@@ -331,9 +331,15 @@ exports.createRentPayment = async (req, res) => {
     if (!tenant) {
       return res.status(404).json({ message: "Tenant not found" });
     }
-    // Convert paymentDate and nextDueDate to Date objects
-    const paymentDateObj = new Date(paymentDate);
-    const nextDueDateObj = new Date(nextDueDate);
+   // Safe parsing: always consistent, timezone-independent
+    const toDateUTC = (dateStr) => {
+      const [y, m, d] = dateStr.split("-");
+      return new Date(Date.UTC(y, m - 1, d));
+    };
+
+    const paymentDateObj = toDateUTC(paymentDate);
+    const nextDueDateObj = toDateUTC(nextDueDate);
+
     const rentAmount = tenant.amount;
     const dailyRate = rentAmount / 30; // assume 30-day month
 
