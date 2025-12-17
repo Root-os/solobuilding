@@ -515,11 +515,10 @@ exports.getRentPaymentHistoryByTenantId = async (req, res) => {
 exports.updateRentPayment = async (req, res) => {
   try {
     const {
-      amountPaid,
       tenantId,
       paymentDate,
-      paymentMethod,
       nextDueDate,
+      paymentMethod,
       status,
       punishment,
       isPaid
@@ -530,40 +529,62 @@ exports.updateRentPayment = async (req, res) => {
       return res.status(404).json({ message: "Rent payment not found" });
     }
 
-    // Update only fields provided
-    await rentPayment.update({
-      amountPaid: amountPaid !== undefined ? amountPaid : rentPayment.amountPaid,
-      tenantId: tenantId !== undefined ? tenantId : rentPayment.tenantId,
-      paymentDate: paymentDate || rentPayment.paymentDate,
-      paymentMethod: paymentMethod || rentPayment.paymentMethod,
-      nextDueDate: nextDueDate || rentPayment.nextDueDate,
-      status: status || rentPayment.status,
-      punishment: punishment !== undefined ? punishment : rentPayment.punishment,
-      isPaid: isPaid !== undefined ? isPaid : rentPayment.isPaid,
-    });
-
-    // Fetch tenant to update leaseEndDate
-    const tenant = await Tenant.findByPk(rentPayment.tenantId);
+    // Fetch tenant to get tenantRent
+    const tenant = await Tenant.findByPk(tenantId || rentPayment.tenantId);
     if (!tenant) {
       return res.status(404).json({ message: "Tenant not found" });
     }
 
-    // Three-condition logic
-    if (rentPayment.status === "Paid" && rentPayment.isPaid && rentPayment.punishment > 0) {
-      // Update Punishment table
-      const punishmentRecord = await Punishment.findOne({
-        where: { tenantId: rentPayment.tenantId, status: "unpaid" },
-      });
+    const tenantRent = tenant.amount;
 
-      if (punishmentRecord) {
-        punishmentRecord.status = "paid";
-        await punishmentRecord.save();
-      }
+    // Determine actual dates
+    const start = new Date(paymentDate || rentPayment.paymentDate);
+    const end = new Date(nextDueDate || rentPayment.nextDueDate);
 
-      // Update Tenant leaseEndDate
-      tenant.leaseEndDate = rentPayment.nextDueDate;
-      await tenant.save();
-    }
+    // Calculate paidDays in days
+    const diffTime = end - start;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    // Optional: string format "X months Y days"
+    const months = Math.floor(diffDays / 30);
+    const days = diffDays % 30;
+    const paidDaysString = `${months} months ${days} days`;
+
+    // Calculate amountPaid based on tenantRent
+    const amountToPay = (tenantRent / 30) * diffDays;
+
+    // Update rentPayment
+    await rentPayment.update({
+      tenantId: tenantId !== undefined ? tenantId : rentPayment.tenantId,
+      paymentDate: paymentDate || rentPayment.paymentDate,
+      nextDueDate: nextDueDate || rentPayment.nextDueDate,
+      paymentMethod: paymentMethod || rentPayment.paymentMethod,
+      status: status || rentPayment.status,
+      punishment: punishment !== undefined ? punishment : rentPayment.punishment,
+      isPaid: isPaid !== undefined ? isPaid : rentPayment.isPaid,
+      paidDays: paidDaysString,
+      amountPaid: parseFloat(amountToPay.toFixed(2))
+    });
+
+    // Three-condition logic for punishment and leaseEndDate
+    // if (rentPayment.status === "Paid" && rentPayment.isPaid && rentPayment.punishment > 0) {
+    //   const punishmentRecord = await Punishment.findOne({
+    //     where: { tenantId: rentPayment.tenantId, status: "unpaid" },
+    //   });
+
+    //   if (punishmentRecord) {
+    //     punishmentRecord.status = "paid";
+    //     await punishmentRecord.save();
+    //   }
+
+    //   tenant.leaseEndDate = rentPayment.nextDueDate;
+    //   await tenant.save();
+    // }
+
+    if (rentPayment.status === "Paid") {
+  tenant.leaseEndDate = rentPayment.nextDueDate;
+  await tenant.save();
+}
 
     res.status(200).json({
       message: "Rent payment updated successfully",
@@ -574,6 +595,7 @@ exports.updateRentPayment = async (req, res) => {
     res.status(500).json({ message: "Error updating rent payment", error: error.message });
   }
 };
+
 
 // Delete a rent payment
 exports.deleteRentPayment = async (req, res) => {

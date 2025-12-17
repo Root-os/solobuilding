@@ -21,7 +21,6 @@ exports.createFloor = async (req, res) => {
 };
 
 
-
 exports.getAllFloors = async (req, res) => {
   try {
     const floors = await Floor.findAll({

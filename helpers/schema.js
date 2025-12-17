@@ -274,6 +274,7 @@ const tenatSchema = Joi.object({
     .pattern(/^[0-9]+$/)
     .required(),
   nationalId: Joi.string().allow("", null).optional(),
+  tin: Joi.string().allow("", null).optional(),
   leaseStartDate: Joi.date().required(),
   leaseEndDate: Joi.date().optional(),
   contractEndDate: Joi.date()
@@ -299,7 +300,6 @@ const tenatSchema = Joi.object({
   additionalNotes: Joi.string().allow().optional(),
   amount: Joi.number().min(0).required(),
   advance: Joi.number().min(0).required(),
-  tin: Joi.string().allow("", null).optional(),
   password: Joi.string().min(6).max(25).optional(),
   document: Joi.string().optional(),
   status: Joi.string().valid("active", "inactive", "terminated").optional(),

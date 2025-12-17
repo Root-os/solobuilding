@@ -67,7 +67,10 @@ const BASE_URL = process.env.BASE_URL;
 exports.getAllVendors = async (req, res) => {
   try {
     const vendors = await Vendor.findAll({
-      include: [ServiceType],
+     include :{
+      model: ServiceType,
+      attributes : ["id", "name"],
+     }
     });
 
     // Transform contractTerms path to full URL

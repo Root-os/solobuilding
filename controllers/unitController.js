@@ -3,6 +3,12 @@ const Floor = require("../models/floor");
 const { unitSchema } = require("../helpers/schema");
 const { BASE_URL } = require("../config/config");
 
+const {
+  UniqueConstraintError,
+  ValidationError,
+} = require("sequelize");
+
+
 // Create a new unit
 exports.createUnit = async (req, res) => {
   try {
@@ -93,10 +99,21 @@ exports.getAllUnits = async (req, res) => {
       let imageUrls = [];
 
       try {
-        const imagePaths = JSON.parse(unit.images || "[]");
-        imageUrls = imagePaths.map(
-          (img) => `${BASE_URL}/${img.replace(/\\\\/g, "/")}`
-        );
+        const imagePaths = Array.isArray(unit.images)
+          ? unit.images
+          : JSON.parse(unit.images || "[]");
+
+        imageUrls = imagePaths.map((img) => {
+          const cleanedImg = img.replace(/\\\\/g, "/");
+
+          // If img is already a full URL, leave it as is
+          if (/^https?:\/\//i.test(cleanedImg)) {
+            return cleanedImg;
+          }
+
+          // Otherwise, prepend BASE_URL
+          return `${BASE_URL}/${cleanedImg}`;
+        });
       } catch (err) {
         imageUrls = [];
       }
@@ -109,6 +126,7 @@ exports.getAllUnits = async (req, res) => {
 
     res.status(200).json(unitsWithFullImageUrls);
   } catch (error) {
+    console.error("Error fetching units:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -119,17 +137,45 @@ exports.getUnitById = async (req, res) => {
     const unit = await Unit.findByPk(req.params.id, {
       include: {
         model: Floor,
-        attributes: ["id", "floorNumber", "status"], // Return relevant floor info
+        attributes: ["id", "floorNumber", "status"],
       },
     });
+
     if (!unit) {
       return res.status(404).json({ message: "Unit not found" });
     }
-    res.status(200).json(unit);
+
+    // Process images
+    let imageUrls = [];
+    try {
+      const imagePaths = Array.isArray(unit.images)
+        ? unit.images
+        : JSON.parse(unit.images || "[]");
+
+      imageUrls = imagePaths.map((img) => {
+        const cleanedImg = img.replace(/\\\\/g, "/");
+
+        // Only prepend BASE_URL if it's a relative path
+        if (/^https?:\/\//i.test(cleanedImg)) {
+          return cleanedImg;
+        }
+
+        return `${BASE_URL}/${cleanedImg}`;
+      });
+    } catch {
+      imageUrls = [];
+    }
+
+    res.status(200).json({
+      ...unit.toJSON(),
+      images: imageUrls,
+    });
   } catch (error) {
+    console.error("Error fetching unit by ID:", error);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // Get all units by floorId
 exports.getUnitsByFloorId = async (req, res) => {
@@ -187,26 +233,17 @@ exports.updateUnit = async (req, res) => {
         });
       }
 
-      // const maxUnits = parseInt(floor.noUnits, 10);
-      const currentUnitsCount = await Unit.count({
-        where: { floorId: newFloorId },
-      });
-
-      // if (currentUnitsCount >= maxUnits) {
-      //   return res.status(400).json({
-      //     message: `Floor ${floor.floorNumber} has reached its unit limit (${maxUnits}).`,
-      //   });
-      // }
+      await Unit.count({ where: { floorId: newFloorId } });
     }
 
-    // Parse availableEquipments and problems JSON strings if needed
+
     if (
       req.body.availableEquipments &&
       typeof req.body.availableEquipments === "string"
     ) {
       try {
         req.body.availableEquipments = JSON.parse(req.body.availableEquipments);
-      } catch (err) {
+      } catch {
         return res
           .status(400)
           .json({ error: '"availableEquipments" must be a valid JSON array' });
@@ -216,51 +253,98 @@ exports.updateUnit = async (req, res) => {
     if (req.body.problems && typeof req.body.problems === "string") {
       try {
         req.body.problems = JSON.parse(req.body.problems);
-      } catch (err) {
+      } catch {
         return res
           .status(400)
           .json({ error: '"problems" must be a valid JSON array' });
       }
     }
 
-    // Parse existing images JSON string (paths)
-    let existingImages = [];
-    if (req.body.existingImages) {
+    //  Start with existing DB images
+    let finalImages = Array.isArray(unit.images) ? [...unit.images] : [];
+
+    // If frontend sent existingImages → user touched images
+    if (req.body.existingImages !== undefined) {
       try {
-        existingImages = JSON.parse(req.body.existingImages);
-      } catch (err) {
+        finalImages = JSON.parse(req.body.existingImages);
+      } catch {
         return res
           .status(400)
           .json({ error: '"existingImages" must be a valid JSON array' });
       }
     }
 
-    // Process new uploaded images (files)
-    let uploadedImages = [];
+    //  Append newly uploaded images
     if (req.files && req.files.length > 0) {
-      uploadedImages = req.files.map((file) => file.path.replace(/\\/g, "/")); // normalize slashes if needed
+      const uploadedImages = req.files.map((file) =>
+        file.path.replace(/\\/g, "/")
+      );
+      finalImages.push(...uploadedImages);
     }
 
-    // Combine existing images and new uploads
-    const allImages = [...existingImages, ...uploadedImages];
-
-    // Update data object
     const updateData = {
       ...req.body,
-      images: allImages,
     };
 
-    // Remove existingImages from updateData (not a DB field)
+    // remove non-db field
     delete updateData.existingImages;
 
-    // Update the unit
+    // 🚨 only overwrite images if user interacted with images
+    if (
+      req.body.existingImages !== undefined ||
+      (req.files && req.files.length > 0)
+    ) {
+      updateData.images = finalImages;
+    }
+
     await unit.update(updateData);
 
-    res.status(200).json(unit);
+    // Return unit with images as full URLs
+    const updatedUnit = await Unit.findByPk(unit.id, {
+      include: { model: Floor, attributes: ["id", "floorNumber"] },
+    });
+
+    let imagesArray = [];
+    try {
+      imagesArray = Array.isArray(updatedUnit.images)
+        ? updatedUnit.images
+        : JSON.parse(updatedUnit.images || "[]");
+    } catch {
+      imagesArray = [];
+    }
+
+    const imagesWithFullUrl = imagesArray.map(img =>
+      img.startsWith("http") ? img : `${BASE_URL}/${img.replace(/\\/g, "/")}`
+    );
+
+    res.status(200).json({
+      ...updatedUnit.toJSON(),
+      images: imagesWithFullUrl,
+    });
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+
+    if (error instanceof UniqueConstraintError) {
+      const err = error.errors[0];
+      return res.status(400).json({
+        message: `${err.path} '${err.value}' already exists. Please try another value.`,
+      });
+    }
+
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        message: error.errors.map(e => e.message),
+      });
+    }
+
+    console.error(error);
+    return res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
+
 
 // Delete a unit
 exports.deleteUnit = async (req, res) => {
@@ -311,6 +395,7 @@ exports.getFreeUnits = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 exports.getRentedUnits = async (req, res) => {
   try {
     // Find all rented units (occupied units)

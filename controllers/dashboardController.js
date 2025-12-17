@@ -23,92 +23,76 @@ const {Role} = require('../models');
 
 
 exports.getDashboardStats = async (req, res) => {
-  let whereCondition = {};
-  let stockoutWhereCondition = {};
-
-  if(req.query.startDate && req.query.endDate) {
-    whereCondition = {
-      createdAt: {
-        [Op.between]: [new Date(req.query.startDate), new Date(req.query.endDate)]
-      }
-    };
-  }
-  if(req.query.startDate && !req.query.endDate) {
-    whereCondition = {
-      createdAt: {
-        [Op.gte]: new Date(req.query.startDate)
-      }
-    };
-  }
-
-  if(!req.query.startDate && req.query.endDate) {
-    whereCondition = {
-      createdAt: {
-        [Op.lte]: new Date(req.query.endDate)
-      }
-    };
-  }
-  if(req.query.startDate && req.query.endDate) {
-    stockoutWhereCondition = {
-      approvedAt: {
-        [Op.between]: [new Date(req.query.startDate), new Date(req.query.endDate)]
-      }
-    };
-  }
-  if(req.query.startDate && !req.query.endDate) {
-    stockoutWhereCondition = {
-      approvedAt: {
-        [Op.gte]: new Date(req.query.startDate)
-      }
-    };
-  }
-
-  if(!req.query.startDate && req.query.endDate) {
-    stockoutWhereCondition = {
-      approvedAt: {
-        [Op.lte]: new Date(req.query.endDate)
-      }
-    };
-  }
   try {
+    // =========================
+    // DATE FILTER (ONLY FOR EVENTS)
+    // =========================
+    let dateWhere = {};
+    let stockoutDateWhere = {};
+
+    if (req.query.startDate && req.query.endDate) {
+      dateWhere.createdAt = {
+        [Op.between]: [
+          new Date(req.query.startDate),
+          new Date(req.query.endDate),
+        ],
+      };
+
+      stockoutDateWhere.approvedAt = {
+        [Op.between]: [
+          new Date(req.query.startDate),
+          new Date(req.query.endDate),
+        ],
+      };
+    } else if (req.query.startDate) {
+      dateWhere.createdAt = { [Op.gte]: new Date(req.query.startDate) };
+      stockoutDateWhere.approvedAt = { [Op.gte]: new Date(req.query.startDate) };
+    } else if (req.query.endDate) {
+      dateWhere.createdAt = { [Op.lte]: new Date(req.query.endDate) };
+      stockoutDateWhere.approvedAt = { [Op.lte]: new Date(req.query.endDate) };
+    }
+
+    // =========================
+    // PARALLEL COUNTS
+    // =========================
     const [
       // Notifications
       totalNotifications,
-      sentNotifications,
+      unreadNotifications,
       readNotifications,
 
-      // Payments
+      // Payments Request
       totalPaymentsRequest,
       pendingPaymentsRequest,
-      completedPaymentsRequest,
+      approvedPaymentsRequest,
 
       // Complaints
       totalComplaints,
       inProgressComplaints,
       resolvedComplaints,
-      notResolvedComplaints,
+      pendingComplaints,
 
-      // Units
+      // Units (STATE)
       totalUnits,
       availableUnits,
       occupiedUnits,
       underMaintenanceUnits,
 
-      // Floors
+      // Floors (STATE)
       totalFloors,
-      availableFloors,
+      activeFloors,
+      inactiveFloors,
       underMaintenanceFloors,
 
-      // Tenants
+      // Tenants (STATE)
       totalTenants,
       activeTenants,
       inactiveTenants,
-      
 
-      // Tenant Vehicles
+      // Vehicles
       totalVehicles,
 
-      // Tenant Inventories
+      // Inventories
       totalInventory,
       moveInInventories,
       moveOutInventories,
@@ -117,18 +101,18 @@ exports.getDashboardStats = async (req, res) => {
       totalParking,
       onParking,
       readyToOut,
-      completed,
+      completedParking,
 
       // Expenses
       totalExpenses,
 
-      // Inventory
+      // Inventory Items
       totalItems,
-      totalPurchasedItems,
-      totalExistedItems,
-      alertNumberOfItems,
+      purchasedItems,
+      existingItems,
+      alertItems,
 
-      // Withdrawal Requests
+      // Withdrawals
       totalWithdrawals,
       pendingWithdrawals,
       approvedWithdrawals,
@@ -138,11 +122,9 @@ exports.getDashboardStats = async (req, res) => {
       // Emails
       totalEmails,
       sentEmails,
-      
 
       // Employees
       totalEmployees,
-   
 
       // Salaries
       totalSalaries,
@@ -152,12 +134,12 @@ exports.getDashboardStats = async (req, res) => {
       // Stockouts
       totalStockouts,
       pendingStockouts,
-      completedStockouts,
+      approvedStockouts,
       rejectedStockouts,
 
       // Tenant Payments
       totalTenantPayments,
-      pendingTenantPayments,
+      dueTenantPayments,
       paidTenantPayments,
       overdueTenantPayments,
 
@@ -169,150 +151,148 @@ exports.getDashboardStats = async (req, res) => {
 
       // Rent Collections
       totalRentCollections,
-      paidRentCollections, 
+      paidRentCollections,
       pendingRentCollections,
       overdueRentCollections,
     ] = await Promise.all([
-    
-      Notification.count({where:whereCondition}),
-      Notification.count({ where: { isRead: false,...whereCondition } }),
-      Notification.count({ where: { isRead: true,...whereCondition } }),
+      // Notifications
+      Notification.count({ where: dateWhere }),
+      Notification.count({ where: { isRead: false, ...dateWhere } }),
+      Notification.count({ where: { isRead: true, ...dateWhere } }),
 
-      // Payments
-      PaymentRequest.count({where:whereCondition}),
-      PaymentRequest.count({ where: { status: "pending", ...whereCondition  } }),
-      PaymentRequest.count({ where: { status: "approved", ...whereCondition } }),
+      // Payments Request
+      PaymentRequest.count({ where: dateWhere }),
+      PaymentRequest.count({ where: { status: "pending", ...dateWhere } }),
+      PaymentRequest.count({ where: { status: "approved", ...dateWhere } }),
 
       // Complaints
-      Complaint.count({where:whereCondition}),
-      Complaint.count({ where: { status: "in_progress", ...whereCondition } }),
-      Complaint.count({ where: { status: "resolved", ...whereCondition } }),
-      Complaint.count({ where: { status: "pending", ...whereCondition } }),
+      Complaint.count({ where: dateWhere }),
+      Complaint.count({ where: { status: "in_progress", ...dateWhere } }),
+      Complaint.count({ where: { status: "resolved", ...dateWhere } }),
+      Complaint.count({ where: { status: "pending", ...dateWhere } }),
 
-      // Units
+      // Units (NO DATE FILTER)
       Unit.count(),
       Unit.count({ where: { status: "available" } }),
       Unit.count({ where: { status: "occupied" } }),
       Unit.count({ where: { status: "under_maintenance" } }),
 
-      // Floors
+      // Floors (NO DATE FILTER)
       Floor.count(),
-      Floor.count({ where: { status: "available" } }),
+      Floor.count({ where: { status: "active" } }),
+      Floor.count({ where: { status: "inactive" } }),
       Floor.count({ where: { status: "under_maintenance" } }),
 
-      // Tenants
-      Tenant.count({where:whereCondition}),
-      Tenant.count({ where: { status: "active", ...whereCondition } }),
-      Tenant.count({ where: { status: "inactive", ...whereCondition } }),
-      // Tenant.count({ where: { status: "terminated" } }),
+      // Tenants (NO DATE FILTER)
+      Tenant.count(),
+      Tenant.count({ where: { status: "active" } }),
+      Tenant.count({ where: { status: "inactive" } }),
 
-      // Tenant Vehicles
+      // Vehicles
       TenantVehicle.count(),
 
-      // Tenant Inventories
+      // Inventories
       TenantInventory.count(),
       TenantInventory.count({ where: { type: "move-in" } }),
       TenantInventory.count({ where: { type: "move-out" } }),
 
       // Parking
-      Parking.count({where:whereCondition}),
-      Parking.count({ where: { status: "onparking", ...whereCondition } }),
-      Parking.count({ where: { status: "ready to out", ...whereCondition } }),
-      Parking.count({ where: { status: "completed", ...whereCondition } }),
+      Parking.count({ where: dateWhere }),
+      Parking.count({ where: { status: "onparking", ...dateWhere } }),
+      Parking.count({ where: { status: "ready to out", ...dateWhere } }),
+      Parking.count({ where: { status: "completed", ...dateWhere } }),
 
       // Expenses
-      Expense.count({where:whereCondition}),
+      Expense.count({ where: dateWhere }),
 
       // Inventory
       Inventory.count(),
       Inventory.count({ where: { itemType: "Purchase" } }),
       Inventory.count({ where: { itemType: "Existing" } }),
-      Inventory.count({where:{itemAmount: {
-        [Op.lte]: Sequelize.col('min_amount')  // Op.lte stands for "less than or equal to"
-      }}}),
+      Inventory.count({
+        where: {
+          itemAmount: {
+            [Op.lte]: Sequelize.col("min_amount"),
+          },
+        },
+      }),
 
-      // Withdrawal Requests
-      WithdrawalRequest.count({where:whereCondition}),
-      WithdrawalRequest.count({ where: { status: "pending", ...whereCondition } }),
-      WithdrawalRequest.count({ where: { status: "approved", ...whereCondition } }),
-      WithdrawalRequest.count({ where: { status: "rejected", ...whereCondition } }),
-      WithdrawalRequest.count({ where: { status: "in_progress", ...whereCondition } }),
+      // Withdrawals
+      WithdrawalRequest.count({ where: dateWhere }),
+      WithdrawalRequest.count({ where: { status: "pending", ...dateWhere } }),
+      WithdrawalRequest.count({ where: { status: "approved", ...dateWhere } }),
+      WithdrawalRequest.count({ where: { status: "rejected", ...dateWhere } }),
+      WithdrawalRequest.count({ where: { status: "in_progress", ...dateWhere } }),
 
       // Emails
-      Email.count({where:whereCondition}),
-      Email.count({ where: { status: "sent", ...whereCondition } }),
-      // Email.count({ where: { status: "read" } }),
+      Email.count({ where: dateWhere }),
+      Email.count({ where: { status: "sent", ...dateWhere } }),
 
       // Employees
-      await Employee.count({
-        include: [
-          {
-            model: Role,
-            where: { name: 'employee' } 
-          }
-        ]
-      })
-      ,
-      // Employee.count({ where: { role: "admin" } }),
+      Employee.count({
+        include: [{ model: Role, where: { name: "employee" } }],
+      }),
 
       // Salaries
-      Salary.count({where:whereCondition}),
-      Salary.count({ where: { status: "pending", ...whereCondition } }),
-      Salary.count({ where: { status: "paid", ...whereCondition } }),
+      Salary.count({ where: dateWhere }),
+      Salary.count({ where: { status: "pending", ...dateWhere } }),
+      Salary.count({ where: { status: "paid", ...dateWhere } }),
 
       // Stockouts
-      Stockout.count({where:stockoutWhereCondition}),
-      Stockout.count({ where: { status: "pending",...stockoutWhereCondition} }),
-      Stockout.count({ where: { status: "approved",...stockoutWhereCondition} }),
-      Stockout.count({ where: { status: "rejected", ...stockoutWhereCondition} }),
+      Stockout.count({ where: stockoutDateWhere }),
+      Stockout.count({ where: { status: "pending", ...stockoutDateWhere } }),
+      Stockout.count({ where: { status: "approved", ...stockoutDateWhere } }),
+      Stockout.count({ where: { status: "rejected", ...stockoutDateWhere } }),
 
       // Tenant Payments
-      TenantPayment.count({where:whereCondition}),
-      TenantPayment.count({ where: { status: "due", ...whereCondition } }),
-      TenantPayment.count({ where: { status: "paid", ...whereCondition } }),
-      TenantPayment.count({ where: { status: "overdue", ...whereCondition } }),
+      TenantPayment.count({ where: dateWhere }),
+      TenantPayment.count({ where: { status: "due", ...dateWhere } }),
+      TenantPayment.count({ where: { status: "paid", ...dateWhere } }),
+      TenantPayment.count({ where: { status: "overdue", ...dateWhere } }),
 
       // Bill Payments
-      BillPayment.count({where: whereCondition}),
-      BillPayment.count({ where: { status: "pending",...whereCondition } }),
-      BillPayment.count({ where: { status: "paid",...whereCondition } }),
-      BillPayment.count({ where: { status: "overdue",...whereCondition } }),
+      BillPayment.count({ where: dateWhere }),
+      BillPayment.count({ where: { status: "pending", ...dateWhere } }),
+      BillPayment.count({ where: { status: "paid", ...dateWhere } }),
+      BillPayment.count({ where: { status: "overdue", ...dateWhere } }),
 
       // Rent Collections
-      TenantRentCollection.count({where:whereCondition}),
-      TenantRentCollection.count({ where: { status: "Paid", ...whereCondition } }),
-      TenantRentCollection.count({ where: { status: "Pending", ...whereCondition } }),
-      TenantRentCollection.count({ where: { status: "Overdue", ...whereCondition } }),
+      TenantRentCollection.count({ where: dateWhere }),
+      TenantRentCollection.count({ where: { status: "Paid", ...dateWhere } }),
+      TenantRentCollection.count({ where: { status: "Pending", ...dateWhere } }),
+      TenantRentCollection.count({ where: { status: "Overdue", ...dateWhere } }),
     ]);
 
-    // Send response
+    // =========================
+    // RESPONSE
+    // =========================
     res.json({
-      notifications: { totalNotifications, sentNotifications, readNotifications },
-      paymentsRequest: { totalPaymentsRequest, pendingPaymentsRequest, completedPaymentsRequest },
-      complaints: { totalComplaints, inProgressComplaints, resolvedComplaints, notResolvedComplaints },
+      notifications: { totalNotifications, unreadNotifications, readNotifications },
+      paymentsRequest: { totalPaymentsRequest, pendingPaymentsRequest, approvedPaymentsRequest },
+      complaints: { totalComplaints, inProgressComplaints, resolvedComplaints, pendingComplaints },
       units: { totalUnits, availableUnits, occupiedUnits, underMaintenanceUnits },
-      floors: { totalFloors, availableFloors, underMaintenanceFloors },
+      floors: { totalFloors, activeFloors, inactiveFloors, underMaintenanceFloors },
       tenants: { totalTenants, activeTenants, inactiveTenants },
       tenantVehicles: { totalVehicles },
-      TenantInventories: { totalInventory, moveInInventories, moveOutInventories },
-      parking: { totalParking, onParking, readyToOut, completed },
+      tenantInventories: { totalInventory, moveInInventories, moveOutInventories },
+      parking: { totalParking, onParking, readyToOut, completedParking },
       expenses: { totalExpenses },
-      items: { totalItems, totalPurchasedItems, totalExistedItems,alertNumberOfItems },
-      ExistingRequests: { totalWithdrawals, pendingWithdrawals, approvedWithdrawals, rejectedWithdrawals, processedWithdrawals },
+      items: { totalItems, purchasedItems, existingItems, alertItems },
+      withdrawals: { totalWithdrawals, pendingWithdrawals, approvedWithdrawals, rejectedWithdrawals, processedWithdrawals },
       emails: { totalEmails, sentEmails },
       employees: { totalEmployees },
-      EmployeeSalaries: { totalSalaries, pendingSalaries, paidSalaries },
-      stockouts: { totalStockouts, pendingStockouts, completedStockouts, rejectedStockouts },
-      tenantPayments: { totalTenantPayments, pendingTenantPayments, paidTenantPayments, overdueTenantPayments },
+      salaries: { totalSalaries, pendingSalaries, paidSalaries },
+      stockouts: { totalStockouts, pendingStockouts, approvedStockouts, rejectedStockouts },
+      tenantPayments: { totalTenantPayments, dueTenantPayments, paidTenantPayments, overdueTenantPayments },
       billPayments: { totalBillPayments, pendingBillPayments, paidBillPayments, overdueBillPayments },
       rentCollections: { totalRentCollections, paidRentCollections, pendingRentCollections, overdueRentCollections },
     });
-
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 // receiver_type: { 
 //       type: DataTypes.ENUM("tenant", "staff"), 
