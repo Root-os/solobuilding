@@ -30,7 +30,6 @@ const Tenant = sequelize.define('Tenant', {
   nationalId: {
     type: DataTypes.STRING,
     allowNull: true,
-    unique:true,
   },
   leaseStartDate: {
     type: DataTypes.DATE,
@@ -87,6 +86,10 @@ const Tenant = sequelize.define('Tenant', {
       key: 'id',
     },
     allowNull: false,
+  },
+  isExisting:{
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
   },
 }, {
   tableName: 'tenants', // Explicit table name

@@ -183,7 +183,6 @@ exports.updateRequest = async (req, res) => {
   }
 };
 
-
 //  tenant sees only their own
 exports.getAllRequests = async (req, res) => {
   try {

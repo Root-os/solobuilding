@@ -2,6 +2,8 @@ const Notification = require("../models/notification");
 const NotificationType = require("../models/notificationType");
 const User = require("../models/user");
 const Tenant = require("../models/tenant");
+const Unit = require('../models/unit');
+const Floor = require("../models/floor");
 const {notificationSchema}=require('../helpers/schema')
 const { Sequelize } = require('sequelize');
 // Create notification for a specific user or tenant
@@ -120,23 +122,52 @@ const fetchNotificationById = async (req, res) => {
 // Get notifications for the logged-in user
 const getMyNotifications = async (req, res) => {
   try {
-    const {type, isRead } = req.query;
-    const whereClause = { receiver_id: req.user.id };
+    const { type, isRead } = req.query;
+    const phoneNumber = req.user.phone;
+
+    // 1. Find tenants by phone number (✅ correct table)
+    const tenants = await Tenant.findAll({
+      where: { phoneNumber },
+      attributes: ["id"],
+    });
+
+    if (!tenants.length) {
+      return res.status(404).json({ message: "Tenant not found." });
+    }
+
+    const tenantIds = tenants.map(t => t.id);
+
+    // 2. Build where clause
+    const whereClause = {
+      receiver_id: tenantIds,
+    };
 
     if (type) whereClause.notificationTypeId = type;
-    if (typeof isRead === "boolean") whereClause.isRead = isRead;
+    if (isRead !== undefined) whereClause.isRead = isRead === "true";
 
+    // 3. Fetch notifications with unit & floor
     const notifications = await Notification.findAndCountAll({
       where: whereClause,
       order: [["createdAt", "DESC"]],
-      include: [{ model: NotificationType, as: "type", attributes: ["id", "name"] }],
+      include: [
+        {
+          model: NotificationType,
+          as: "type",
+          attributes: ["id", "name"],
+        },
+      ],
     });
 
     return res.status(200).json(notifications);
   } catch (error) {
-    return res.status(500).json({ status: "error", message: "Failed to fetch notifications" });
+    console.error("Notification error:", error);
+    return res.status(500).json({
+      message: "Failed to fetch notifications",
+    });
   }
 };
+
+
 
 // Mark a notification as read
 const markAsRead = async (req, res) => {
@@ -224,6 +255,7 @@ const deleteNotification = async (req, res) => {
     return res.status(500).json({ status: "error", message: "Failed to delete notification" });
   }
 };
+
 const deleteNotificationAdmin = async (req, res) => {
   try {
     const notification = await Notification.findByPk(req.params.id);

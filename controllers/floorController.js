@@ -8,11 +8,6 @@ exports.createFloor = async (req, res) => {
   try {
     console.log(req.body); // Log the request body
     const { floorNumber, status } = req.body;
-    
-    // if (noUnits === undefined) {
-    //   return res.status(400).json({ error: "noUnits is required" });
-    // }
-
     const newFloor = await Floor.create({ floorNumber, status });
     res.status(201).json(newFloor);
   } catch (error) {
@@ -37,14 +32,15 @@ exports.getAllFloors = async (req, res) => {
       const totalUnits = floor.Units.length;
       const rentedUnits = floor.Units.filter(unit => unit.status === "occupied").length;
       const freeUnits = floor.Units.filter(unit => unit.status === "available").length;
+      const underMaintenanceUnits = floor.Units.filter(unit => unit.status === "under_maintenance").length;
 
       return {
         id: floor.id,
         floorNumber: floor.floorNumber,
-        // noUnits: floor.noUnits,  
         totalUnits,
         rentedUnits,
         freeUnits,
+        underMaintenanceUnits,
         status: floor.status,
       };
     });

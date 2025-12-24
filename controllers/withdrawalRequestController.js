@@ -5,6 +5,7 @@ const Role = require('../models/role');
 const TenantRentCollection = require('../models/tenantRentCollection');
 const TenantPayment = require('../models/tenantPayments');
 const Unit = require('../models/unit');
+const Floor = require("../models/floor");
 const BillType = require('../models/billType');
 const {refundStatusSchema} = require('../helpers/schema');
 const sendNotificationHelper= require('../helpers/sendAlert');
@@ -16,14 +17,19 @@ const moment = require('moment');
 // Create a new withdrawal request
 const createWithdrawalRequest = async (req, res) => {
   try {
-    const tenantId = req.user.id;
-    const { terminationDate, reason } = req.body;
+    const { tenantId, terminationDate, reason } = req.body;
 
     if (!tenantId || !terminationDate || !reason) {
-      return res.status(400).json({ message: "Tenant ID, termination date, and reason are required." });
+      return res.status(400).json({ message: "One of Tenant ID, termination date, or reason are missed. check your payload" });
     }
 
-    const tenant = await Tenant.findByPk(tenantId);
+    const tenant = await Tenant.findOne({
+      where: {
+        id: tenantId,
+        phoneNumber: req.user.phone,
+      },
+    });
+
     if (!tenant) {
       return res.status(404).json({ message: "Tenant not found." });
     }
@@ -62,7 +68,7 @@ const createWithdrawalRequest = async (req, res) => {
         smsUtil.sendSingleSMS({
           phone: admin.phone,
           msg: `A new withdrawal request has been submitted by ${tenant.fullName}. Please check the withdrawal requests page for more details.`,
-          callback: process.env.GEEZSMS_WEBHOOK_URL, // Optional callback URL
+          callback: process.env.GEEZSMS_WEBHOOK_URL, 
         })
       )
     );
@@ -75,17 +81,20 @@ const createWithdrawalRequest = async (req, res) => {
 // Admin retrieves all withdrawal requests
 const getAllWithdrawalRequests = async (req, res) => {
   try {
-    // Fetch withdrawal requests along with tenant and assigned employee (user) details
     const requests = await WithdrawalRequest.findAll({
       include: [
-        {
+         {
           model: Tenant,
-          attributes: ['id', 'fullName', 'email', 'phoneNumber'] // Attributes from Tenant model
+          attributes: ['id', 'fullName', 'email', 'phoneNumber'],
+          include: [
+            { model: Unit, attributes: ['unitNumber'] },
+            { model: Floor, attributes: ['floorNumber'] }
+          ],
         },
         {
           model: User,
-          as: 'assignedEmployee', // Alias for the assigned employee
-          attributes: ['fname', 'lname', 'email'] // Attributes from User model
+          as: 'assignedEmployee',
+          attributes: ['fname', 'lname', 'email'] 
         }
       ]
     });
@@ -103,21 +112,44 @@ const getAllWithdrawalRequests = async (req, res) => {
 };
 
 const getMyWithdrawalRequests = async (req, res) => {
-    try {
-        const { id } = req.user;
-        const tenant = await Tenant.findByPk(id
-            
-        );
-        if (!tenant) {
-            return res.status(404).json({ message: "Tenant not found." });
-        }
-        const requests = await WithdrawalRequest.findAll(
-            { where: { tenantId: tenant.id } }
-        );
-        res.status(200).json(requests);
-    } catch (error) {
-        res.status(500).json({ message: "Error fetching withdrawal requests.", error: error.message });
+  try {
+    const phoneNumber = req.user.phone; 
+
+    const tenants = await Tenant.findAll({
+      where: { phoneNumber },
+      attributes: ['id'],
+    });
+
+    if (!tenants.length) {
+      return res.status(404).json({ message: "Tenant not found." });
     }
+
+    const tenantIds = tenants.map(t => t.id);
+
+    const requests = await WithdrawalRequest.findAll({
+      where: {
+        tenantId: tenantIds, 
+      },
+      include: {
+        model: Tenant,
+        attributes: ['id', 'fullName', 'email', 'phoneNumber'],
+        include: {
+          model: Unit,
+          attributes: ['id', 'unitNumber'],
+        },
+      },
+      order: [['createdAt', 'DESC']], 
+    });
+
+    res.status(200).json(requests);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Error fetching withdrawal requests.",
+      error: error.message,
+    });
+  }
 };
 
 // Admin reviews and updates withdrawal request status
@@ -297,11 +329,15 @@ const getTenantDetails = async (req, res) => {
   try {
     const tenant = await Tenant.findOne({
       where: { id: tenantId },
-      attributes: ['id', 'fullName', 'leaseStartDate'],
+      attributes: ['id', 'fullName', 'leaseStartDate', 'advance', 'amount', 'leaseEndDate'],
       include: [
         {
           model: Unit,
-          attributes: ['availableEquipments', 'problems'],
+          attributes: ['unitNumber', 'availableEquipments', 'problems'],
+        },
+        {
+          model: Floor,
+          attributes: ['floorNumber'],
         },
         {
           model: TenantRentCollection,

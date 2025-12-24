@@ -24,9 +24,7 @@ const {Role} = require('../models');
 
 exports.getDashboardStats = async (req, res) => {
   try {
-    // =========================
-    // DATE FILTER (ONLY FOR EVENTS)
-    // =========================
+
     let dateWhere = {};
     let stockoutDateWhere = {};
 
@@ -98,10 +96,10 @@ exports.getDashboardStats = async (req, res) => {
       moveOutInventories,
 
       // Parking
-      totalParking,
-      onParking,
-      readyToOut,
-      completedParking,
+      // totalParking,
+      // onParking,
+      // readyToOut,
+      // completedParking,
 
       // Expenses
       totalExpenses,
@@ -275,7 +273,7 @@ exports.getDashboardStats = async (req, res) => {
       tenants: { totalTenants, activeTenants, inactiveTenants },
       tenantVehicles: { totalVehicles },
       tenantInventories: { totalInventory, moveInInventories, moveOutInventories },
-      parking: { totalParking, onParking, readyToOut, completedParking },
+      // parking: { totalParking, onParking, readyToOut, completedParking },
       expenses: { totalExpenses },
       items: { totalItems, purchasedItems, existingItems, alertItems },
       withdrawals: { totalWithdrawals, pendingWithdrawals, approvedWithdrawals, rejectedWithdrawals, processedWithdrawals },
@@ -294,119 +292,163 @@ exports.getDashboardStats = async (req, res) => {
 };
 
 
-// receiver_type: { 
-//       type: DataTypes.ENUM("tenant", "staff"), 
-//       allowNull: false 
-//     }, 
-//     receiver_id
-
-
 exports.getTenantDashboardStats = async (req, res) => {
   try {
-    const tenantId = req.user.id;
+    const tenantPhone = req.user.phone; // from JWT
 
+    if (!tenantPhone) {
+      return res.status(400).json({ error: 'Tenant phone number is missing' });
+    }
+
+    // 1️⃣ Get all tenant rows for this phone number
+    const tenants = await Tenant.findAll({
+      where: { phoneNumber: tenantPhone },
+      include: [
+        {
+          model: Unit,
+          attributes: ['id', 'unitNumber'],
+          include: [
+            {
+              model: Floor,
+              attributes: ['floorNumber'],
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!tenants.length) {
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    const tenantIds = tenants.map(t => t.id);
+
+    // 2️⃣ Lite list of units occupied
+    const unitsOccupied = tenants.map(t => ({
+      tenantId: t.id,              
+      unitId: t.Unit?.id || null,
+      unitNumber: t.Unit?.unitNumber || null,
+      floorNumber: t.Unit?.Floor?.floorNumber || null,
+    }));
+
+    // 3️⃣ Dashboard counts
     const [
-      // Notifications
       totalNotifications,
       unreadNotifications,
 
-      // Payment Requests
       totalPaymentsRequest,
       pendingPaymentsRequest,
       completedPaymentsRequest,
 
-      // Complaints
       totalComplaints,
       inProgressComplaints,
       resolvedComplaints,
 
-      // Rent Collections
-      totalRentCollections,
-      paidRentCollections,
-      pendingRentCollections,
-      overdueRentCollections,
-      nextDueDate,
-
-      // Tenant Inventories
       totalInventory,
       moveInInventories,
       moveOutInventories,
 
-      // Tenant Vehicles
       totalVehicles,
 
-      // Parking
-      totalParking,
-      onParking,
+      // totalParking,
+      // onParking,
 
-      // Tenant Payments (rent or other payments)
-      totalTenantPayments,
-      pendingTenantPayments,
-      paidTenantPayments,
-      overdueTenantPayments,
+      // totalTenantPayments,
+      // pendingTenantPayments,
+      // paidTenantPayments,
+      // overdueTenantPayments,
     ] = await Promise.all([
       // Notifications
-      Notification.count({ where: { receiver_id: tenantId, receiver_type: "tenant" } }),
-      Notification.count({ where: { receiver_id: tenantId, isRead: false, receiver_type: "tenant" } }),
-
-      // Payment Requests
-      PaymentRequest.count({ where: { tenantId } }),
-      PaymentRequest.count({ where: { tenantId, status: "pending" } }),
-      PaymentRequest.count({ where: { tenantId, status: "approved" } }),
-
-      // Complaints
-      Complaint.count({ where: { tenantId } }),
-      Complaint.count({ where: { tenantId, status: "in_progress" } }),
-      Complaint.count({ where: { tenantId, status: "resolved" } }),
-
-      // Rent Collections
-      TenantRentCollection.count({ where: { tenantId } }),
-      TenantRentCollection.count({ where: { tenantId, status: "Paid" } }),
-      TenantRentCollection.count({ where: { tenantId, status: "Pending" } }),
-      TenantRentCollection.count({ where: { tenantId, status: "Overdue" } }),
-      TenantRentCollection.findOne({
-        where: { tenantId },
-        order: [['nextDueDate', 'ASC']], // Get the earliest next due date
-        attributes: ['nextDueDate']
+      Notification.count({
+        where: {
+          receiver_id: tenantIds,
+          receiver_type: 'tenant',
+        },
+      }),
+      Notification.count({
+        where: {
+          receiver_id: tenantIds,
+          receiver_type: 'tenant',
+          isRead: false,
+        },
       }),
 
-      // Tenant Inventories
-      TenantInventory.count({ where: { tenantId } }),
-      TenantInventory.count({ where: { tenantId, type: "move-in" } }),
-      TenantInventory.count({ where: { tenantId, type: "move-out" } }),
+      // Payment Requests
+      PaymentRequest.count({ where: { tenantId: tenantIds } }),
+      PaymentRequest.count({ where: { tenantId: tenantIds, status: 'pending' } }),
+      PaymentRequest.count({ where: { tenantId: tenantIds, status: 'approved' } }),
 
-      // Tenant Vehicles
-      TenantVehicle.count({ where: { tenantId } }),
+      // Complaints
+      Complaint.count({ where: { tenantId: tenantIds } }),
+      Complaint.count({ where: { tenantId: tenantIds, status: 'in_progress' } }),
+      Complaint.count({ where: { tenantId: tenantIds, status: 'resolved' } }),
+
+      // Inventories
+      TenantInventory.count({ where: { tenantId: tenantIds } }),
+      TenantInventory.count({ where: { tenantId: tenantIds, type: 'move-in' } }),
+      TenantInventory.count({ where: { tenantId: tenantIds, type: 'move-out' } }),
+
+      // Vehicles
+      TenantVehicle.count({ where: { tenantId: tenantIds } }),
 
       // Parking
-      Parking.count({ where: { tenantId } }),
-      Parking.count({ where: { tenantId, status: "onparking" } }),
+      // Parking.count({ where: { tenantId: tenantIds } }),
+      // Parking.count({ where: { tenantId: tenantIds, status: 'onparking' } }),
 
       // Tenant Payments
-      TenantPayment.count({ where: { tenantId } }),
-      TenantPayment.count({ where: { tenantId, status: "due" } }),
-      TenantPayment.count({ where: { tenantId, status: "paid" } }),
-      TenantPayment.count({ where: { tenantId, status: "overdue" } }),
+      // TenantPayment.count({ where: { tenantId: tenantIds } }),
+      // TenantPayment.count({ where: { tenantId: tenantIds, status: 'due' } }),
+      // TenantPayment.count({ where: { tenantId: tenantIds, status: 'paid' } }),
+      // TenantPayment.count({ where: { tenantId: tenantIds, status: 'overdue' } }),
     ]);
 
-    // Extract nextDueDate from the result of the findOne query
-     const nextDueDateResult = nextDueDate ? nextDueDate.nextDueDate : null;
-
-    // Send response
+    // 4️⃣ Final response
     res.json({
-      notifications: { totalNotifications, unreadNotifications },
-      paymentsRequest: { totalPaymentsRequest, pendingPaymentsRequest, completedPaymentsRequest },
-      complaints: { totalComplaints, inProgressComplaints, resolvedComplaints },
-      rentCollections: { totalRentCollections, paidRentCollections, pendingRentCollections, overdueRentCollections, nextDueDateResult },
-      tenantInventories: { totalInventory, moveInInventories, moveOutInventories },
-      tenantVehicles: { totalVehicles },
-      parking: { totalParking, onParking },
-      tenantPayments: { totalTenantPayments, pendingTenantPayments, paidTenantPayments, overdueTenantPayments },
+      unitsOccupied, // ✅ lite list
+
+      notifications: {
+        totalNotifications,
+        unreadNotifications,
+      },
+
+      paymentsRequest: {
+        totalPaymentsRequest,
+        pendingPaymentsRequest,
+        completedPaymentsRequest,
+      },
+
+      complaints: {
+        totalComplaints,
+        inProgressComplaints,
+        resolvedComplaints,
+      },
+
+      tenantInventories: {
+        totalInventory,
+        moveInInventories,
+        moveOutInventories,
+      },
+
+      tenantVehicles: {
+        totalVehicles,
+      },
+
+      // parking: {
+      //   totalParking,
+      //   onParking,
+      // },
+
+      // tenantPayments: {
+      //   totalTenantPayments,
+      //   pendingTenantPayments,
+      //   paidTenantPayments,
+      //   overdueTenantPayments,
+      // },
     });
 
   } catch (error) {
-    console.error("Error fetching tenant dashboard stats:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error('Error fetching tenant dashboard stats:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 

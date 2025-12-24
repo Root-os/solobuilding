@@ -85,6 +85,10 @@ exports.getAllPaymentRequests = async (req, res) => {
         {
           model: Tenant,
           attributes: ['fullName'],
+          include: [
+            { model: Unit, attributes: ['unitNumber'] },
+            { model: Floor, attributes: ['floorNumber'] }
+          ],
         },
         {
           model: PaymentType,
@@ -198,13 +202,29 @@ exports.getMyRequestFromAdmin = async (req, res) => {
       return res.status(400).json({ message: 'User ID is required' });
     }
 
-    const  id  = Number(req.user.id);
-    console.log('Fetching payment requests for tenant ID:', id);
+        const phoneNumber = req.user.phone; 
+
+    const tenants = await Tenant.findAll({
+      where: { phoneNumber },
+      attributes: ['id'],
+      
+    });
+    // console.log('Fetching payment requests for tenant ID:', id);
+
+    const tenantIds = tenants.map(t => t.id);
 
     // Fetch payment requests that belong to the user
     const paymentRequests = await PaymentRequest.findAll({
-      where: { tenantId: id },
-      order: [['createdAt', 'DESC']],
+       where: { tenantId: tenantIds, },
+             include: [
+               { model: Tenant, attributes: ['fullName'],
+                 include: [
+                   { model: Unit, attributes: ['unitNumber'] },
+                   { model: Floor, attributes: ['floorNumber'] }
+                 ],
+               },
+               { model: PaymentType, attributes: ['name'],},
+             ]
     });
     res.status(200).json({ message: 'Payment requests retrieved successfully', data: paymentRequests });
 

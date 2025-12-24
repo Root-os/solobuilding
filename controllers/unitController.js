@@ -236,7 +236,6 @@ exports.updateUnit = async (req, res) => {
       await Unit.count({ where: { floorId: newFloorId } });
     }
 
-
     if (
       req.body.availableEquipments &&
       typeof req.body.availableEquipments === "string"
@@ -289,7 +288,7 @@ exports.updateUnit = async (req, res) => {
     // remove non-db field
     delete updateData.existingImages;
 
-    // 🚨 only overwrite images if user interacted with images
+    //  only overwrite images if user interacted with images
     if (
       req.body.existingImages !== undefined ||
       (req.files && req.files.length > 0)
