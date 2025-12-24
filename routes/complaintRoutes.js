@@ -37,7 +37,7 @@ router.delete('/delete/:complaintId',adminAuth, deleteComplaint);
 router.get('/get/:complaintId', getSingleComplaint);
 
 // Get all complaints for a tenant
-router.get('/tenant/:tenantId', getTenantComplaints);
+router.get('/tenant',tenantAuth, getTenantComplaints);
 
 // Get all complaints assigned to a staff member
 router.get('/assigned/:employeeId', getAssignedComplaints);

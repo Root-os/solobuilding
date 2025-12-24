@@ -65,7 +65,6 @@ exports.createPayment = async (req, res) => {
   }
 };
 
-
 exports.getAllPayments = async (req, res) => {
   try {
     const payments = await Payment.findAll({

@@ -41,6 +41,7 @@ const assignPermissionToRole = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
 const removePermissionsFromRole = async (req, res) => {
   try {
     const { roleId, permissionIds } = req.body;
@@ -84,7 +85,6 @@ const getAllPermissions = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-
 
 // Update permission (change its name)
 const updatePermission = async (req, res) => {

@@ -341,13 +341,13 @@ exports.createRentPayment = async (req, res) => {
     const nextDueDateObj = toDateUTC(nextDueDate);
 
     const rentAmount = tenant.amount;
-    const dailyRate = rentAmount / 30; // assume 30-day month
+    const dailyRate = rentAmount / 30; 
 
     // Calculate the difference in total days
-    const differenceInTime = paymentDateObj - nextDueDateObj;
-    let totalDays = Math.abs(
-      Math.ceil(differenceInTime / (1000 * 60 * 60 * 24))
-    ); // Convert milliseconds to days
+    const differenceInTime = nextDueDateObj - paymentDateObj;
+
+    const totalDays =
+      Math.round(differenceInTime / (1000 * 60 * 60 * 24)) + 1;
 
     // Convert total days into months and remaining days
     const months = Math.floor(totalDays / 30);
@@ -464,46 +464,81 @@ exports.getAllRentPayments = async (req, res) => {
   }
 };
 
-// Get a single rent payment by ID
-exports.getRentPaymentHistoryByTenantId = async (req, res) => {
-  try {
-    const { tenantId } = req.params; // Get tenantId from request params
+// GET /rentpayments/id/:id
+exports.getRentPaymentById = async (req, res) => {
+  const { id } = req.params;
 
-    // Fetch tenant details (including unit and floor info)
-    const tenant = await Tenant.findByPk(tenantId, {
-      attributes: ["fullName", "email"],
+  try {
+    const rentPayment = await TenantRentCollection.findOne({
+      where: { id },
       include: [
         {
-          model: Unit,
-          attributes: ["unitNumber"],
-        },
-        {
-          model: Floor,
-          attributes: ["floorNumber"],
+          model: Tenant,
+          attributes: ["fullName", "email", "phoneNumber"],
+          include: [
+            { model: Unit, attributes: ["unitNumber"] },
+            { model: Floor, attributes: ["floorNumber"] },
+          ],
         },
       ],
     });
 
-    if (!tenant) {
-      return res.status(404).json({ message: "Tenant not found" });
+    if (!rentPayment) {
+      return res.status(404).json({ message: "Rent payment not found" });
     }
 
-    // Fetch all rent payments for the given tenantId, sorted by paymentDate (recent first)
-    const rentPayments = await TenantRentCollection.findAll({
-      where: { tenantId }, // Filter by tenantId
-      order: [["paymentDate", "DESC"]], // Sort by paymentDate (recent first)
-    });
-
-    return res.status(200).json({
+    // 👇 reshape response
+    res.status(200).json({
       tenant: {
-        fullName: tenant.fullName,
-        email: tenant.email,
-        unitNumber: tenant.Unit?.unitNumber || null,
-        floorNumber: tenant.Floor?.floorNumber || null,
+        fullName: rentPayment.Tenant.fullName,
+        email: rentPayment.Tenant.email,
+        phoneNumber: rentPayment.Tenant.phoneNumber,
+        unitNumber: rentPayment.Tenant.Unit?.unitNumber,
+        floorNumber: rentPayment.Tenant.Floor?.floorNumber,
       },
-      rentPayments,
+      rentPayments: [rentPayment], // array for table
     });
   } catch (error) {
+    res.status(500).json({ message: "Error fetching rent payment" });
+  }
+};
+
+
+// Get a single rent payment by ID
+exports.getRentPaymentHistoryByTenantId = async (req, res) => {
+  try {
+    const phoneNumber = req.user.phone;
+
+    const tenants = await Tenant.findAll({
+      where: { phoneNumber },
+      attributes: ["id"],
+    });
+
+    if (!tenants.length) {
+      return res.status(404).json({ message: "Tenant not found." });
+    }
+
+    const tenantIds = tenants.map(t => t.id);
+
+    const rentPayments = await TenantRentCollection.findAll({
+      where: { tenantId: tenantIds }, 
+      include: [
+        {
+          model: Tenant,
+          attributes: ["fullName", "email", "phoneNumber"],
+          include: [
+            { model: Unit, attributes: ["id", "unitNumber"] },
+            { model: Floor, attributes: ["floorNumber"] },
+          ],
+        },
+      ],
+      order: [["paymentDate", "DESC"]],
+    });
+
+    res.status(200).json(rentPayments);
+
+  } catch (error) {
+    console.error(error);
     res.status(500).json({
       message: "Error fetching rent payment history",
       error: error.message,
@@ -543,7 +578,7 @@ exports.updateRentPayment = async (req, res) => {
 
     // Calculate paidDays in days
     const diffTime = end - start;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
     // Optional: string format "X months Y days"
     const months = Math.floor(diffDays / 30);
@@ -596,7 +631,6 @@ exports.updateRentPayment = async (req, res) => {
   }
 };
 
-
 // Delete a rent payment
 exports.deleteRentPayment = async (req, res) => {
   try {
@@ -612,7 +646,6 @@ exports.deleteRentPayment = async (req, res) => {
   }
 };
 
-// Get rent payments for a specific tenant
 
 // Get all due payments
 exports.getDuePayments = async (req, res) => {

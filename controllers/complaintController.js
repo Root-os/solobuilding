@@ -1,5 +1,7 @@
 const Complaint =require ('../models/complaint.js');
 const Tenant = require('../models/tenant.js');
+const Unit = require('../models/unit');
+const Floor = require("../models/floor");
 const sendNotificationHelper= require('../helpers/sendAlert');
 const User = require('../models/user.js');
 const Role = require('../models/role.js');
@@ -9,9 +11,14 @@ const sendEmailMessage = require('../services/sendEmailMessage');
 // Create a new complaint with multiple image uploads
 const createComplaint = async (req, res) => {
   try {
-    const tenantId = req.user.id;
-    const { description, urgency } = req.body;
-    const tenant = await Tenant.findByPk(tenantId);
+    const { tenantId, description, urgency } = req.body;
+
+    const tenant = await Tenant.findOne({
+      where: {
+        id: tenantId,
+        phoneNumber: req.user.phone,
+      },
+    });
 
     if (!tenant) {
       return res.status(404).json({ message: 'Tenant not found' });
@@ -66,6 +73,10 @@ const getAllComplaints = async (req, res) => {
         {
           model: Tenant,
           attributes: ['fullName', 'email', 'phoneNumber'],
+          include: [
+            { model: Unit, attributes: ['unitNumber'] },
+            { model: Floor, attributes: ['floorNumber'] }
+          ],
         },
         {
           model: User,
@@ -161,6 +172,63 @@ const assignComplaint = async (req, res) => {
     res.status(500).json({ message: 'Error assigning complaint', error: error.message });
   }
 };
+
+//tenant get its own complaints
+const getTenantComplaints = async (req, res) => {
+  try {
+    const phoneNumber = req.user.phone; 
+
+    const tenants = await Tenant.findAll({
+      where: { phoneNumber },
+      attributes: ['id'],
+    });
+
+    const tenantIds = tenants.map(t => t.id);
+    
+    const complaints = await Complaint.findAll({
+      where: { tenantId: tenantIds, },
+      include: [
+        {
+          model: Tenant,
+          attributes: ['fullName', 'email', 'phoneNumber'],
+          include: [
+            { model: Unit, attributes: ['unitNumber'] },
+            { model: Floor, attributes: ['floorNumber'] }
+          ],
+        },
+        {
+          model: User,
+          as: 'assignedEmployee',
+          attributes: ['id', 'fname', 'lname'],
+        }
+      ]
+    });
+
+    const updatedComplaints = complaints.map((complaint) => {
+      let parsedImages = [];
+
+      try {
+        parsedImages = complaint.images ? JSON.parse(complaint.images) : [];
+      } catch (err) {
+        console.error('Invalid image JSON:', complaint.images);
+      }
+
+      const fullImageUrls = parsedImages.map((imgPath) =>
+        `${BASE_URL}/${imgPath.replace(/\\/g, '/')}`
+      );
+
+      return {
+        ...complaint.toJSON(),
+        images: fullImageUrls,
+      };
+    });
+
+    res.status(200).json(updatedComplaints);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error fetching complaints', error: error.message });
+  }
+};
  
 // Update complaint status
 const updateComplaintStatus = async (req, res) => {
@@ -214,7 +282,6 @@ const updateComplaintStatus = async (req, res) => {
     res.status(500).json({ message: 'Error updating complaint status', error: error.message });
   }
 };
-
 
 // Confirm or reopen a complaint (tenant feedback)
 const confirmComplaintResolution = async (req, res) => {
@@ -270,7 +337,6 @@ const confirmComplaintResolution = async (req, res) => {
   }
 };
 
-
 const deleteComplaint = async (req, res) => {
   try {
     const { complaintId } = req.params;
@@ -304,51 +370,6 @@ const getSingleComplaint = async (req, res) => {
   }
 }
 
-const getTenantComplaints = async (req, res) => {
-  try {
-    const { tenantId } = req.params;
-    const complaints = await Complaint.findAll({
-      where: { tenantId },
-      include: [
-        {
-          model: Tenant,
-          attributes: ['fullName', 'email', 'phoneNumber'],
-        },
-        {
-          model: User,
-          as: 'assignedEmployee',
-          attributes: ['id', 'fname', 'lname'],
-        }
-      ]
-    });
-
-    const updatedComplaints = complaints.map((complaint) => {
-      let parsedImages = [];
-
-      try {
-        parsedImages = complaint.images ? JSON.parse(complaint.images) : [];
-      } catch (err) {
-        console.error('Invalid image JSON:', complaint.images);
-      }
-
-      const fullImageUrls = parsedImages.map((imgPath) =>
-        `${BASE_URL}/${imgPath.replace(/\\/g, '/')}`
-      );
-
-      return {
-        ...complaint.toJSON(),
-        images: fullImageUrls,
-      };
-    });
-
-    res.status(200).json(updatedComplaints);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error fetching complaints', error: error.message });
-  }
-};
-
-
 const getAssignedComplaints = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -358,6 +379,10 @@ const getAssignedComplaints = async (req, res) => {
         {
           model: Tenant,
           attributes: ['fullName', 'email', 'phoneNumber'],
+           include: [
+            { model: Unit, attributes: ['unitNumber'] },
+            { model: Floor, attributes: ['floorNumber'] }
+          ],
         },
         {
           model: User,

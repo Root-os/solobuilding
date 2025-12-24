@@ -15,6 +15,8 @@ const { BASE_URL } = require("../config/config");
 const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
 const Setting = require("../models/setting");
 const { toEthiopian } = require("ethiopian-date");
+const { collectFirstRent } = require("../services/rentService");
+
 
 
 // Set up multer storage for file uploads
@@ -36,16 +38,12 @@ const upload = multer({ storage: storage });
 exports.createTenant = async (req, res) => {
   try {
     upload.single("document")(req, res, async (err) => {
-      if (err) {
-        return res.status(400).json({ error: err.message });
-      }
+      if (err) return res.status(400).json({ error: err.message });
 
       const filePath = req.file ? `/uploads/${req.file.filename}` : null;
-      // Normalize incoming date fields (multipart/form-data can produce arrays)
+
       ["leaseStartDate", "leaseEndDate", "contractEndDate"].forEach((key) => {
-        if (req.body[key] && Array.isArray(req.body[key])) {
-          req.body[key] = req.body[key][0];
-        }
+        if (req.body[key] && Array.isArray(req.body[key])) req.body[key] = req.body[key][0];
         if (typeof req.body[key] === "string") {
           req.body[key] = req.body[key].trim();
           if (req.body[key] === "") req.body[key] = undefined;
@@ -53,11 +51,9 @@ exports.createTenant = async (req, res) => {
       });
 
       const { error } = tenatSchema.validate(req.body);
-      if (error) {
-        return res.status(400).json({ error: error.details[0].message });
-      }
-
-      const {
+      if (error) return res.status(400).json({ error: error.details[0].message });
+    
+      let {
         unitId,
         leaseStartDate,
         leaseEndDate,
@@ -68,51 +64,45 @@ exports.createTenant = async (req, res) => {
         phoneNumber,
         tin,
         floorId,
-        advance,
-
         amount,
-        carPlate = null, // Optional
-        carName = null, // Optional
-        color = null, // Optional
+        advance,
+         additionalNotes = null,
+        carPlate = null,
+        carName = null,
+        color = null,
       } = req.body;
 
-      // Check if the unit exists and is available
+      if (Array.isArray(phoneNumber)) phoneNumber = phoneNumber[0];
+      phoneNumber = phoneNumber?.trim();
+      if (!phoneNumber) return res.status(400).json({ error: "Phone number is required" });
+
+      const existingTenant = await Tenant.findOne({ where: { phoneNumber } });
+      const isExisting = Boolean(existingTenant);
+
+      let hashedPassword;
+      let generatedPassword = null;
+      let shouldNotify = true;
+
+      if (isExisting) {
+        hashedPassword = existingTenant.password;
+        shouldNotify = false;
+      } else {
+        generatedPassword = Math.floor(1000 + Math.random() * 9000).toString();
+        hashedPassword = await bcrypt.hash(generatedPassword, 10);
+      }
+
       const unit = await Unit.findByPk(unitId);
       if (!unit) return res.status(404).json({ error: "Unit not found" });
-      if (unit.status !== "available") {
-        return res
-          .status(400)
-          .json({ error: "Unit is already occupied or under maintenance" });
-      }
+      if (unit.status !== "available")
+        return res.status(400).json({ error: "Unit is already occupied or under maintenance" });
 
       const floor = await Floor.findByPk(floorId);
       if (!floor) return res.status(404).json({ error: "Floor not found" });
 
-      // Generate a 4-digit numeric password
-      const generatedPassword = Math.floor(
-        1000 + Math.random() * 9000
-      ).toString();
+      const finalNationalId = nationalId?.trim() === "" ? null : nationalId;
+      const finalTin = tin?.trim() === "" ? null : tin;
+      const finalAdditionalNotes = additionalNotes?.trim() === "" ? null : additionalNotes;
 
-      const hashedPassword = await bcrypt.hash(generatedPassword, 10);
-
-      // Prepare tenant data
-      // Normalize optional identifier fields: convert empty strings to null
-      const normalizedNationalId =
-        typeof nationalId === "string" && nationalId.trim() === ""
-          ? null
-          : nationalId;
-      const normalizedTin =
-        typeof tin === "string" && tin.trim() === "" ? null : tin;
-
-      // Keep `null` for missing identifier fields so DB stores NULL
-      // (model allows null). This replaces prior behavior that inserted
-      // placeholder values or empty strings.
-      const finalTin =
-        typeof normalizedTin === "undefined" ? null : normalizedTin;
-      const finalNationalId =
-        typeof normalizedNationalId === "undefined"
-          ? null
-          : normalizedNationalId;
 
       const tenantData = {
         unitId,
@@ -122,6 +112,7 @@ exports.createTenant = async (req, res) => {
         email,
         fullName,
         nationalId: finalNationalId,
+        additionalNotes: finalAdditionalNotes,
         phoneNumber,
         tin: finalTin,
         floorId,
@@ -129,26 +120,30 @@ exports.createTenant = async (req, res) => {
         advance,
         document: filePath,
         password: hashedPassword,
+        isExisting,
       };
 
-      // Create tenant record
       const tenant = await Tenant.create(tenantData);
 
-      // Register tenant's vehicle if provided (non-null/undefined values)
+      //  Auto collect first rent if leaseEndDate is provided
+        if (leaseStartDate && leaseEndDate) {
+          try {
+            await collectFirstRent({
+              tenantId: tenant.id,
+              leaseStartDate,
+              leaseEndDate,
+              paymentMethod: "system", 
+            });
+          } catch (err) {
+            console.error("Auto rent collection failed:", err.message);
+          }
+        }
+
       if (carPlate || carName || color) {
-        await TenantVehicle.create({
-          tenantId: tenant.id,
-          carPlate,
-          carName,
-          color,
-        });
+        await TenantVehicle.create({ tenantId: tenant.id, carPlate, carName, color });
       }
 
-      // Update unit status to "occupied" and set rented date
-      await Unit.update(
-        { status: "occupied", rentedDate: leaseStartDate },
-        { where: { id: unitId } }
-      );
+      await Unit.update({ status: "occupied", rentedDate: leaseStartDate }, { where: { id: unitId } });
 
       const setting = await Setting.findOne();
       let displayLeaseStartDate = leaseStartDate;
@@ -156,102 +151,77 @@ exports.createTenant = async (req, res) => {
 
       if (setting && setting.isGregorian === false) {
         if (leaseStartDate) {
-          const dateObj = new Date(leaseStartDate);
-          const [ethioYearStart, ethioMonthStart, ethioDayStart] = toEthiopian(
-            dateObj.getFullYear(),
-            dateObj.getMonth() + 1,
-            dateObj.getDate()
-          );
-          displayLeaseStartDate = `${ethioDayStart}-${ethioMonthStart}-${ethioYearStart}`;
+          const d = new Date(leaseStartDate);
+          const [y, m, day] = toEthiopian(d.getFullYear(), d.getMonth() + 1, d.getDate());
+          displayLeaseStartDate = `${day}-${m}-${y}`;
         }
-
         if (leaseEndDate) {
-          const dateObj = new Date(leaseEndDate);
-          const [ethioYearEnd, ethioMonthEnd, ethioDayEnd] = toEthiopian(
-            dateObj.getFullYear(),
-            dateObj.getMonth() + 1,
-            dateObj.getDate()
-          );
-          displayLeaseEndDate = `${ethioDayEnd}-${ethioMonthEnd}-${ethioYearEnd}`;
+          const d = new Date(leaseEndDate);
+          const [y, m, day] = toEthiopian(d.getFullYear(), d.getMonth() + 1, d.getDate());
+          displayLeaseEndDate = `${day}-${m}-${y}`;
         }
       }
 
-      console.log("Converted Dates =>", {
-        displayLeaseStartDate,
-        displayLeaseEndDate,
-        isGregorian: setting?.isGregorian,
-      });
-      // Send email with login credentials
-    if (email&&email!=="") {
-      try {
-        const emailResponse = await sendTenantWelcomeEmail({
-          email,
-          fullName,
-          generatedPassword,
-          phoneNumber,
-          floorNumber: floor.floorNumber,
-          unitNumber: unit.unitNumber,
-          leaseStartDate: displayLeaseStartDate,
-          leaseEndDate: displayLeaseEndDate,
-          loginUrl: process.env.TENANT_PORTAL_URL,
-          downloadApk: process.env.DOWNLOAD_APK_URL,
-        });
-    
-        if (!emailResponse.success) {
-          console.error("Email sending failed:", emailResponse.error);
+      if (shouldNotify && email) {
+        try {
+          const emailResponse = await sendTenantWelcomeEmail({
+            email,
+            fullName,
+            generatedPassword,
+            phoneNumber,
+            floorNumber: floor.floorNumber,
+            unitNumber: unit.unitNumber,
+            leaseStartDate: displayLeaseStartDate,
+            leaseEndDate: displayLeaseEndDate,
+            loginUrl: process.env.TENANT_PORTAL_URL,
+            downloadApk: process.env.DOWNLOAD_APK_URL,
+          });
+
+          if (!emailResponse.success) console.error("Email failed:", emailResponse.error);
+        } catch (err) {
+          console.error("Unexpected email error:", err.message);
         }
-      } catch (err) {
-        console.error("Unexpected error while sending email:", err);
       }
-    }
 
-      // Send SMS notification
-      const loginUrl = process.env.TENANT_PORTAL_URL;
-      const downloadApk = process.env.DOWNLOAD_APK_URL;
-      const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
-      const leaseEndDateDisplay = displayLeaseEndDate
-        ? displayLeaseEndDate
-        : "not specified yet";
-      const smsMessage =
-        `Welcome ${fullName}!\n` +
-        `Your tenant account has been created successfully.\n` +
-        `Floor: ${floor.floorNumber}, Unit: ${unit.unitNumber}\n` +
-        `Phone: ${phoneNumber}\n` +
-        `Rented from: ${displayLeaseStartDate} To ${leaseEndDateDisplay}\n` +
-        `Username: ${email}\nPassword: ${generatedPassword}\n` +
-        `Please log in to your account: ${loginUrl}\n` +
-        `Download our app: ${downloadApk}\n` +
-        `For any issues, please contact us.\n` +
-        `You can change your password When ever you want.`;
+      if (shouldNotify) {
+        try {
+          const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
+          const username = email || phoneNumber;
+          const smsMessage =
+            `Welcome ${fullName}!\n` +
+            `Your tenant account has been created successfully.\n` +
+            `Floor: ${floor.floorNumber}, Unit: ${unit.unitNumber}\n` +
+            `Phone: ${phoneNumber}\n` +
+            `Rented from: ${displayLeaseStartDate} To ${displayLeaseEndDate || "not specified yet"}\n` +
+            `Username: ${username}\nPassword: ${generatedPassword}\n` +
+            `Please log in: ${process.env.TENANT_PORTAL_URL}\n` +
+            `Download app: ${process.env.DOWNLOAD_APK_URL}\n` +
+            `You can change your password anytime.`;
 
-      const smsResponse = await smsUtil.sendSingleSMS({
-        phone: phoneNumber,
-        msg: smsMessage,
-        callback: process.env.GEEZSMS_WEBHOOK_URL,
-      });
+          await smsUtil.sendSingleSMS({
+            phone: phoneNumber,
+            msg: smsMessage,
+            callback: process.env.GEEZSMS_WEBHOOK_URL,
+          });
+        } catch (err) {
+          console.error("SMS failed:", err.message);
+        }
+      }
+
       res.status(201).json({
         success: true,
-        message: "Tenant registered successfully",
-        password: generatedPassword,
+        isExisting,
+        message: isExisting ? "Existing tenant linked successfully" : "Tenant registered successfully",
+        password: generatedPassword, // will be null if existing tenant
       });
     });
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
       const field = error.errors[0].path;
-      let errorMessage = "";
-      switch (field) {
-        // case "email":
-        //   errorMessage = "A tenant with the same email already exists";
-        //   break;
-        // case "nationalId":
-        //   errorMessage = "A tenant with the same national ID already exists";
-        //   break;
-        case "phoneNumber":
-          errorMessage = "A tenant with the same phone number already exists";
-          break;
-        default:
-          errorMessage = "A tenant with the same credentials already exists";
-      }
+      const errorMessage =
+        field === "phoneNumber"
+          ? "A tenant with the same phone number already exists"
+          : "A tenant with the same credentials already exists";
       return res.status(400).json({ error: errorMessage });
     }
     res.status(500).json({ error: error.message });
@@ -338,11 +308,12 @@ exports.getTenantById = async (req, res) => {
 // Update tenant details
 exports.updateTenant = async (req, res) => {
   try {
-    upload.single("document")(req, res, async (err) => {
+      upload.single("document")(req, res, async (err) => {
       if (err) {
         return res.status(400).json({ error: err.message });
       }
 
+      // console.log(" req.body:", req.body);
       const tenant = await Tenant.findByPk(req.params.id, {
         include: [
           { model: Unit, attributes: ["id", "status", "vacatedDate", "rentedDate"] },
@@ -371,7 +342,7 @@ exports.updateTenant = async (req, res) => {
       const newUnitId = req.body.unitId ?? tenant.unitId;
 
       // ----------------------
-      // 🔐 Reactivation validation (core business rule)
+      //  Reactivation validation (core business rule)
       // ----------------------
       if (previousStatus === "inactive" && newStatus === "active") {
         if (!newUnitId) {
@@ -398,6 +369,20 @@ exports.updateTenant = async (req, res) => {
       // ----------------------
       const filePath = req.file ? `/uploads/${req.file.filename}` : tenant.document;
 
+      //reset password
+
+      let generatedPassword = null;
+      let hashedPassword = tenant.password;
+
+      if (req.body.resetPassword === "true") {
+        generatedPassword = Math.floor(1000 + Math.random() * 9000).toString();
+        hashedPassword = await bcrypt.hash(generatedPassword, 10);
+        // console.log(`🔐 Password reset requested for tenant ${tenant.id}. Generated password: ${generatedPassword}`);
+      } else {
+        // console.log(`🔐 No password reset for tenant ${tenant.id}`);
+      }
+
+
       // ----------------------
       // Update tenant
       // ----------------------
@@ -408,11 +393,11 @@ exports.updateTenant = async (req, res) => {
           : tenant.email,
         phoneNumber: req.body.phoneNumber ?? tenant.phoneNumber,
         nationalId: Object.prototype.hasOwnProperty.call(req.body, "nationalId")
-  ? req.body.nationalId
-  : tenant.nationalId,
-tin: Object.prototype.hasOwnProperty.call(req.body, "tin")
-  ? req.body.tin
-  : tenant.tin,
+          ? req.body.nationalId
+          : tenant.nationalId,
+        tin: Object.prototype.hasOwnProperty.call(req.body, "tin")
+          ? req.body.tin
+          : tenant.tin,
         leaseStartDate: req.body.leaseStartDate ?? tenant.leaseStartDate,
         leaseEndDate: req.body.leaseEndDate ?? tenant.leaseEndDate,
         contractEndDate: req.body.contractEndDate ?? tenant.contractEndDate,
@@ -423,12 +408,22 @@ tin: Object.prototype.hasOwnProperty.call(req.body, "tin")
         status: newStatus,
         floorId: req.body.floorId ?? tenant.floorId,
         unitId: newUnitId,
+        password: hashedPassword,
       };
 
-      await tenant.update(updatedData);
+      await Tenant.update(
+        { password: hashedPassword },
+        { where: { phoneNumber: tenant.phoneNumber } }
+      );
+
+      // update other fields ONLY for this tenant
+      await tenant.update({
+        ...updatedData,
+        password: tenant.password // keep original here
+      });
 
       // ----------------------
-      // 🧠 Unit state transitions
+      //  Unit state transitions
       // ----------------------
 
       // ACTIVE → INACTIVE
@@ -473,6 +468,32 @@ tin: Object.prototype.hasOwnProperty.call(req.body, "tin")
           );
         }
       }
+      
+
+      // send sms after reset
+      if (generatedPassword) {
+        try {
+          const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
+          const username = tenant.email || tenant.phoneNumber;
+          const smsMessage =
+            `Hello ${tenant.fullName},\n` +
+            `Your tenant account password has been reset.\n` +
+            `Username: ${username}\n` +
+            `Password: ${generatedPassword}\n` +
+            `Please log in: ${process.env.TENANT_PORTAL_URL}\n`;
+
+          // Use the exact working format from createTenant
+          await smsUtil.sendSingleSMS({
+            phone: tenant.phoneNumber,
+            msg: smsMessage,
+            callback: process.env.GEEZSMS_WEBHOOK_URL,
+          });
+
+          // console.log(`📩 SMS sent to ${tenant.phoneNumber} successfully`);
+        } catch (err) {
+          console.error("SMS failed:", err.message);
+        }
+      }
 
       // ----------------------
       // Return updated tenant
@@ -484,7 +505,10 @@ tin: Object.prototype.hasOwnProperty.call(req.body, "tin")
         ]
       });
 
-      return res.status(200).json(updatedTenant);
+      return res.status(200).json({
+      ...updatedTenant.toJSON(),
+      ...(generatedPassword && { newPassword: generatedPassword })
+    });
     });
   } catch (error) {
     console.error("❌ Error updating tenant:", error);
@@ -708,3 +732,46 @@ const processTenantDetails = (tenants) => {
     };
   });
 };
+
+exports.getTenantsWithUnitAndFloor = async (req, res) => {
+  try {
+    const tenants = await Tenant.findAll({
+      attributes: ["id", "fullName"],
+      include: [
+        {
+          model: Unit,
+          attributes: ["id", "unitNumber"],
+          include: [
+            {
+              model: Floor,
+              attributes: ["id", "floorNumber"],
+            },
+          ],
+        },
+      ],
+    });
+
+    const response = tenants.map(t => ({
+      tenantId: t.id,
+      fullName: t.fullName,
+      Floor: t.Unit?.Floor
+        ? {
+            floorId: t.Unit.Floor.id,
+            floorNumber: t.Unit.Floor.floorNumber,
+          }
+        : null,
+      Unit: t.Unit
+        ? {
+            unitId: t.Unit.id,
+            unitNumber: t.Unit.unitNumber,
+          }
+        : null,
+    }));
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching tenants with unit and floor:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+

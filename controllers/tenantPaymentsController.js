@@ -278,14 +278,26 @@ exports.getAllPaymentByDate = async (req, res) => {
   }
 };
 
-// Get a specific payment by ID
 exports.getPaymentByTenantId = async (req, res) => {
   try {
-    const { tenantId } = req.params;
+    const phoneNumber = req.user.phone; 
+
+    const tenants = await Tenant.findAll({
+      where: { phoneNumber },
+      attributes: ['id'],
+    });
+    
+    const tenantIds = tenants.map(t => t.id);
+
     const payment = await TenantPayment.findAll({
-      where: { tenantId }, // Correct way to filter by tenantId
+       where: { tenantId: tenantIds, },
       include: [
-        { model: Tenant, attributes: ['fullName'] },
+        { model: Tenant, attributes: ['fullName'],
+          include: [
+            { model: Unit, attributes: ['unitNumber'] },
+            { model: Floor, attributes: ['floorNumber'] }
+          ],
+        },
         { model: BillType, attributes: ['typeName'] }
       ]
     });
@@ -299,6 +311,44 @@ exports.getPaymentByTenantId = async (req, res) => {
     res.status(500).json({ message: 'Error fetching payment', error: error.message });
   }
 };
+
+// Get last paid payment for tenant + bill type
+exports.getLastTenantPayment = async (req, res) => {
+  try {
+    const { tenantId, billPaymentTypeId } = req.query;
+
+    if (!tenantId || !billPaymentTypeId) {
+      return res.status(400).json({
+        message: "tenantId and billPaymentTypeId are required",
+      });
+    }
+
+    const lastPayment = await TenantPayment.findOne({
+      where: {
+        tenantId,
+        paymentTypeId: billPaymentTypeId,
+        status: "paid", // ⚠️ must be lowercase if your DB uses lowercase
+      },
+      order: [["endDate", "DESC"]],
+    });
+
+    if (!lastPayment) {
+      return res.json(null); // frontend expects null if none exists
+    }
+
+    return res.status(200).json({
+      startDate: lastPayment.startDate,
+      endDate: lastPayment.endDate,
+    });
+  } catch (error) {
+    console.error("Error fetching last tenant payment:", error);
+    return res.status(500).json({
+      message: "Error fetching last tenant payment",
+      error: error.message,
+    });
+  }
+};
+
 
 // Update a tenant payment
 exports.updatePayment = async (req, res) => {
@@ -330,7 +380,6 @@ exports.deletePayment = async (req, res) => {
     res.status(500).json({ message: 'Error deleting payment', error });
   }
 };
-
 
 exports.getTenantPaymentsReport = async (req, res) => {
   try {
@@ -370,8 +419,13 @@ exports.getTenantPaymentsReport = async (req, res) => {
       const tenantPayments = await TenantPayment.findAll({
           where: whereCondition,
           include: [
-              { model: Tenant, attributes: ["id", "fullName"] }, // Fetch tenant name
-              { model: BillType, attributes: ["id", "typeName"] } // Fetch bill type
+              { model: Tenant, attributes: ["id", "fullName"],
+                 include: [
+                  { model: Unit, attributes: ['unitNumber'] },
+                  { model: Floor, attributes: ['floorNumber'] }
+                ],
+               }, 
+              { model: BillType, attributes: ["id", "typeName"] }
           ],
           order: [["startDate", "DESC"]]
       });
