@@ -2,6 +2,9 @@ const TenantOutRequest = require("../models/itemOutRequest");
 const ApprovedOutRequest = require("../models/approvedItemOutRequest");
 
 const Tenant = require("../models/tenant");
+const Unit = require("../models/unit");
+const Floor = require("../models/floor");
+const TenantInventory = require('../models/tenantInventory');
 const TenantItem = require("../models/tenanItem");
 const { Op } = require("sequelize");
 
@@ -13,7 +16,7 @@ exports.createRequest = async (req, res) => {
         .json({ error: "Only tenants can create requests." });
     }
 
-    const { tenantItemId, name, quantity } = req.body;
+    const { tenantId, tenantItemId, name, quantity } = req.body;
     const requestedQty = quantity || 1;
 
     if (!Number.isInteger(requestedQty) || requestedQty < 1) {
@@ -22,21 +25,34 @@ exports.createRequest = async (req, res) => {
         .json({ error: "Quantity must be a valid positive integer." });
     }
 
+    // Verify tenantId belongs to this user (multi-unit support)
+    const tenant = await Tenant.findOne({
+      where: { id: tenantId, phoneNumber: req.user.phone },
+    });
+
+    if (!tenant) {
+      return res.status(404).json({ error: "Tenant not found for this user." });
+    }
+
     const requestData = {
-      tenantId: req.user.id,
+      tenantId: tenant.id,
       quantity: requestedQty,
     };
 
     let tenantItem = null;
 
     if (Number.isInteger(tenantItemId)) {
-      // Handle request for existing item
+      // Find TenantItem through TenantInventory (linked to tenant)
       tenantItem = await TenantItem.findOne({
-        where: { tenantId: req.user.id, id: tenantItemId },
+        where: { id: tenantItemId },
+        include: {
+          model: TenantInventory,
+          where: { tenantId: tenant.id },
+        },
       });
 
       if (!tenantItem) {
-        return res.status(404).json({ error: "Tenant item not found." });
+        return res.status(404).json({ error: "Tenant item not found for this tenant." });
       }
 
       if (tenantItem.quantity < requestedQty) {
@@ -59,13 +75,9 @@ exports.createRequest = async (req, res) => {
     // Create the request
     const newItem = await TenantOutRequest.create(requestData);
 
-    const tenant = await Tenant.findByPk(req.user.id, {
-      attributes: ["fullName"],
-    });
-
     res.status(201).json({
       ...newItem.toJSON(),
-      tenantName: tenant?.fullName || "Unknown Tenant",
+      tenantName: tenant.fullName || "Unknown Tenant",
       item: tenantItem
         ? { id: tenantItem.id, itemName: tenantItem.itemName }
         : requestData.name
@@ -78,7 +90,7 @@ exports.createRequest = async (req, res) => {
   }
 };
 
-//tenant only update request
+// tenant only update request
 exports.updateRequest = async (req, res) => {
   try {
     const requestId = parseInt(req.params.id, 10);
@@ -87,6 +99,7 @@ exports.updateRequest = async (req, res) => {
       return res.status(403).json({ error: "Only tenants can update requests." });
     }
 
+    // Find existing pending request (must belong to tenant)
     const existingRequest = await TenantOutRequest.findOne({
       where: {
         id: requestId,
@@ -96,87 +109,127 @@ exports.updateRequest = async (req, res) => {
     });
 
     if (!existingRequest) {
-      return res.status(404).json({ error: "Pending request not found or access denied." });
+      return res
+        .status(404)
+        .json({ error: "Pending request not found or access denied." });
     }
 
     const updates = {};
-    let updatedQuantity = existingRequest.quantity;
 
-    // Only validate quantity if tenantItemId is already set OR being set
-    const tenantItemId = req.body.tenantItemId !== undefined 
-      ? parseInt(req.body.tenantItemId, 10) 
-      : existingRequest.tenantItemId;
-
+    /**
+     * 1️⃣ Quantity update (ONLY updates TenantOutRequest.quantity)
+     */
     if (req.body.quantity !== undefined) {
       const newQuantity = parseInt(req.body.quantity, 10);
+
       if (!Number.isInteger(newQuantity) || newQuantity <= 0) {
-        return res.status(400).json({ error: "Quantity must be a positive integer." });
+        return res
+          .status(400)
+          .json({ error: "Quantity must be a valid positive integer." });
       }
 
-      // If linked to a tenantItemId, validate against inventory
-      if (tenantItemId) {
+      // Validate against inventory ONLY if request is linked to tenantItem
+      if (existingRequest.tenantItemId) {
         const tenantItem = await TenantItem.findOne({
-          where: { id: tenantItemId, tenantId: req.user.id },
+          where: { id: existingRequest.tenantItemId },
+          include: {
+            model: TenantInventory,
+            where: { tenantId: existingRequest.tenantId },
+          },
         });
 
         if (!tenantItem) {
           return res.status(404).json({ error: "Tenant item not found." });
         }
 
-        if (tenantItem.quantity < newQuantity) {
+        if (newQuantity > tenantItem.quantity) {
           return res.status(400).json({
             error: `Requested quantity (${newQuantity}) exceeds available quantity (${tenantItem.quantity}).`,
           });
         }
       }
 
-      updatedQuantity = newQuantity;
       updates.quantity = newQuantity;
     }
 
-    // If tenantItemId is changing
+    /**
+     * 2️⃣ Allow changing item source
+     * - tenantItemId OR name
+     * - but NEVER both
+     */
     if (req.body.tenantItemId !== undefined) {
-      if (!Number.isInteger(tenantItemId)) {
-        return res.status(400).json({ error: "tenantItemId must be a valid integer." });
+      const newTenantItemId = parseInt(req.body.tenantItemId, 10);
+
+      if (!Number.isInteger(newTenantItemId)) {
+        return res
+          .status(400)
+          .json({ error: "tenantItemId must be a valid integer." });
       }
 
-      const newTenantItem = await TenantItem.findOne({
-        where: { id: tenantItemId, tenantId: req.user.id },
+      const tenantItem = await TenantItem.findOne({
+        where: { id: newTenantItemId },
+        include: {
+          model: TenantInventory,
+          where: { tenantId: existingRequest.tenantId },
+        },
       });
 
-      if (!newTenantItem) {
-        return res.status(404).json({ error: "New tenant item not found." });
+      if (!tenantItem) {
+        return res.status(404).json({ error: "Tenant item not found." });
       }
 
-      // Validate updated quantity against new item
-      if (newTenantItem.quantity < updatedQuantity) {
+      // Validate quantity against new item
+      const qtyToCheck =
+        updates.quantity !== undefined
+          ? updates.quantity
+          : existingRequest.quantity;
+
+      if (qtyToCheck > tenantItem.quantity) {
         return res.status(400).json({
-          error: `Requested quantity (${updatedQuantity}) exceeds available quantity in new item (${newTenantItem.quantity}).`,
+          error: `Requested quantity (${qtyToCheck}) exceeds available quantity (${tenantItem.quantity}).`,
         });
       }
 
-      updates.tenantItemId = tenantItemId;
+      updates.tenantItemId = newTenantItemId;
+      updates.name = null; // ensure mutual exclusivity
     }
 
-    // Allow name to be changed freely
     if (req.body.name !== undefined) {
-      updates.name = req.body.name;
+      const trimmedName = req.body.name?.trim();
+
+      if (!trimmedName) {
+        return res
+          .status(400)
+          .json({ error: "Item name cannot be empty." });
+      }
+
+      updates.name = trimmedName;
+      updates.tenantItemId = null; // ensure mutual exclusivity
     }
 
+    // Apply updates
     await existingRequest.update(updates);
 
-    // Return updated item details
-    const tenantItem = await TenantItem.findByPk(existingRequest.tenantItemId);
+    // Build response item
+    let item = null;
+
+    if (existingRequest.tenantItemId) {
+      const tenantItem = await TenantItem.findByPk(
+        existingRequest.tenantItemId,
+        { attributes: ["id", "itemName"] }
+      );
+
+      if (tenantItem) {
+        item = { id: tenantItem.id, itemName: tenantItem.itemName };
+      }
+    } else if (existingRequest.name) {
+      item = { itemName: existingRequest.name };
+    }
 
     res.json({
       ...existingRequest.toJSON(),
-      item: tenantItem
-        ? { id: tenantItem.id, itemName: tenantItem.itemName }
-        : existingRequest.name
-        ? { itemName: existingRequest.name }
-        : null,
+      item,
     });
-
   } catch (error) {
     console.error("Update error:", error);
     res.status(500).json({ error: "Failed to update request." });
@@ -187,28 +240,37 @@ exports.updateRequest = async (req, res) => {
 exports.getAllRequests = async (req, res) => {
   try {
     const where = req.user.role === "tenant" ? { tenantId: req.user.id } : {};
-    const requests = await TenantOutRequest.findAll({ where });
+    const requests = await TenantOutRequest.findAll({
+      where,
+      attributes: { exclude: ['updatedAt', 'tenantName'] },
+    });
 
-    // Format response with tenantName and item details
     const formattedRequests = await Promise.all(
       requests.map(async (request) => {
-        // Fetch tenant fullName
+        // Include Unit and Floor
         const tenant = await Tenant.findByPk(request.tenantId, {
           attributes: ["fullName"],
+          include: [
+            { model: Unit, attributes: ["unitNumber"] },
+            { model: Floor, attributes: ["floorNumber"] },
+          ],
         });
 
-        // Fetch tenantItem if tenantItemId exists
         let tenantItem = null;
         if (request.tenantItemId) {
           tenantItem = await TenantItem.findOne({
-            where: { id: request.tenantItemId, tenantId: request.tenantId },
+            where: { id: request.tenantItemId },
+            include: {
+              model: TenantInventory,
+              where: { tenantId: request.tenantId },
+              attributes: ["tenantId", "type"],
+            },
             attributes: ["id", "itemName"],
           });
         }
 
-        // Format item field
         const item = tenantItem
-          ? { id: tenantItem.id, itemName: tenantItem.itemName }
+          ? { id: tenantItem.id, itemName: tenantItem.itemName, quantity: tenantItem.quantity }
           : request.name
           ? { itemName: request.name }
           : null;
@@ -216,6 +278,8 @@ exports.getAllRequests = async (req, res) => {
         return {
           ...request.toJSON(),
           tenantName: tenant?.fullName || "Unknown Tenant",
+          unitNumber: tenant?.Unit?.unitNumber || null,
+          floorNumber: tenant?.Floor?.floorNumber || null,
           item,
         };
       })
@@ -231,48 +295,81 @@ exports.getAllRequests = async (req, res) => {
 //Admin can see all
 exports.getAllRequestsForAdmin = async (req, res) => {
   try {
-   
     // Fetch all requests
-    const requests = await TenantOutRequest.findAll();
+    const requests = await TenantOutRequest.findAll({
+      order: [["id", "DESC"]],
+    });
 
-    // Format each request with tenant name and item details
-    const formattedRequests = await Promise.all(
-      requests.map(async (request) => {
-        // Get tenant's full name
-        const tenant = await Tenant.findByPk(request.tenantId, {
-          attributes: ["fullName"],
-        });
+    // Group requests by tenant profile (phoneNumber)
+    const groupedByTenant = {};
 
-        // Get item details if tenantItemId exists
-        let tenantItem = null;
-        if (request.tenantItemId) {
-          tenantItem = await TenantItem.findOne({
-            where: { id: request.tenantItemId, tenantId: request.tenantId },
-            attributes: ["id", "itemName"],
-          });
-        }
+    for (const request of requests) {
+      // Fetch tenant info for this tenantId
+      const tenant = await Tenant.findOne({
+        where: { id: request.tenantId },
+        attributes: ["id", "fullName", "phoneNumber", "email"],
+        include: [
+          { model: Unit, attributes: ["unitNumber"] },
+          { model: Floor, attributes: ["floorNumber"] },
+        ],
+      });
 
-        // Prepare item field
-        const item = tenantItem
-          ? { id: tenantItem.id, itemName: tenantItem.itemName }
-          : request.name
-          ? { itemName: request.name }
-          : null;
+      if (!tenant) continue;
 
-        return {
-          ...request.toJSON(),
-          tenantName: tenant?.fullName || "Unknown Tenant",
-          item,
+      const phone = tenant.phoneNumber;
+
+      // Initialize tenant group if not exists
+      if (!groupedByTenant[phone]) {
+        groupedByTenant[phone] = {
+          tenantName: tenant.fullName,
+          phoneNumber: tenant.phoneNumber,
+          email: tenant.email,
+          requests: [],
         };
-      })
-    );
+      }
 
-    res.json(formattedRequests);
+      // Prepare item info
+      let tenantItem = null;
+      if (request.tenantItemId) {
+        tenantItem = await TenantItem.findByPk(request.tenantItemId, {
+          attributes: ["id", "itemName"],
+        });
+      }
+
+      const item = request.tenantItemId && tenantItem
+        ? { id: tenantItem.id, itemName: tenantItem.itemName, quantity: request.quantity }
+        : request.name
+        ? { itemName: request.name, quantity: request.quantity }
+        : null;
+
+      // Push request to tenant group
+      groupedByTenant[phone].requests.push({
+        id: request.id,
+        tenantId: request.tenantId,
+        unitNumber: tenant.Unit?.unitNumber || null,
+        floorNumber: tenant.Floor?.floorNumber || null,
+        name: request.name,
+        quantity: request.quantity,
+        status: request.status,
+        createdAt: request.createdAt,
+        updatedAt: request.updatedAt,
+        item,
+      });
+    }
+
+    // Convert grouped object to array
+    const response = Object.values(groupedByTenant);
+
+    res.json(response);
   } catch (error) {
     console.error("Fetch all admin error:", error);
-    res.status(500).json({ error: "Failed to fetch requests.", details: error.message });
+    res.status(500).json({
+      error: "Failed to fetch requests.",
+      details: error.message,
+    });
   }
 };
+
 
 // Get single item (tenant can access only their own)
 exports.getItemById = async (req, res) => {
@@ -315,26 +412,26 @@ exports.updateStatus = async (req, res) => {
       return res.status(400).json({ error: "Invalid status value." });
     }
 
-    // Only handle deduction if approving
-    if (status === "Approved") {
-     const tenantItem = await TenantItem.findByPk(item.tenantItemId);
-    if (!tenantItem) {
-      return res.status(404).json({ error: "Tenant item not found." });
-    }
+    // Only handle deduction if approving and item is linked to TenantItem
+    if (status === "Approved" && item.tenantItemId) {
+      const tenantItem = await TenantItem.findByPk(item.tenantItemId);
+      if (!tenantItem) {
+        return res.status(404).json({ error: "Tenant item not found." });
+      }
 
-    if (item.quantity > tenantItem.quantity) {
-      return res.status(400).json({ error: "Requested quantity exceeds available quantity." });
-    }
+      if (item.quantity > tenantItem.quantity) {
+        return res.status(400).json({ error: "Requested quantity exceeds available quantity." });
+      }
 
-    if (item.quantity === tenantItem.quantity) {
-      tenantItem.quantity = 0;
-      tenantItem.status = "out_of_stock";
-      await tenantItem.save();
-    } else {
-      tenantItem.quantity -= item.quantity;
-      await tenantItem.save();
-    }
-        
+      if (item.quantity === tenantItem.quantity) {
+        tenantItem.quantity = 0;
+        tenantItem.status = "out_of_stock";
+        await tenantItem.save();
+      } else {
+        tenantItem.quantity -= item.quantity;
+        await tenantItem.save();
+      }
+
       await ApprovedOutRequest.create({
         tenantId: item.tenantId,
         tenantItemId: item.tenantItemId,
@@ -344,6 +441,7 @@ exports.updateStatus = async (req, res) => {
       });
     }
 
+    // Update status for both TenantItem-linked or custom items
     await item.update({ status });
 
     res.json({ message: "Status updated successfully.", item });

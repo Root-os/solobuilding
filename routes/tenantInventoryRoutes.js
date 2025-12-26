@@ -17,12 +17,12 @@ const {
 } = require("../middleware/auth");
 
 // Routes
-router.get("/", getAllInventories);
+router.get("/",adminOrEmployeeAuth, getAllInventories);
 router.get("/tenant", tenantAuth, getTenantInventories);
 router.get("/tenant/:tenantId", getInventoryByTenantId);
 router.get("/:id", adminOrEmployeeAuth, getInventoryById);
 router.post("/", adminOrEmployeeAuth, createInventory);
-router.put("/:id", adminOrEmployeeAuth, updateInventory);
+router.put("/:id", updateInventory);
 router.delete("/:id", adminOrEmployeeAuth, deleteInventory);
 router.get("/phone/:phoneNumber", getTenantInventoryByPhoneNumber);
 
