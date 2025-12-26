@@ -23,11 +23,6 @@ const TenantInventory = sequelize.define(
       type: DataTypes.ENUM("move-in", "move-out"),
       allowNull: false,
     },
-    items: {
-      type: DataTypes.JSON,
-      allowNull: false,
-      defaultValue: [],
-    },
     checkedBy: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -44,15 +39,5 @@ const TenantInventory = sequelize.define(
     collate: "utf8_general_ci",
   }
 );
-
-// Define association
-Tenant.hasMany(TenantInventory, {
-  foreignKey: "tenantId",
-  onDelete: "CASCADE",
-});
-TenantInventory.belongsTo(Tenant, {
-  foreignKey: "tenantId",
-  onDelete: "SET NULL",
-});
 
 module.exports = TenantInventory;

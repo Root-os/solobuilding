@@ -1,5 +1,6 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
+const TenantInventory = require("./tenantInventory");
 
 const TenantItem = sequelize.define(
   "TenantItem",
@@ -9,14 +10,20 @@ const TenantItem = sequelize.define(
       autoIncrement: true,
       primaryKey: true,
     },
+    inventoryId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references:{
+        model: 'tenant_inventory',
+        key: 'id',
+      },
+      onDelete: "CASCADE",
+    },
     itemName: {
       type: DataTypes.STRING,
       allowNull: false,
     },
     quantity: {
-      type: DataTypes.INTEGER,
-    },
-    tenantId: {
       type: DataTypes.INTEGER,
     },
     status: {
@@ -29,6 +36,12 @@ const TenantItem = sequelize.define(
     timestamps: true,
     charset: "utf8",
     collate: "utf8_general_ci",
+        indexes: [
+      {
+        unique: true,
+        fields: ["inventoryId", "itemName"], // ensures only one row per item per inventory
+      },
+    ],
   }
 );
 

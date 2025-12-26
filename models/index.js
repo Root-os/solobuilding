@@ -36,6 +36,7 @@ const Task = require('./task');
 const Message = require('./message');
 const LetterResponse = require("./letterResponse");
 const TenantInventory = require("./tenantInventory");
+const TenantItem = require("./tenanItem");
 const TenantInventoryItem = require("./itemOutRequest")
 const ApprovedOutRequest = require("./approvedItemOutRequest")
 const Booking = require("./bookRoom");
@@ -82,6 +83,7 @@ module.exports = {
   LetterResponse,
   Message,
   TenantInventory,
+  TenantItem,
   TenantInventoryItem,
   ApprovedOutRequest,
   Booking,

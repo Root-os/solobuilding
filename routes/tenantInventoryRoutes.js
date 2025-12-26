@@ -8,6 +8,7 @@ const {
   updateInventory,
   deleteInventory,
   getInventoryByTenantId,
+  getTenantInventoryByPhoneNumber,
 } = require("../controllers/tenantInventoryController");
 
 const {
@@ -16,12 +17,13 @@ const {
 } = require("../middleware/auth");
 
 // Routes
-router.get("/", adminOrEmployeeAuth, getAllInventories);
+router.get("/", getAllInventories);
 router.get("/tenant", tenantAuth, getTenantInventories);
-router.get("/tenant/:tenantId", adminOrEmployeeAuth, getInventoryByTenantId);
+router.get("/tenant/:tenantId", getInventoryByTenantId);
 router.get("/:id", adminOrEmployeeAuth, getInventoryById);
 router.post("/", adminOrEmployeeAuth, createInventory);
 router.put("/:id", adminOrEmployeeAuth, updateInventory);
 router.delete("/:id", adminOrEmployeeAuth, deleteInventory);
+router.get("/phone/:phoneNumber", getTenantInventoryByPhoneNumber);
 
 module.exports = router;

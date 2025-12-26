@@ -1,4 +1,6 @@
 const TenantItem = require("../models/tenanItem");
+const TenantInventory = require("../models/tenantInventory");
+const Tenant = require("../models/tenant");
 
 exports.getTenantItems = async (req, res) => {
   try {
@@ -21,29 +23,67 @@ exports.getTenantItems = async (req, res) => {
     res.status(500).json({ error: "Failed to retrieve items." });
   }
 };
-exports.getTenantItemsByTenantId = async (req, res) => {
+
+exports.getTenantItemsByPhone = async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can access this resource.' });
-    }
+    const { phoneNumber } = req.params;
 
-    const { tenantId } = req.params;
-
-    if (!tenantId) {
-      return res.status(400).json({ error: 'Tenant ID is required.' });
-    }
-
+    // Fetch all move-in items for the tenant
     const items = await TenantItem.findAll({
-      where: { tenantId },
+      attributes: ["itemName", "quantity"],
+      include: [
+        {
+          model: TenantInventory,
+          attributes: [],
+          where: { type: "move-in" },
+          include: [
+            {
+              model: Tenant,
+              attributes: ["phoneNumber"],
+              where: { phoneNumber }, // Filter by phone
+            },
+          ],
+        },
+      ],
     });
 
-    res.json(items);
+    if (!items.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No items found for this tenant.",
+      });
+    }
+
+    // Aggregate items by itemName
+    const aggregatedItems = {};
+    items.forEach((item) => {
+      if (!aggregatedItems[item.itemName]) {
+        aggregatedItems[item.itemName] = 0;
+      }
+      aggregatedItems[item.itemName] += item.quantity;
+    });
+
+    const formattedItems = Object.entries(aggregatedItems).map(
+      ([itemName, quantity]) => ({ itemName, quantity })
+    );
+
+    res.json({
+      success: true,
+      tenants: [
+        {
+          phoneNumber,
+          items: formattedItems,
+        },
+      ],
+    });
   } catch (error) {
-    console.error('Error fetching tenant items by ID:', error);
-    res.status(500).json({ error: 'Failed to retrieve tenant items.' });
+    console.error("Error fetching items by phone:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve tenant items by phone.",
+    });
   }
 };
-
 
 exports.getAllTenantItemsForAdmin = async (req, res) => {
   try {
