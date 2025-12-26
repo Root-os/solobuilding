@@ -2,27 +2,6 @@ const TenantItem = require("../models/tenanItem");
 const TenantInventory = require("../models/tenantInventory");
 const Tenant = require("../models/tenant");
 
-exports.getTenantItems = async (req, res) => {
-  try {
-    let items;
-
-    if (req.user.role === "admin") {
-      // Admin sees all items
-      items = await TenantItem.findAll();
-    } else if (req.user.role === "tenant") {
-      // Tenant sees only their items
-      items = await TenantItem.findAll({
-        where: { tenantId: req.user.id },
-      });
-    } else {
-      return res.status(403).json({ error: "Unauthorized access." });
-    }
-    res.json(items);
-  } catch (error) {
-    console.error("Fetch items error:", error);
-    res.status(500).json({ error: "Failed to retrieve items." });
-  }
-};
 
 exports.getTenantItemsByPhone = async (req, res) => {
   try {
@@ -85,6 +64,7 @@ exports.getTenantItemsByPhone = async (req, res) => {
   }
 };
 
+//==================================================
 exports.getAllTenantItemsForAdmin = async (req, res) => {
   try {
     const items = await TenantItem.findAll();
@@ -92,5 +72,38 @@ exports.getAllTenantItemsForAdmin = async (req, res) => {
   } catch (error) {
     console.error("Admin fetch error:", error);
     res.status(500).json({ error: "Failed to retrieve all tenant items." });
+  }
+};
+
+exports.getTenantItems = async (req, res) => {
+  try {
+    let items;
+
+    if (req.user.role === "admin") {
+      // Admin sees all items (optionally you can filter move-in too)
+      items = await TenantItem.findAll({
+        include: {
+          model: TenantInventory,
+          attributes: ['tenantId', 'type'],
+          where: { type: 'move-in' }, // Only show move-in items
+        },
+      });
+    } else if (req.user.role === "tenant") {
+      // Tenant sees only their move-in items
+      items = await TenantItem.findAll({
+        include: {
+          model: TenantInventory,
+          where: { tenantId: req.user.id, type: 'move-in' },
+          attributes: ['tenantId', 'type'],
+        },
+      });
+    } else {
+      return res.status(403).json({ error: "Unauthorized access." });
+    }
+
+    res.json(items);
+  } catch (error) {
+    console.error("Fetch items error:", error);
+    res.status(500).json({ error: "Failed to retrieve items." });
   }
 };
