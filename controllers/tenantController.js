@@ -587,7 +587,6 @@ exports.getTenantsByFloorId = async (req, res) => {
   }
 };
 
-
 exports.filterTenants = async (req, res) => {
   try {
     const {
@@ -668,7 +667,6 @@ exports.filterTenants = async (req, res) => {
   }
 };
 
-
 exports.getTenantsWithExpiringLease = async (req, res) => {
   try {
     const today = new Date();
@@ -733,45 +731,51 @@ const processTenantDetails = (tenants) => {
   });
 };
 
-exports.getTenantsWithUnitAndFloor = async (req, res) => {
+exports.getTenantUnits = async (req, res) => {
   try {
     const tenants = await Tenant.findAll({
-      attributes: ["id", "fullName"],
+      attributes: ["id", "fullName", "phoneNumber"],
       include: [
-        {
-          model: Unit,
-          attributes: ["id", "unitNumber"],
-          include: [
-            {
-              model: Floor,
-              attributes: ["id", "floorNumber"],
-            },
-          ],
-        },
+        { model: Unit, as: 'Unit', attributes: ['id', 'unitNumber'] },
+        { model: Floor, as: 'Floor', attributes: ['id', 'floorNumber'] },
       ],
     });
 
-    const response = tenants.map(t => ({
-      tenantId: t.id,
-      fullName: t.fullName,
-      Floor: t.Unit?.Floor
-        ? {
-            floorId: t.Unit.Floor.id,
-            floorNumber: t.Unit.Floor.floorNumber,
-          }
-        : null,
-      Unit: t.Unit
-        ? {
-            unitId: t.Unit.id,
-            unitNumber: t.Unit.unitNumber,
-          }
-        : null,
-    }));
+    console.log("Tenants fetched:", tenants.length); // Log how many tenants were returned
+    tenants.forEach(t => {
+      console.log("Tenant:", t.id, t.fullName, "Unit:", t.Unit, "Floor:", t.Floor);
+    });
+
+    if (!tenants.length) {
+      return res.status(404).json({ message: 'No tenants found' });
+    }
+
+    // Group tenants by phoneNumber
+    const profilesMap = {};
+
+    tenants.forEach(t => {
+      if (!profilesMap[t.phoneNumber]) {
+        profilesMap[t.phoneNumber] = {
+          phoneNumber: t.phoneNumber,
+          fullName: t.fullName,
+          tenant: [],
+        };
+      }
+
+      profilesMap[t.phoneNumber].tenant.push({
+        tenantId: t.id,
+        unit: t.Unit ? { id: t.Unit.id, unitNumber: t.Unit.unitNumber } : null,
+        floor: t.Floor ? { id: t.Floor.id, floorNumber: t.Floor.floorNumber } : null,
+      });
+    });
+
+    const response = Object.values(profilesMap);
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Error fetching tenants with unit and floor:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error('Error fetching tenant units:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 

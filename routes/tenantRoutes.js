@@ -9,6 +9,7 @@ router.post('/', tenantController.createTenant);
 router.get('/', tenantController.getAllTenants);
 
 // Get tenant by ID
+router.get('/floor-units', tenantController.getTenantUnits);
 router.get('/:id', tenantController.getTenantById);
 
 // Update tenant details

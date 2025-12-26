@@ -17,6 +17,8 @@ const {
     TenantPayment, 
     TenantRentCollection, 
     TenantVehicle, 
+    TenantInventory,
+    TenantItem,
     Unit, 
     Message,
     Tenant,
@@ -212,6 +214,12 @@ const defineAssociations = () => {
 
     Tenant.hasMany(Punishment, {foreignKey: 'tenantId'});
     Punishment.belongsTo(Tenant, {foreignKey: 'tenantId'})
+
+    Tenant.hasMany(TenantInventory, { foreignKey: "tenantId" });
+    TenantInventory.belongsTo(Tenant, { foreignKey: "tenantId" });
+
+    TenantInventory.hasMany(TenantItem, { foreignKey: "inventoryId", onDelete: "CASCADE" });
+    TenantItem.belongsTo(TenantInventory, { foreignKey: "inventoryId" });
   
 };
 
