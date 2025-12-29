@@ -56,6 +56,37 @@ const createInventory = async (req, res) => {
       );
     }
 
+    if (type === "move-out") {
+  const moveInInventory = await TenantInventory.findOne({
+    where: { tenantId, type: "move-in" },
+    transaction,
+  });
+
+  if (!moveInInventory) {
+    throw new Error("No move-in inventory found for this tenant");
+  }
+
+  for (const item of items) {
+    const moveInItem = await TenantItem.findOne({
+      where: { inventoryId: moveInInventory.id, itemName: item.name },
+      transaction,
+    });
+
+    if (!moveInItem) {
+      throw new Error(`Item ${item.name} not found in move-in inventory`);
+    }
+
+    if (moveInItem.quantity < item.quantity) {
+      throw new Error(
+        `Cannot move out more ${item.name} than available. Available: ${moveInItem.quantity}`
+      );
+    }
+
+    moveInItem.quantity -= item.quantity;
+    await moveInItem.save({ transaction });
+  }
+}
+
     // 2️⃣ Merge items into TenantItem
     for (const item of items) {
       const existingItem = await TenantItem.findOne({

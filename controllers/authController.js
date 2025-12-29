@@ -246,7 +246,7 @@ exports.updateUser = async (req, res) => {
 exports.updateEmployee = async (req, res) => {
   try {
     const { id } = req.params;  // Get the employee ID from the URL parameter
-    const { fname, lname, phone, roleId, salary, position, hireDate, shift, employmentType, emergencyContact, address, bankAccount } = req.body;
+    const { fname, lname, phone, roleId, salary, position, hireDate, shift, employmentType, emergencyContact, address, bankAccount, password } = req.body;
 
     // Find the employee by ID
     const user = await User.findOne({ where: { id } });
@@ -259,6 +259,12 @@ exports.updateEmployee = async (req, res) => {
     user.lname = lname || user.lname;
     user.phone = phone || user.phone;
     user.roleId = roleId || user.roleId;
+
+     // Update password if provided
+    if (password) {
+      user.password = await bcrypt.hash(password, 10); 
+    }
+
     await user.save();
 
     // Find and update the employee details (if any)
@@ -361,7 +367,6 @@ exports.getAllEmployeeUsers = async (req, res) => {
   }
 };
 
-
 exports.getUserById = async (req, res) => {
   try {
     const user = await User.findOne({ 
@@ -406,6 +411,7 @@ exports.deleteMyAccount = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to delete account", error: error.message });
   }
 }
+
 exports.logout = async (req, res) => {
   try {
     if (!req.cookies.authToken) {

@@ -405,10 +405,11 @@ exports.createRentPayment = async (req, res) => {
 
       if (prevPaymentDate >= paymentDateObj) {
         return res.status(400).json({
-          message: "Payment date must be after the previous payment date",
+          message: "check your dates, payment date overlaps with previous payment.",
         });
       }
     }
+    
 
     const rentPayment = await TenantRentCollection.create({
       tenantId,
