@@ -338,6 +338,7 @@ cron.schedule("0 8 * * *", async () => {
   }
 });
 
+
 // Create a new rent payment
 exports.createRentPayment = async (req, res) => {
   try {
