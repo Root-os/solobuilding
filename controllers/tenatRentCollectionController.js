@@ -12,7 +12,7 @@ const cron = require("node-cron");
 const sendNotificationHelper = require("../helpers/sendAlert");
 const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
 const Setting = require("../models/setting");
-const Punishment = require("../models/punishment")
+const Punishment = require("../models/punishment");
 
 //schedule a task to run every day at midnight (0 0 * * *)
 cron.schedule("0 8 * * *", async () => {
@@ -106,7 +106,6 @@ const { sendSingleSMS } = createSingleSMSUtil({
   token: process.env.GEEZSMS_TOKEN,
 });
 
-
 // Days to notify before lease ends
 const NOTIFY_DAYS = [10, 5, 4, 3, 2, 1, 0];
 
@@ -118,17 +117,21 @@ cron.schedule("0 8 * * *", async () => {
 
     // Get maximum days to look ahead
     const maxNotifyDay = Math.max(...NOTIFY_DAYS);
-    const futureDate = new Date(today.getTime() + maxNotifyDay * 24 * 60 * 60 * 1000);
+    const futureDate = new Date(
+      today.getTime() + maxNotifyDay * 24 * 60 * 60 * 1000
+    );
 
     // Get punishment percentage from settings (default to 20%)
     const settings = await Setting.findOne();
-    const punishmentPercentage = settings ? parseFloat(settings.punishmentPercentage) : 0.5;
+    const punishmentPercentage = settings
+      ? parseFloat(settings.punishmentPercentage)
+      : 0.5;
 
     // Find tenants whose lease ends between today and futureDate OR already expired
     const tenants = await Tenant.findAll({
       where: {
         leaseEndDate: {
-          [Op.lte]: futureDate, 
+          [Op.lte]: futureDate,
         },
       },
     });
@@ -177,7 +180,10 @@ cron.schedule("0 8 * * *", async () => {
             await sendSingleSMS({ phone: tenant.phoneNumber, msg: tenantMsg });
             console.log(`SMS sent to tenant: ${tenant.fullName}`);
           } catch (err) {
-            console.error(`Failed to send SMS to tenant ${tenant.fullName}:`, err.message);
+            console.error(
+              `Failed to send SMS to tenant ${tenant.fullName}:`,
+              err.message
+            );
           }
         }
 
@@ -187,14 +193,17 @@ cron.schedule("0 8 * * *", async () => {
               await sendSingleSMS({ phone: admin.phone, msg: adminMsg });
               console.log(`SMS sent to admin: ${admin.id}`);
             } catch (err) {
-              console.error(`Failed to send SMS to admin ${admin.id}:`, err.message);
+              console.error(
+                `Failed to send SMS to admin ${admin.id}:`,
+                err.message
+              );
             }
           }
         }
       }
 
       // --------------------------
-      // 2) Payment request logic 
+      // 2) Payment request logic
       // --------------------------
       if (diffDays === 10) {
         try {
@@ -236,9 +245,14 @@ cron.schedule("0 8 * * *", async () => {
             callback: process.env.GEEZSMS_WEBHOOK_URL,
           });
 
-          console.log(`Payment request created and SMS sent for tenant: ${tenant.fullName}`);
+          console.log(
+            `Payment request created and SMS sent for tenant: ${tenant.fullName}`
+          );
         } catch (err) {
-          console.error(`Failed to create/send payment request for ${tenant.fullName}:`, err.message);
+          console.error(
+            `Failed to create/send payment request for ${tenant.fullName}:`,
+            err.message
+          );
         }
       }
 
@@ -252,11 +266,11 @@ cron.schedule("0 8 * * *", async () => {
         let punishmentAmount = 0;
 
         if (overdueDays >= 11 && overdueDays <= 15) {
-          punishmentAmount = tenant.amount * 0.05; 
+          punishmentAmount = tenant.amount * 0.05;
         } else if (overdueDays >= 16 && overdueDays <= 30) {
-          punishmentAmount = tenant.amount * 0.10; 
+          punishmentAmount = tenant.amount * 0.1;
         } else if (overdueDays > 30) {
-          punishmentAmount = tenant.amount * 0.15; 
+          punishmentAmount = tenant.amount * 0.15;
         }
 
         punishmentAmount = parseFloat(punishmentAmount.toFixed(2));
@@ -265,7 +279,7 @@ cron.schedule("0 8 * * *", async () => {
           const tenantMsg = `Dear ${tenant.fullName}, your lease expired ${overdueDays} day(s) ago. Today's punishment amount is ${punishmentAmount} ETB.`;
           const adminMsg = `Tenant ${tenant.fullName} is ${overdueDays} day(s) overdue. Today's punishment amount: ${punishmentAmount} ETB.`;
 
-          // Store or update punishment record
+          
           let punishment = await Punishment.findOne({
             where: { tenantId: tenant.id, status: "unpaid" },
           });
@@ -285,30 +299,38 @@ cron.schedule("0 8 * * *", async () => {
             console.log(`Created punishment for tenant ${tenant.fullName}`);
           }
 
-          // Send SMS to tenant
+          
           if (tenant.phoneNumber) {
             try {
-              await sendSingleSMS({ phone: tenant.phoneNumber, msg: tenantMsg });
+              await sendSingleSMS({
+                phone: tenant.phoneNumber,
+                msg: tenantMsg,
+              });
               console.log(`Punishment SMS sent to tenant: ${tenant.fullName}`);
             } catch (err) {
-              console.error(`Failed to send punishment SMS to tenant ${tenant.fullName}:`, err.message);
+              console.error(
+                `Failed to send punishment SMS to tenant ${tenant.fullName}:`,
+                err.message
+              );
             }
           }
 
-          // Send SMS to admins
+         
           for (const admin of admins) {
             if (admin.phone) {
               try {
                 await sendSingleSMS({ phone: admin.phone, msg: adminMsg });
                 console.log(`Punishment SMS sent to admin: ${admin.id}`);
               } catch (err) {
-                console.error(`Failed to send punishment SMS to admin ${admin.id}:`, err.message);
+                console.error(
+                  `Failed to send punishment SMS to admin ${admin.id}:`,
+                  err.message
+                );
               }
             }
           }
         }
       }
-
     }
     console.log("Lease expiry & punishment notifications complete.");
   } catch (error) {
@@ -323,15 +345,22 @@ exports.createRentPayment = async (req, res) => {
     if (error) {
       return res.status(400).json({ error: error.details[0].message });
     }
-    const { tenantId, paymentDate, paymentMethod, nextDueDate, status, punishment = "0", isPaid = "false"} =
-      req.body;
+    const {
+      tenantId,
+      paymentDate,
+      paymentMethod,
+      nextDueDate,
+      status,
+      punishment = 0,
+      isPaid = "false",
+    } = req.body;
 
     // Find the tenant and update their status and leaseEndDate
     const tenant = await Tenant.findByPk(tenantId);
     if (!tenant) {
       return res.status(404).json({ message: "Tenant not found" });
     }
-   // Safe parsing: always consistent, timezone-independent
+    // Safe parsing: always consistent, timezone-independent
     const toDateUTC = (dateStr) => {
       const [y, m, d] = dateStr.split("-");
       return new Date(Date.UTC(y, m - 1, d));
@@ -341,13 +370,12 @@ exports.createRentPayment = async (req, res) => {
     const nextDueDateObj = toDateUTC(nextDueDate);
 
     const rentAmount = tenant.amount;
-    const dailyRate = rentAmount / 30; 
+    const dailyRate = rentAmount / 30;
 
     // Calculate the difference in total days
     const differenceInTime = nextDueDateObj - paymentDateObj;
 
-    const totalDays =
-      Math.round(differenceInTime / (1000 * 60 * 60 * 24)) + 1;
+    const totalDays = Math.round(differenceInTime / (1000 * 60 * 60 * 24)) + 1;
 
     // Convert total days into months and remaining days
     const months = Math.floor(totalDays / 30);
@@ -366,26 +394,18 @@ exports.createRentPayment = async (req, res) => {
 
     // Create rent payment record
     const previousPayment = await TenantRentCollection.findOne({
-      where: { tenantId, status: "paid" },
+      where: { tenantId, status: "Paid" },
       order: [["paymentDate", "DESC"]],
     });
+
     if (previousPayment) {
-      // Check if the payment is for the same nextDueDate or if the payment date is earlier than the previous one
-      if (previousPayment.nextDueDate === nextDueDateObj) {
-        return res
-          .status(400)
-          .json({ message: "Tenant has already paid rent for this period" });
-      }
-      if (previousPayment.paymentDate >= paymentDateObj) {
+      const prevPaymentDate = toDateUTC(
+        previousPayment.paymentDate.toISOString().split("T")[0]
+      );
+
+      if (prevPaymentDate >= paymentDateObj) {
         return res.status(400).json({
-          message:
-            "Payment date cannot be earlier or the same as the previous payment date",
-        });
-      }
-      if (previousPayment.nextDueDate > paymentDateObj) {
-        return res.status(400).json({
-          message:
-            "Rent payment date cannot be earlier than the last payment date",
+          message: "Payment date must be after the previous payment date",
         });
       }
     }
@@ -398,8 +418,8 @@ exports.createRentPayment = async (req, res) => {
       paidDays,
       amountPaid,
       status,
-      punishment,
-      isPaid
+      punishment: Number(punishment),
+      isPaid,
     });
 
     if (status === "Paid") {
@@ -408,13 +428,12 @@ exports.createRentPayment = async (req, res) => {
       await tenant.save();
     }
 
-    if(status === "Paid" && isPaid === true && punishment > 0) {
+    if (status === "Paid" && isPaid === true && punishment > 0) {
       const punishmentRecord = await Punishment.findOne({
-        where : {tenantId, status : "unpaid",
-        }
+        where: { tenantId, status: "unpaid" },
       });
 
-      if(punishmentRecord) {
+      if (punishmentRecord) {
         punishmentRecord.status = "paid";
         await punishmentRecord.save();
       }
@@ -503,7 +522,6 @@ exports.getRentPaymentById = async (req, res) => {
   }
 };
 
-
 // Get a single rent payment by ID
 exports.getRentPaymentHistoryByTenantId = async (req, res) => {
   try {
@@ -518,10 +536,10 @@ exports.getRentPaymentHistoryByTenantId = async (req, res) => {
       return res.status(404).json({ message: "Tenant not found." });
     }
 
-    const tenantIds = tenants.map(t => t.id);
+    const tenantIds = tenants.map((t) => t.id);
 
     const rentPayments = await TenantRentCollection.findAll({
-      where: { tenantId: tenantIds }, 
+      where: { tenantId: tenantIds },
       include: [
         {
           model: Tenant,
@@ -536,7 +554,6 @@ exports.getRentPaymentHistoryByTenantId = async (req, res) => {
     });
 
     res.status(200).json(rentPayments);
-
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -556,7 +573,7 @@ exports.updateRentPayment = async (req, res) => {
       paymentMethod,
       status,
       punishment,
-      isPaid
+      isPaid,
     } = req.body;
 
     const rentPayment = await TenantRentCollection.findByPk(req.params.id);
@@ -595,10 +612,11 @@ exports.updateRentPayment = async (req, res) => {
       nextDueDate: nextDueDate || rentPayment.nextDueDate,
       paymentMethod: paymentMethod || rentPayment.paymentMethod,
       status: status || rentPayment.status,
-      punishment: punishment !== undefined ? punishment : rentPayment.punishment,
+      punishment:
+        punishment !== undefined ? punishment : rentPayment.punishment,
       isPaid: isPaid !== undefined ? isPaid : rentPayment.isPaid,
       paidDays: paidDaysString,
-      amountPaid: parseFloat(amountToPay.toFixed(2))
+      amountPaid: parseFloat(amountToPay.toFixed(2)),
     });
 
     // Three-condition logic for punishment and leaseEndDate
@@ -617,9 +635,9 @@ exports.updateRentPayment = async (req, res) => {
     // }
 
     if (rentPayment.status === "Paid") {
-  tenant.leaseEndDate = rentPayment.nextDueDate;
-  await tenant.save();
-}
+      tenant.leaseEndDate = rentPayment.nextDueDate;
+      await tenant.save();
+    }
 
     res.status(200).json({
       message: "Rent payment updated successfully",
@@ -627,7 +645,9 @@ exports.updateRentPayment = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error updating rent payment", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error updating rent payment", error: error.message });
   }
 };
 
@@ -645,7 +665,6 @@ exports.deleteRentPayment = async (req, res) => {
     res.status(500).json({ message: "Error deleting rent payment", error });
   }
 };
-
 
 // Get all due payments
 exports.getDuePayments = async (req, res) => {

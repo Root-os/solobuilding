@@ -734,26 +734,33 @@ const processTenantDetails = (tenants) => {
 exports.getTenantUnits = async (req, res) => {
   try {
     const tenants = await Tenant.findAll({
-      attributes: ["id", "fullName", "phoneNumber"],
       include: [
-        { model: Unit, as: 'Unit', attributes: ['id', 'unitNumber'] },
-        { model: Floor, as: 'Floor', attributes: ['id', 'floorNumber'] },
+        {
+          model: Unit,
+          as: "Unit",
+          attributes: ["id", "unitNumber", "status"],
+        },
+        {
+          model: Floor,
+          as: "Floor",
+          attributes: ["id", "floorNumber"],
+        },
+        {
+          model: TenantVehicle,
+          as: "TenantVehicles",
+          attributes: ["carPlate", "carName", "color"],
+        },
       ],
     });
 
-    console.log("Tenants fetched:", tenants.length); // Log how many tenants were returned
-    tenants.forEach(t => {
-      console.log("Tenant:", t.id, t.fullName, "Unit:", t.Unit, "Floor:", t.Floor);
-    });
-
     if (!tenants.length) {
-      return res.status(404).json({ message: 'No tenants found' });
+      return res.status(404).json({ message: "No tenants found" });
     }
 
     // Group tenants by phoneNumber
     const profilesMap = {};
 
-    tenants.forEach(t => {
+    tenants.forEach((t) => {
       if (!profilesMap[t.phoneNumber]) {
         profilesMap[t.phoneNumber] = {
           phoneNumber: t.phoneNumber,
@@ -762,10 +769,18 @@ exports.getTenantUnits = async (req, res) => {
         };
       }
 
+      const documentFullPath = t.document ? `${BASE_URL}${t.document}` : null;
+
       profilesMap[t.phoneNumber].tenant.push({
         tenantId: t.id,
-        unit: t.Unit ? { id: t.Unit.id, unitNumber: t.Unit.unitNumber } : null,
+        fullName: t.fullName,
+        phoneNumber: t.phoneNumber,
+        amount: t.amount,
+        leaseStartDate: t.leaseStartDate,
+        leaseEndDate: t.leaseEndDate,
+        unit: t.Unit ? { id: t.Unit.id, unitNumber: t.Unit.unitNumber, status: t.Unit.status } : null,
         floor: t.Floor ? { id: t.Floor.id, floorNumber: t.Floor.floorNumber } : null,
+        vehicles: t.TenantVehicles || [],
       });
     });
 
@@ -773,8 +788,8 @@ exports.getTenantUnits = async (req, res) => {
 
     res.status(200).json(response);
   } catch (error) {
-    console.error('Error fetching tenant units:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching tenant units:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
