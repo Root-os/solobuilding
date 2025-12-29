@@ -11,7 +11,7 @@ const sendNotificationHelper = require('../helpers/sendAlert');
 const cron = require('node-cron');
 const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
 
-cron.schedule('0 0 * * *', async () => {
+cron.schedule('0 8 * * *', async () => {
   try {
     const today = moment().startOf('day');
     console.log(`Running utility due reminder job for date: ${today.toISOString()}`);
