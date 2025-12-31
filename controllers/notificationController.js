@@ -6,6 +6,7 @@ const Unit = require('../models/unit');
 const Floor = require("../models/floor");
 const {notificationSchema}=require('../helpers/schema')
 const { Sequelize } = require('sequelize');
+
 // Create notification for a specific user or tenant
 const createNotificationForUser = async (req, res) => {
   try {
@@ -43,37 +44,62 @@ const createNotificationForUser = async (req, res) => {
 const createNotificationForGroup = async (req, res) => {
   try {
     const { title, body, type_id, receiver_type } = req.body;
+
     if (!title || !body || !type_id || !receiver_type) {
-      return res.status(400).json({ message: "Title, body, type_id, and receiver_type are required." });
+      return res.status(400).json({
+        message: "Title, body, type_id, and receiver_type are required."
+      });
     }
 
-    let receivers;
+    let receivers = [];
+
     if (receiver_type === "staff") {
       receivers = await User.findAll({ attributes: ["id"] });
-    } else if (receiver_type === "tenant") {
-      receivers = await Tenant.findAll({ attributes: ["id"] });
-    } else {
-      return res.status(400).json({ message: "Invalid receiver type." });
     }
 
-    await Promise.all(receivers.map(async (receiver) => {
-      try {
-        await Notification.create({
+    if (receiver_type === "tenant") {
+      const tenants = await Tenant.findAll({
+        attributes: ["id", "phoneNumber", "createdAt"],
+        order: [
+          ["phoneNumber", "ASC"],
+          ["createdAt", "ASC"] 
+        ]
+      });
+
+      // Deduplicate by phoneNumber
+      const uniqueTenantsMap = new Map();
+      for (const tenant of tenants) {
+        if (!uniqueTenantsMap.has(tenant.phoneNumber)) {
+          uniqueTenantsMap.set(tenant.phoneNumber, tenant);
+        }
+      }
+
+      receivers = Array.from(uniqueTenantsMap.values());
+    }
+
+    await Promise.all(
+      receivers.map((receiver) =>
+        Notification.create({
           receiver_id: receiver.id,
           receiver_type,
           title,
           body,
-          notificationTypeId: type_id,
-        });
-      } catch (error) {
-        console.error(`Failed to create notification for receiver ${receiver.id}:`, error.message);
-      }
-    }));
+          type_id
+        })
+      )
+    );
 
-    return res.status(201).json({ status: "success", message: `Notifications sent to all ${receiver_type}s.` });
+    return res.status(201).json({
+      status: "success",
+      message: `Notifications sent to all ${receiver_type}s.`
+    });
+
   } catch (error) {
-    console.error("Error sending group notifications:", error.message);
-    return res.status(500).json({ status: "error", message: error.message });
+    console.error("Error sending group notifications:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message
+    });
   }
 };
 
@@ -86,10 +112,46 @@ const updateNotification = async (req, res) => {
     const notification = await Notification.findByPk(id);
     if (!notification) return res.status(404).json({ message: "Notification not found." });
 
-    Object.assign(notification, { title, body, notificationTypeId: type_id, isRead });
+    Object.assign(notification, { title, body, type_id, isRead });
     await notification.save();
 
-    return res.status(200).json({ message: "Notification updated successfully.", notification });
+    const updatedNotification = await Notification.findByPk(req.params.id, {
+      include: [
+        {
+          model: NotificationType,
+          as: "type",
+          attributes: ["id", "name"],
+        },
+        {
+          model: User,
+          as: "receiverStaff",
+          attributes: ["id", "fname", "lname", "email"],
+          required: false, // Optional include
+          where: { "$Notification.receiver_type$": "staff" }, // Filter by receiver_type
+        },
+        {
+          model: Tenant,
+          as: "receiverTenant",
+          attributes: ["id", "fullName", "email"],
+          required: false, // Optional include
+          where: { "$Notification.receiver_type$": "tenant" }, // Filter by receiver_type
+        },
+      ],
+    });
+
+    const notificationJson = updatedNotification.toJSON();
+
+    const { receiverStaff, receiverTenant, ...rest } = notificationJson;
+
+    const result = {
+      ...rest,
+      receiver:
+        notificationJson.receiver_type === "staff"
+          ? receiverStaff
+          : receiverTenant,
+    };
+
+    return res.status(200).json({ message: "Notification updated successfully.", notification: result });
   } catch (error) {
     console.error("Error updating notification:", error.message);
     return res.status(500).json({ message: error.message });
@@ -168,7 +230,6 @@ const getMyNotifications = async (req, res) => {
 };
 
 
-
 // Mark a notification as read
 const markAsRead = async (req, res) => {
   try {
@@ -208,14 +269,14 @@ const getAllNotifications = async (req, res) => {
           as: "receiverStaff",
           attributes: ["id", "fname", "lname", "email"],
           required: false, // Optional include
-          where: { "$Notification.receiver_type$": "staff" }, // Filter by receiver_type
+          where: { "$Notification.receiver_type$": "staff" }, 
         },
         {
           model: Tenant,
           as: "receiverTenant",
           attributes: ["id", "fullName", "email"],
           required: false, // Optional include
-          where: { "$Notification.receiver_type$": "tenant" }, // Filter by receiver_type
+          where: { "$Notification.receiver_type$": "tenant" }, 
         },
       ],
     });

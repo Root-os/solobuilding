@@ -35,49 +35,60 @@ exports.sendEmailToTenant = async (req, res) => {
 exports.sendBulkEmailToTenants = async (req, res) => {
   try {
     const { subject, content } = req.body;
-    const senderId = req.user.id; // Admin ID from JWT
+    const senderId = req.user.id;
 
-    // Fetch all active tenants
+    // Fetch active tenants
     const tenants = await Tenant.findAll({
       where: { status: "active" },
-      attributes: ["id", "email"],
+      attributes: ["id", "email", "createdAt"],
+      order: [["createdAt", "ASC"]] // deterministic
     });
 
     if (!tenants.length) {
       return res.status(404).json({ message: "No active tenants found" });
     }
 
-    const emailPromises = tenants.map(async (tenant) => {
-      // Check if tenant exists in the tenants table (foreign key reference)
-      const receiverExists = await Tenant.findByPk(tenant.id); // Use the Tenant model here
-      if (!receiverExists) {
-        console.log(`Receiver ID ${tenant.id} does not exist in tenants table. Skipping email.`);
-        return { success: false, message: `Receiver ID ${tenant.id} does not exist` };
+    // ✅ Deduplicate by email (person-based)
+    const uniqueTenantMap = new Map();
+
+    for (const tenant of tenants) {
+      if (tenant.email && !uniqueTenantMap.has(tenant.email)) {
+        uniqueTenantMap.set(tenant.email, tenant);
       }
+    }
 
-      // Save email in the database
-      await Email.create({ senderId, receiverId: tenant.id, subject, content });
+    const uniqueTenants = Array.from(uniqueTenantMap.values());
 
-      // Send actual email
-      return sendEmail(tenant.email, subject, content);
-    });
+    // ✅ Send emails
+    const emailResponses = await Promise.all(
+      uniqueTenants.map(async (tenant) => {
+        // Save email (person-representative tenantId)
+        await Email.create({
+          senderId,
+          receiverId: tenant.id,
+          subject,
+          content
+        });
 
-    const emailResponses = await Promise.all(emailPromises);
+        // Send actual email
+        return sendEmail(tenant.email, subject, content);
+      })
+    );
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Bulk email sent successfully",
+      sentCount: uniqueTenants.length,
       emailStatus: emailResponses
     });
 
   } catch (error) {
-    console.error('Error sending bulk email:', error);
-    res.status(500).json({
+    console.error("Error sending bulk email:", error);
+    return res.status(500).json({
       message: "Error sending bulk email",
       error: error.message || error
     });
   }
 };
-
 
 
 // Get received emails for a tenant
@@ -88,6 +99,13 @@ exports.getReceivedEmails = async (req, res) => {
     const emails = await Email.findAll({
       where: { receiverId: userId },
       order: [["createdAt", "DESC"]],
+            include: [
+        {
+          model: Tenant,
+          as: "receiver",
+          attributes: ["id", "fullName", "email"]
+        }
+      ]
     });
 
     res.json({ emails });
@@ -104,6 +122,13 @@ exports.getSentEmails = async (req, res) => {
     const emails = await Email.findAll({
       where: { senderId: adminId },
       order: [["createdAt", "DESC"]],
+                  include: [
+        {
+          model: Tenant,
+          as: "receiver",
+          attributes: ["id", "fullName", "email"]
+        }
+      ]
     });
 
     res.json({ emails });

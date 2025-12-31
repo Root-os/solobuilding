@@ -17,7 +17,7 @@ createNotificationForUser,
 const { adminAuth,EmployeeOrTenantAuth,adminOrEmployeeAuth,tenantAuth } = require("../middleware/auth");
 
 // Create notification for user
-router.post("/create", adminOrEmployeeAuth, createNotificationForUser);
+router.post("/create",  createNotificationForUser);
 
 // Update notification
 router.put(

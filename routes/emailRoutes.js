@@ -10,17 +10,13 @@ const {
 const { adminAuth, tenantAuth, adminOrEmployeeAuth } = require("../middleware/auth");
 const router = express.Router();
 
-// Send an email to a specific tenant (Admin only)
-router.post("/send", adminOrEmployeeAuth, sendEmailToTenant);
 
-// Send bulk email to all tenants (Admin only)
+router.post("/send", adminOrEmployeeAuth, sendEmailToTenant);
 router.post("/send-bulk", adminOrEmployeeAuth, sendBulkEmailToTenants);
 
-// Get received emails for a tenant
-router.get("/received", tenantAuth, getReceivedEmails);
 
-// Get sent emails (Admin only)
 router.get("/sent", adminOrEmployeeAuth, getSentEmails);
+router.get("/received", tenantAuth, getReceivedEmails);
 
 // Mark email as read (Tenant only)
 router.patch("/mark-read/:emailId", tenantAuth, markEmailAsRead);
