@@ -308,7 +308,7 @@ exports.getPaymentsByStatus = async (req, res) => {
         });
 
         if (billPayments.length === 0) {
-            return res.status(404).json({ message: "No bill payments found with this status" });
+            return res.status(200).json([]);
         }
 
         res.status(200).json(billPayments);
