@@ -239,7 +239,7 @@ const parkingSchema = Joi.object({
 
 const paymentRequestSchema = Joi.object({
   tenantId: Joi.number().integer().min(0).required(),
-  message: Joi.string().min(10).max(500).optional(),
+  message: Joi.string().optional(),
   level: Joi.string().valid("low", "medium", "high").optional(),
   status: Joi.string().valid("pending", "approved", "rejected").optional(),
   amount: Joi.number().min(0.01).required(),

@@ -349,7 +349,6 @@ exports.getLastTenantPayment = async (req, res) => {
   }
 };
 
-
 // Update a tenant payment
 exports.updatePayment = async (req, res) => {
   try {
@@ -383,55 +382,72 @@ exports.deletePayment = async (req, res) => {
 
 exports.getTenantPaymentsReport = async (req, res) => {
   try {
-      const { startDate, endDate, billPaymentTypeId, tenantId, createdAt } = req.body;
+    const { startDate, endDate, billPaymentTypeId, tenantId, createdAt } = req.body;
 
-      let whereCondition = {};
+    let whereCondition = {};
+    let tenantWhere = {};
 
-      // Filter by startDate & endDate range
-      if (startDate && endDate) {
-          whereCondition.startDate = { [Op.between]: [new Date(startDate), new Date(endDate)] };
-      } else if (startDate) {
-          whereCondition.startDate = { [Op.gte]: new Date(startDate) };
-      } else if (endDate) {
-          whereCondition.endDate = { [Op.lte]: new Date(endDate) };
-      }
+    // Date filters
+    if (startDate && endDate) {
+  whereCondition[Op.and] = [
+    { startDate: { [Op.gte]: new Date(startDate) } },
+    { endDate: { [Op.lte]: new Date(endDate) } },
+  ];
+    } else if (startDate) {
+      whereCondition.startDate = { [Op.gte]: new Date(startDate) };
+    } else if (endDate) {
+      whereCondition.endDate = { [Op.lte]: new Date(endDate) };
+    }
 
-      // Filter by bill type
-      if (billPaymentTypeId) {
-          whereCondition.paymentTypeId = billPaymentTypeId;
-      }
+    if (billPaymentTypeId) {
+      whereCondition.paymentTypeId = billPaymentTypeId;
+    }
 
-      // Filter by tenant ID
-      if (tenantId) {
-          whereCondition.tenantId = tenantId;
-      }
+    if (createdAt) {
+      const d = new Date(createdAt);
+      whereCondition.createdAt = {
+        [Op.between]: [
+          new Date(d.setHours(0, 0, 0, 0)),
+          new Date(d.setHours(23, 59, 59, 999)),
+        ],
+      };
+    }
 
-      // Filter by createdAt (Exact Date or Range)
-      if (createdAt) {
-          const createdAtDate = new Date(createdAt);
-          whereCondition.createdAt = {
-              [Op.gte]: new Date(createdAtDate.setHours(0, 0, 0, 0)), // Start of the day
-              [Op.lte]: new Date(createdAtDate.setHours(23, 59, 59, 999)), // End of the day
-          };
-      }
-
-      // Fetch data from the database
-      const tenantPayments = await TenantPayment.findAll({
-          where: whereCondition,
-          include: [
-              { model: Tenant, attributes: ["id", "fullName"],
-                 include: [
-                  { model: Unit, attributes: ['unitNumber'] },
-                  { model: Floor, attributes: ['floorNumber'] }
-                ],
-               }, 
-              { model: BillType, attributes: ["id", "typeName"] }
-          ],
-          order: [["startDate", "DESC"]]
+    // 🔑 Resolve phone number from tenantId
+    if (tenantId) {
+      const tenant = await Tenant.findByPk(tenantId, {
+        attributes: ["phoneNumber"],
       });
 
-      return res.status(200).json(tenantPayments);
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+
+      tenantWhere.phoneNumber = tenant.phoneNumber;
+    }
+
+    const tenantPayments = await TenantPayment.findAll({
+      where: whereCondition,
+      include: [
+        {
+          model: Tenant,
+          attributes: ["id", "fullName", "phoneNumber"],
+          where: tenantWhere, // 🔥 group/filter by phone number
+          include: [
+            { model: Unit, attributes: ["unitNumber"] },
+            { model: Floor, attributes: ["floorNumber"] },
+          ],
+        },
+        { model: BillType, attributes: ["id", "typeName"] },
+      ],
+      order: [["startDate", "DESC"]],
+    });
+
+    res.status(200).json(tenantPayments);
   } catch (error) {
-      return res.status(500).json({ message: "Error fetching tenant payments report", error: error.message });
+    res.status(500).json({
+      message: "Error fetching tenant payments report",
+      error: error.message,
+    });
   }
 };

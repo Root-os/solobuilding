@@ -2,6 +2,7 @@ const ElectricCarCharging = require('../models/charging');
 const Tenant = require('../models/tenant');
 const Setting = require('../models/setting');
 const { Op } = require('sequelize');
+const moment = require('moment'); 
 
 // 1. Create a new electric car charging session
 exports.createChargingSession = async (req, res) => {
@@ -48,8 +49,7 @@ exports.createChargingSession = async (req, res) => {
     }
 };
 
-const moment = require('moment');  
-
+ 
 // 2. Update the charging session (set price, charging end time, etc.)
 exports.updateChargingSession = async (req, res) => {
     try {
@@ -165,53 +165,77 @@ exports.getAllChargingSessions = async (req, res) => {
 
 // 6. Generate a report of all charging sessions (with optional filters)
 exports.generateReport = async (req, res) => {
-    try {
-        const { carPlate, carName, driverName, status, dateRange, tenantId } = req.body;
-        // Initialize filters
-        let filter = {};
+  try {
+    const { carPlate, carName, driverName, status, dateRange, tenantId } = req.body;
 
-        if (carPlate) {
-            filter.carPlate = { [Op.like]: `%${carPlate}%` };
-        }
-        if (carName) {
-            filter.carName = { [Op.like]: `%${carName}%` };
-        }
-        if (driverName) {
-            filter.driverName = { [Op.like]: `%${driverName}%` };
-        }
+    let filter = {};
+    let tenantWhere = {};
 
-        if (status) {
-            filter.status = status;
-        }
-
-        if (dateRange) {
-            const [startDate, endDate] = dateRange.split(',');
-            filter.chargingStartTime = {
-                [Op.between]: [new Date(startDate), new Date(endDate)],
-            };
-        }
-        // Include tenant filter if tenantId is provided
-        const includeOptions = {
-            model: Tenant,
-            attributes: ['FullName']
-        };
-
-        if (tenantId) {
-            includeOptions.where = { id: tenantId };
-        }
-        const chargingSessions = await ElectricCarCharging.findAll({
-            where: filter,
-            include: [includeOptions],
-        });
-        return res.status(200).json({
-            data: chargingSessions,
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error generating charging sessions report.', error });
+    if (carPlate) {
+      filter.carPlate = { [Op.like]: `%${carPlate}%` };
     }
+
+    if (carName) {
+      filter.carName = { [Op.like]: `%${carName}%` };
+    }
+
+    if (driverName) {
+      filter.driverName = { [Op.like]: `%${driverName}%` };
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (dateRange) {
+      const [startDate, endDate] = dateRange.split(',');
+
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      filter.chargingStartTime = {
+        [Op.between]: [start, end],
+      };
+    }
+
+    // 🔑 Resolve phoneNumber from tenantId
+    if (tenantId) {
+      const tenant = await Tenant.findByPk(tenantId, {
+        attributes: ["phoneNumber"],
+      });
+
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+
+      tenantWhere.phoneNumber = tenant.phoneNumber;
+    }
+
+    const chargingSessions = await ElectricCarCharging.findAll({
+      where: filter,
+      include: [
+        {
+          model: Tenant,
+          attributes: ["id", "fullName", "phoneNumber"],
+          where: tenantWhere, // 🔥 grouped by phoneNumber
+        },
+      ],
+    });
+
+    return res.status(200).json({ data: chargingSessions });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Error generating charging sessions report.",
+      error: error.message,
+    });
+  }
 };
+
 
 // 4. Get a specific charging session by ID
 exports.getChargingSessionById = async (req, res) => {

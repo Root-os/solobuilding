@@ -159,7 +159,14 @@ const reviewWithdrawalRequest = async (req, res) => {
   
       // Fetch the request along with Tenant details
       const request = await WithdrawalRequest.findByPk(requestId, {
-        include: { model: Tenant, attributes: ['id', 'fullName', 'email', 'phoneNumber'] },
+        include: { model: Tenant, 
+          attributes: ['id', 'fullName', 'email', 'phoneNumber'],
+          include : [
+            { model: Floor, attributes: ['floorNumber'] },
+            { model: Unit, attributes: ['unitNumber'] } 
+          ]
+        },
+    
       });
   
       if (!request) {

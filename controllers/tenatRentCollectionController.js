@@ -260,77 +260,77 @@ cron.schedule("0 8 * * *", async () => {
       // 3) Punishment notifications for overdue tenants
       // --------------------------
 
-      if (diffDays < 0) {
-        const overdueDays = Math.abs(diffDays);
+      // if (diffDays < 0) {
+      //   const overdueDays = Math.abs(diffDays);
 
-        let punishmentAmount = 0;
+      //   let punishmentAmount = 0;
 
-        if (overdueDays >= 11 && overdueDays <= 15) {
-          punishmentAmount = tenant.amount * 0.05;
-        } else if (overdueDays >= 16 && overdueDays <= 30) {
-          punishmentAmount = tenant.amount * 0.1;
-        } else if (overdueDays > 30) {
-          punishmentAmount = tenant.amount * 0.15;
-        }
+      //   if (overdueDays >= 11 && overdueDays <= 15) {
+      //     punishmentAmount = tenant.amount * 0.05;
+      //   } else if (overdueDays >= 16 && overdueDays <= 30) {
+      //     punishmentAmount = tenant.amount * 0.1;
+      //   } else if (overdueDays > 30) {
+      //     punishmentAmount = tenant.amount * 0.15;
+      //   }
 
-        punishmentAmount = parseFloat(punishmentAmount.toFixed(2));
+      //   punishmentAmount = parseFloat(punishmentAmount.toFixed(2));
 
-        if (punishmentAmount > 0) {
-          const tenantMsg = `Dear ${tenant.fullName}, your lease expired ${overdueDays} day(s) ago. Today's punishment amount is ${punishmentAmount} ETB.`;
-          const adminMsg = `Tenant ${tenant.fullName} is ${overdueDays} day(s) overdue. Today's punishment amount: ${punishmentAmount} ETB.`;
-
-          
-          let punishment = await Punishment.findOne({
-            where: { tenantId: tenant.id, status: "unpaid" },
-          });
-
-          if (punishment) {
-            punishment.amount = punishmentAmount;
-            punishment.description = `Overdue by ${overdueDays} day(s)`;
-            await punishment.save();
-            console.log(`Updated punishment for tenant ${tenant.fullName}`);
-          } else {
-            await Punishment.create({
-              tenantId: tenant.id,
-              amount: punishmentAmount,
-              description: `Overdue by ${overdueDays} day(s)`,
-              status: "unpaid",
-            });
-            console.log(`Created punishment for tenant ${tenant.fullName}`);
-          }
+      //   if (punishmentAmount > 0) {
+      //     const tenantMsg = `Dear ${tenant.fullName}, your lease expired ${overdueDays} day(s) ago. Today's punishment amount is ${punishmentAmount} ETB.`;
+      //     const adminMsg = `Tenant ${tenant.fullName} is ${overdueDays} day(s) overdue. Today's punishment amount: ${punishmentAmount} ETB.`;
 
           
-          if (tenant.phoneNumber) {
-            try {
-              await sendSingleSMS({
-                phone: tenant.phoneNumber,
-                msg: tenantMsg,
-              });
-              console.log(`Punishment SMS sent to tenant: ${tenant.fullName}`);
-            } catch (err) {
-              console.error(
-                `Failed to send punishment SMS to tenant ${tenant.fullName}:`,
-                err.message
-              );
-            }
-          }
+      //     let punishment = await Punishment.findOne({
+      //       where: { tenantId: tenant.id, status: "unpaid" },
+      //     });
+
+      //     if (punishment) {
+      //       punishment.amount = punishmentAmount;
+      //       punishment.description = `Overdue by ${overdueDays} day(s)`;
+      //       await punishment.save();
+      //       console.log(`Updated punishment for tenant ${tenant.fullName}`);
+      //     } else {
+      //       await Punishment.create({
+      //         tenantId: tenant.id,
+      //         amount: punishmentAmount,
+      //         description: `Overdue by ${overdueDays} day(s)`,
+      //         status: "unpaid",
+      //       });
+      //       console.log(`Created punishment for tenant ${tenant.fullName}`);
+      //     }
+
+          
+      //     if (tenant.phoneNumber) {
+      //       try {
+      //         await sendSingleSMS({
+      //           phone: tenant.phoneNumber,
+      //           msg: tenantMsg,
+      //         });
+      //         console.log(`Punishment SMS sent to tenant: ${tenant.fullName}`);
+      //       } catch (err) {
+      //         console.error(
+      //           `Failed to send punishment SMS to tenant ${tenant.fullName}:`,
+      //           err.message
+      //         );
+      //       }
+      //     }
 
          
-          for (const admin of admins) {
-            if (admin.phone) {
-              try {
-                await sendSingleSMS({ phone: admin.phone, msg: adminMsg });
-                console.log(`Punishment SMS sent to admin: ${admin.id}`);
-              } catch (err) {
-                console.error(
-                  `Failed to send punishment SMS to admin ${admin.id}:`,
-                  err.message
-                );
-              }
-            }
-          }
-        }
-      }
+      //     for (const admin of admins) {
+      //       if (admin.phone) {
+      //         try {
+      //           await sendSingleSMS({ phone: admin.phone, msg: adminMsg });
+      //           console.log(`Punishment SMS sent to admin: ${admin.id}`);
+      //         } catch (err) {
+      //           console.error(
+      //             `Failed to send punishment SMS to admin ${admin.id}:`,
+      //             err.message
+      //           );
+      //         }
+      //       }
+      //     }
+      //   }
+      // }
     }
     console.log("Lease expiry & punishment notifications complete.");
   } catch (error) {
@@ -713,6 +713,7 @@ exports.filterRentCollections = async (req, res) => {
       nextDueDateFrom,
       nextDueDateTo,
       status,
+      tenantId,
     } = req.body;
 
     let whereConditions = {};
@@ -754,10 +755,30 @@ exports.filterRentCollections = async (req, res) => {
     });
     if (!rentCollections.length) {
       return res
-        .status(404)
+        .status(200)
         .json({ message: "No rent collections found matching the filters" });
     }
-    res.status(200).json(rentCollections);
+
+    let filteredRents = rentCollections;
+    if (tenantId) {
+      // find tenant's phoneNumber
+      const tenantRecord = rentCollections.find(r => r.tenantId === tenantId);
+
+      if (!tenantRecord) {
+        return res
+          .status(404)
+          .json({ message: "Tenant not found in rent collections" });
+      }
+
+      const phone = tenantRecord.Tenant.phoneNumber;
+
+      // filter all rents with same phoneNumber
+      filteredRents = rentCollections.filter(
+        r => r.Tenant.phoneNumber === phone
+      );
+    }
+
+    res.status(200).json(filteredRents);
   } catch (error) {
     res.status(500).json({
       message: "Error fetching rent collections",
