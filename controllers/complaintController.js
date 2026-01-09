@@ -229,6 +229,66 @@ const getTenantComplaints = async (req, res) => {
     res.status(500).json({ message: 'Error fetching complaints', error: error.message });
   }
 };
+
+const updateComplaint = async (req, res) => {
+  try {
+    const { complaintId } = req.params; // ID of the complaint to update
+    const { description, urgency } = req.body;
+
+    // Find the complaint and ensure it belongs to the tenant making the request
+    const complaint = await Complaint.findOne({
+      where: { id: complaintId },
+      include: [{
+        model: Tenant,
+        where: { phoneNumber: req.user.phone },
+      }],
+    });
+
+    if (!complaint) {
+      return res.status(404).json({ message: 'Complaint not found or access denied' });
+    }
+
+    // Update fields if provided
+    if (description !== undefined) complaint.description = description;
+    if (urgency !== undefined) complaint.urgency = urgency;
+
+    // Handle images if new files are uploaded
+    if (req.files && req.files.length > 0) {
+      const newImagePaths = req.files.map(file => file.path);
+      // Optionally merge with existing images instead of replacing
+      complaint.images = [...(complaint.images || []), ...newImagePaths];
+    }
+
+    await complaint.save();
+
+    // Optional: notify admins if needed
+    const admins = await User.findAll({
+      include: [{
+        model: Role,
+        where: { name: 'admin' },
+      }],
+    });
+
+    if (admins.length > 0) {
+      await Promise.all(
+        admins.map(admin =>
+          sendNotificationHelper({
+            adminId: admin.id,
+            title: 'Complaint Updated',
+            body: `A complaint by ${complaint.Tenant.fullName} has been updated. Check the complaints page for details.`,
+            type: 'Complaint Update',
+            receiver_type: 'staff',
+          })
+        )
+      );
+    }
+
+    res.status(200).json({ message: 'Complaint updated successfully', complaint });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating complaint', error: error.message });
+  }
+};
+
  
 // Update complaint status
 const updateComplaintStatus = async (req, res) => {
@@ -426,5 +486,6 @@ confirmComplaintResolution,
 deleteComplaint,
 getSingleComplaint,
 getTenantComplaints,
+updateComplaint,
 getAssignedComplaints,
 }
