@@ -1,6 +1,4 @@
 const Floor = require('../models/floor');
-// Get all floors
-
 const Unit = require("../models/unit");
 
 // Create a new floor
@@ -8,6 +6,12 @@ exports.createFloor = async (req, res) => {
   try {
     console.log(req.body); // Log the request body
     const { floorNumber, status } = req.body;
+    const existingFloor = await Floor.findOne({
+      where: { floorNumber: req.body.floorNumber },
+    });
+    if (existingFloor) {
+      return res.status(400).json({ error: "Floor number must be unique." });
+    }
     const newFloor = await Floor.create({ floorNumber, status });
     res.status(201).json(newFloor);
   } catch (error) {
@@ -76,7 +80,6 @@ exports.getFloorById = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // Update a floor
 exports.updateFloor = async (req, res) => {

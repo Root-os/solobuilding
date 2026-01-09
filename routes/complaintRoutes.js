@@ -10,6 +10,7 @@ const {
   deleteComplaint,
   getSingleComplaint,
   getTenantComplaints,
+  updateComplaint,
   getAssignedComplaints,
 } =require( '../controllers/complaintController.js');
 const { adminAuth, tenantAuth, } = require("../middleware/auth");
@@ -19,7 +20,7 @@ const { adminAuth, tenantAuth, } = require("../middleware/auth");
 router.post('/submit', upload.array('images', 5), tenantAuth,createComplaint);
 
 // Admin views all complaints
-router.get('/all', adminAuth,getAllComplaints);
+router.get('/all',adminAuth, getAllComplaints);
 
 // Admin assigns a complaint to a staff member
 router.put('/assign',adminAuth, assignComplaint);
@@ -38,9 +39,11 @@ router.get('/get/:complaintId', getSingleComplaint);
 
 // Get all complaints for a tenant
 router.get('/tenant',tenantAuth, getTenantComplaints);
+router.put('/update/:complaintId', tenantAuth, updateComplaint);
 
 // Get all complaints assigned to a staff member
 router.get('/assigned/:employeeId', getAssignedComplaints);
+
 
 
 module.exports= router;

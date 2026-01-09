@@ -10,6 +10,7 @@ const Floor = sequelize.define('Floor', {
   floorNumber: {
     type: DataTypes.STRING,
     allowNull: false,
+    unique: true,
   },
   status: {
     type: DataTypes.ENUM('active', 'inActive', 'under_construction'),

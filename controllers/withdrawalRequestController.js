@@ -317,7 +317,23 @@ const provideTenantFeedback = async (req, res) => {
     try {
         const { requestId, tenantFeedback } = req.body;
 
-        const request = await WithdrawalRequest.findByPk(requestId);
+        const request = await WithdrawalRequest.findByPk(requestId,{
+            include: [
+              {
+                model: Tenant,
+                attributes: ['id', 'fullName', 'email', 'phoneNumber'],
+                include: [
+                  { model: Unit, attributes: ['unitNumber'] },
+                  { model: Floor, attributes: ['floorNumber'] }
+                ]
+              },
+              {
+                model: User,
+                as: 'assignedEmployee',
+                attributes: ['fname', 'lname', 'email']
+              }
+            ]
+          });
         if (!request) {
             return res.status(404).json({ message: "Withdrawal request not found." });
         }
@@ -457,7 +473,19 @@ const finalizeWithdrawalProcess = async (req, res) => {
         }
         const { requestId, depositRefundStatus } = req.body;
 
-        const request = await WithdrawalRequest.findByPk(requestId);
+        const request = await WithdrawalRequest.findByPk(requestId,
+            {
+              include: [
+                {
+                  model: Tenant,
+                  attributes: ['id', 'fullName', 'email', 'phoneNumber'],
+                  include: [
+                    { model: Unit, attributes: ['unitNumber'] },
+                    { model: Floor, attributes: ['floorNumber'] }
+                  ]
+                },
+              ]
+            });
         if (!request) {
             return res.status(404).json({ message: "Withdrawal request not found." });
         }
