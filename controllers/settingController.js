@@ -276,3 +276,34 @@ exports.updateCalendarSetting = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.togglePunishment = async (req, res) => {
+  try {
+    const { applyPunishment } = req.body;
+
+    if (typeof applyPunishment !== "boolean") {
+      return res.status(400).json({
+        message: "applyPunishment must be a boolean value",
+      });
+    }
+
+    let settings = await Setting.findOne();
+
+    if (!settings) {
+      settings = await Setting.create({ applyPunishment });
+    } else {
+      settings.applyPunishment = applyPunishment;
+      await settings.save();
+    }
+
+    return res.status(200).json({
+      message: `Punishment ${
+        applyPunishment ? "enabled" : "disabled"
+      } successfully`,
+      applyPunishment: settings.applyPunishment,
+    });
+  } catch (error) {
+    console.error("Toggle punishment error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};

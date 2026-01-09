@@ -25,5 +25,8 @@ router.put(
   settingController.updateSetting
 );
 router.delete("/:id", settingController.deleteSetting);
+router.patch(
+  "/punishment", settingController.togglePunishment
+);
 
 module.exports = router;

@@ -55,6 +55,10 @@ const Setting = sequelize.define("Setting", {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
     },
+    applyPunishment: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+    }
 }, {
     tableName: "settings",
     timestamps: true,
