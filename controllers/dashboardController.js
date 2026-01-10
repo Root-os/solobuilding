@@ -17,6 +17,7 @@ const Salary= require("../models/SalaryPayment");
 const Stockout= require("../models/stockout");
 const TenantPayment= require("../models/tenantPayments");
 const BillPayment= require("../models/billPayment");
+const Letter = require("../models/letter");
 const { Op,Sequelize } = require('sequelize');
 const {Role} = require('../models');
 
@@ -348,15 +349,26 @@ exports.getTenantDashboardStats = async (req, res) => {
       moveInInventories,
       moveOutInventories,
 
+      totalLetters,
+      sentLetters,
+      receivedLetters,
+      rejectedLetters,
+
       totalVehicles,
 
       // totalParking,
       // onParking,
 
-      // totalTenantPayments,
-      // pendingTenantPayments,
-      // paidTenantPayments,
-      // overdueTenantPayments,
+      totalTenantPayments,
+      pendingTenantPayments,
+      paidTenantPayments,
+      overdueTenantPayments,
+
+      totalTenantRentCollection,
+      pendingTenantRentCollection,
+      paidTenantRentCollection,
+      overdueTenantRentCollection,
+
     ] = await Promise.all([
       // Notifications
       Notification.count({
@@ -388,19 +400,35 @@ exports.getTenantDashboardStats = async (req, res) => {
       TenantInventory.count({ where: { tenantId: tenantIds, type: 'move-in' } }),
       TenantInventory.count({ where: { tenantId: tenantIds, type: 'move-out' } }),
 
+      // Letters
+      Letter.count({ where: { tenantId: tenantIds } }),
+      Letter.count({ where: { tenantId: tenantIds, status: 'Sent' } }),
+      Letter.count({ where: { tenantId: tenantIds, status: 'Recived' } }),
+      Letter.count({ where: { tenantId: tenantIds, status: 'Rejected' } }),
+
+
       // Vehicles
-      TenantVehicle.count({ where: { tenantId: tenantIds } }),
+      // TenantVehicle.count({ where: { tenantId: tenantIds } }),
 
       // Parking
       // Parking.count({ where: { tenantId: tenantIds } }),
       // Parking.count({ where: { tenantId: tenantIds, status: 'onparking' } }),
 
       // Tenant Payments
-      // TenantPayment.count({ where: { tenantId: tenantIds } }),
-      // TenantPayment.count({ where: { tenantId: tenantIds, status: 'due' } }),
-      // TenantPayment.count({ where: { tenantId: tenantIds, status: 'paid' } }),
-      // TenantPayment.count({ where: { tenantId: tenantIds, status: 'overdue' } }),
-    ]);
+      TenantPayment.count({ where: { tenantId: tenantIds } }),
+      TenantPayment.count({ where: { tenantId: tenantIds, status: 'due' } }),
+      TenantPayment.count({ where: { tenantId: tenantIds, status: 'paid' } }),
+      TenantPayment.count({ where: { tenantId: tenantIds, status: 'overdue' } }),
+ 
+
+      //Tenant rent collection
+      TenantRentCollection.count({ where: { tenantId: tenantIds } }),  
+      TenantRentCollection.count({ where: { tenantId: tenantIds, status: 'Pending' } }),
+      TenantRentCollection.count({ where: { tenantId: tenantIds, status: 'Paid' } }),
+      TenantRentCollection.count({ where: { tenantId: tenantIds, status: 'Overdue' } }),
+      ]);
+
+
 
     // 4️⃣ Final response
     res.json({
@@ -409,6 +437,13 @@ exports.getTenantDashboardStats = async (req, res) => {
       notifications: {
         totalNotifications,
         unreadNotifications,
+      },
+
+      letters: {
+        totalLetters,
+        sentLetters,
+        receivedLetters,
+        rejectedLetters,
       },
 
       paymentsRequest: {
@@ -429,21 +464,28 @@ exports.getTenantDashboardStats = async (req, res) => {
         moveOutInventories,
       },
 
-      tenantVehicles: {
-        totalVehicles,
-      },
+      // tenantVehicles: {
+      //   totalVehicles,
+      // },
 
       // parking: {
       //   totalParking,
       //   onParking,
       // },
 
-      // tenantPayments: {
-      //   totalTenantPayments,
-      //   pendingTenantPayments,
-      //   paidTenantPayments,
-      //   overdueTenantPayments,
-      // },
+      tenantPayments: {
+        totalTenantPayments,
+        pendingTenantPayments,
+        paidTenantPayments,
+        overdueTenantPayments,
+      },
+
+      tenantRentCollection: {
+        totalTenantRentCollection,
+        pendingTenantRentCollection,
+        paidTenantRentCollection,
+        overdueTenantRentCollection,
+      },
     });
 
   } catch (error) {

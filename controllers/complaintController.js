@@ -232,64 +232,77 @@ const getTenantComplaints = async (req, res) => {
 
 const updateComplaint = async (req, res) => {
   try {
-    const { complaintId } = req.params; // ID of the complaint to update
-    const { description, urgency } = req.body;
-
-    // Find the complaint and ensure it belongs to the tenant making the request
-    const complaint = await Complaint.findOne({
-      where: { id: complaintId },
-      include: [{
-        model: Tenant,
-        where: { phoneNumber: req.user.phone },
-      }],
+    const { complaintId } = req.params;
+    const tenantId = req.user.id;
+        const complaint = await Complaint.findOne({
+      where: { id: complaintId, tenantId },
+      include: [
+        {
+          model: Tenant,
+          attributes: ['id', 'fullName', 'email', 'phoneNumber'],
+          include: [
+            { model: Unit, attributes: ['id', 'unitNumber'] },
+            { model: Floor, attributes: ['id', 'floorNumber'] },
+          ],
+        },
+        {
+          model: User,
+          attributes: ['fname', 'lname'],
+          as: 'assignedEmployee',
+        },
+      ],
     });
+    if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
 
-    if (!complaint) {
-      return res.status(404).json({ message: 'Complaint not found or access denied' });
+    let finalImages = Array.isArray(complaint.images) ? [...complaint.images] : [];
+
+    // If frontend touched existing images
+    if (req.body.existingImages !== undefined) {
+      try {
+        finalImages = JSON.parse(req.body.existingImages);
+      } catch {
+        return res.status(400).json({ error: '"existingImages" must be a valid JSON array' });
+      }
     }
 
-    // Update fields if provided
-    if (description !== undefined) complaint.description = description;
-    if (urgency !== undefined) complaint.urgency = urgency;
-
-    // Handle images if new files are uploaded
+    // Append new uploads
     if (req.files && req.files.length > 0) {
-      const newImagePaths = req.files.map(file => file.path);
-      // Optionally merge with existing images instead of replacing
-      complaint.images = [...(complaint.images || []), ...newImagePaths];
+      const uploadedImages = req.files.map(file => file.path.replace(/\\/g, "/"));
+      finalImages.push(...uploadedImages);
     }
 
-    await complaint.save();
+    const updateData = {
+      description: req.body.description ?? complaint.description,
+      urgency: req.body.urgency ?? complaint.urgency,
+    };
 
-    // Optional: notify admins if needed
-    const admins = await User.findAll({
-      include: [{
-        model: Role,
-        where: { name: 'admin' },
-      }],
+    if (req.body.existingImages !== undefined || (req.files && req.files.length > 0)) {
+      updateData.images = finalImages;
+    }
+
+    await complaint.update(updateData);
+
+    // Return complaint with full URL images
+    const host = `${req.protocol}://${req.get('host')}`;
+    const imagesWithFullURL = finalImages.map(img => `${host}/${img}`);
+
+    res.status(200).json({
+      message: 'Complaint updated successfully',
+      complaint: {
+        ...complaint.get({ plain: true }),
+        images: imagesWithFullURL,
+      },
     });
-
-    if (admins.length > 0) {
-      await Promise.all(
-        admins.map(admin =>
-          sendNotificationHelper({
-            adminId: admin.id,
-            title: 'Complaint Updated',
-            body: `A complaint by ${complaint.Tenant.fullName} has been updated. Check the complaints page for details.`,
-            type: 'Complaint Update',
-            receiver_type: 'staff',
-          })
-        )
-      );
-    }
-
-    res.status(200).json({ message: 'Complaint updated successfully', complaint });
   } catch (error) {
-    res.status(500).json({ message: 'Error updating complaint', error: error.message });
+    console.error(error);
+    res.status(500).json({
+      message: 'Error updating complaint',
+      error: error.message,
+    });
   }
 };
 
- 
+
 // Update complaint status
 const updateComplaintStatus = async (req, res) => {
   try {
