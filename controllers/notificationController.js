@@ -1,11 +1,14 @@
 const Notification = require("../models/notification");
 const NotificationType = require("../models/notificationType");
 const User = require("../models/user");
+const Role = require("../models/role");
 const Tenant = require("../models/tenant");
 const Unit = require('../models/unit');
 const Floor = require("../models/floor");
 const {notificationSchema}=require('../helpers/schema')
 const { Sequelize } = require('sequelize');
+const { Op } = require("sequelize");
+
 
 // Create notification for a specific user or tenant
 const createNotificationForUser = async (req, res) => {
@@ -30,7 +33,7 @@ const createNotificationForUser = async (req, res) => {
       receiver_type,
       title,
       body,
-     type_id,
+      type_id,
     });
 
     return res.status(201).json({ status: "success", message: "Notification created successfully", notification });
@@ -54,7 +57,18 @@ const createNotificationForGroup = async (req, res) => {
     let receivers = [];
 
     if (receiver_type === "staff") {
-      receivers = await User.findAll({ attributes: ["id"] });
+        receivers = await User.findAll({
+    include: [
+      {
+        model: Role,
+        where: {
+          name: { [Op.ne]: "admin" }
+        },
+        attributes: []
+      }
+    ],
+    attributes: ["id"]
+  });
     }
 
     if (receiver_type === "tenant") {
@@ -229,22 +243,71 @@ const getMyNotifications = async (req, res) => {
   }
 };
 
-
 // Mark a notification as read
 const markAsRead = async (req, res) => {
   try {
-    const notification = await Notification.findOne({ where: { id: req.params.id, receiver_id: req.user.id } });
+    if (!req.user) {
+      return res.status(401).json({
+        status: "error",
+        message: "Unauthorized"
+      });
+    }
 
-    if (!notification) return res.status(404).json({ status: "error", message: "Notification not found" });
+    // Fetch the notification by ID
+    const notification = await Notification.findByPk(req.params.id);
 
-    notification.isRead = !notification.isRead;
+    if (!notification) {
+      return res.status(404).json({
+        status: "error",
+        message: "Notification not found"
+      });
+    }
+
+    // Employee (staff) check: ID match
+    if (notification.receiver_type === "staff") {
+      if (Number(notification.receiver_id) !== Number(req.user.id)) {
+        return res.status(403).json({
+          status: "error",
+          message: "You are not allowed to update this notification"
+        });
+      }
+    }
+
+    // Tenant check: compare phone numbers
+    if (notification.receiver_type === "tenant") {
+      const tenant = await Tenant.findByPk(notification.receiver_id);
+      if (!tenant) {
+        return res.status(404).json({
+          status: "error",
+          message: "Tenant not found"
+        });
+      }
+
+      if (tenant.phoneNumber !== req.user.phone) {
+        return res.status(403).json({
+          status: "error",
+          message: "You are not allowed to update this notification"
+        });
+      }
+    }
+
+    // Mark as read
+    notification.isRead = true;
     await notification.save();
 
-    return res.status(200).json({ status: "success", message: "Notification marked as read" });
+    return res.status(200).json({
+      status: "success",
+      message: "Notification marked as read"
+    });
   } catch (error) {
-    return res.status(500).json({ status: "error", message: "Failed to mark notification as read" });
+    console.error("Error marking notification as read:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message
+    });
   }
 };
+
 
 // Get all notifications (Admin)
 const getAllNotifications = async (req, res) => {

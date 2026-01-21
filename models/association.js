@@ -39,8 +39,8 @@ const {
     Task,
     LetterResponse,
     Booking,
-    Punishment
-    
+    Punishment,
+    TenantOutRequest,
 } = require('./index');
 
 const defineAssociations = () => {
@@ -218,8 +218,28 @@ const defineAssociations = () => {
     Tenant.hasMany(TenantInventory, { foreignKey: "tenantId" });
     TenantInventory.belongsTo(Tenant, { foreignKey: "tenantId" });
 
-    TenantInventory.hasMany(TenantItem, { foreignKey: "inventoryId", onDelete: "CASCADE" });
+    TenantInventory.hasMany(TenantItem, { foreignKey: "inventoryId",  onDelete: "CASCADE" });
     TenantItem.belongsTo(TenantInventory, { foreignKey: "inventoryId" });
+
+    TenantOutRequest.belongsTo(Tenant, {
+      foreignKey: "tenantId",
+      onDelete: "CASCADE",
+    });
+    
+    Tenant.hasMany(TenantOutRequest, {
+      foreignKey: "tenantId",
+      onDelete: "CASCADE",
+    });
+    
+    TenantOutRequest.belongsTo(TenantItem, {
+      foreignKey: "tenantItemId",
+      onDelete: "SET NULL",
+    });
+    
+    TenantItem.hasMany(TenantOutRequest, {
+      foreignKey: "tenantItemId",
+      onDelete: "SET NULL",
+    });
   
 };
 

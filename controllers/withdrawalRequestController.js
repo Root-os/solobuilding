@@ -528,6 +528,65 @@ const finalizeWithdrawalProcess = async (req, res) => {
     }
 };
 
+//update request 
+const updateWithdrawalRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { tenantId, terminationDate, reason } = req.body;
+
+    // Ensure at least one field is provided
+    if (!tenantId && !terminationDate && !reason) {
+      return res.status(400).json({
+        message: "At least one of tenantId, terminationDate, or reason must be provided.",
+      });
+    }
+
+    // Find request
+    const request = await WithdrawalRequest.findOne({
+      where: { id },
+      include: [
+        {
+          model: Tenant,
+          attributes: ['id', 'fullName', 'phoneNumber'],
+          include: [
+            {
+              model: Unit,
+              attributes: ['id', 'unitNumber'], 
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!request) {
+      return res.status(404).json({
+        message: "Withdrawal request not found.",
+      });
+    }
+
+    // Build update payload dynamically
+    const updateData = {};
+    if (tenantId !== undefined) updateData.tenantId = tenantId;
+    if (terminationDate !== undefined) updateData.terminationDate = terminationDate;
+    if (reason !== undefined) updateData.reason = reason;
+
+    // Update only provided fields
+    await request.update(updateData);
+
+    return res.status(200).json({
+      message: "Withdrawal request updated successfully.",
+      request,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error updating withdrawal request.",
+      error: error.message,
+    });
+  }
+};
+
+
+
 module.exports = {
     createWithdrawalRequest,
     getAllWithdrawalRequests,
@@ -539,4 +598,5 @@ module.exports = {
     myAssignedRequests,
     deleteWithdrawalRequest,
     getTenantDetails,
+    updateWithdrawalRequest
 };

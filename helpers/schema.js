@@ -466,7 +466,7 @@ const paymentValidationSchema = Joi.object({
   paymentDate: Joi.date().optional(),
   status: Joi.string().valid("complete", "partial", "pending").required(),
   item: Joi.string().optional(), // <-- added
-  description: Joi.string().optional(), // <-- added
+  description: Joi.string().optional().allow("", null), // <-- added
   purchaseId: Joi.number().integer().required(),
 });
 
@@ -478,7 +478,7 @@ const updatePaymentValidationSchema = Joi.object({
     .required(),
   status: Joi.string().valid("complete", "partial", "pending").required(),
   paymentDate: Joi.date().required(),
-  description: Joi.string().optional(),
+  description: Joi.string().optional().allow("", null),
 });
 
 const serviceTypeValidationSchema = Joi.object({

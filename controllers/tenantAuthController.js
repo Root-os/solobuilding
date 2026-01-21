@@ -23,32 +23,32 @@ exports.login = async (req, res) => {
           });
 
         console.log('Tenant found by phone number:', tenant); // Debug the tenant found
-} else if (email) {
-  // Step 1: Find tenant by email
-  const tenantByEmail = await Tenant.findOne({ where: { email } });
+        } else if (email) {
+          // Step 1: Find tenant by email
+          const tenantByEmail = await Tenant.findOne({ where: { email } });
 
-  if (!tenantByEmail) {
-    console.log('Tenant not found by email'); // Debug
-    return res.status(401).json({ success: false, message: 'Invalid credentials' });
-  }
+          if (!tenantByEmail) {
+            console.log('Tenant not found by email'); // Debug
+            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+          }
 
-  // Step 2: Get the latest tenant record for this phone number
-  const latestTenant = await Tenant.findOne({
-    where: { phoneNumber: tenantByEmail.phoneNumber },
-    order: [['updatedAt', 'DESC']],
-  });
+          // Step 2: Get the latest tenant record for this phone number
+          const latestTenant = await Tenant.findOne({
+            where: { phoneNumber: tenantByEmail.phoneNumber },
+            order: [['updatedAt', 'DESC']],
+          });
 
-  // Step 3: Check if the tenant trying to login is the latest
-  if (latestTenant.id !== tenantByEmail.id) {
-    console.log('Outdated email used for login'); // Debug
-    return res.status(401).json({ success: false, message: 'This email is outdated. Use the latest email to login.' });
-  }
+          // Step 3: Check if the tenant trying to login is the latest
+          if (latestTenant.id !== tenantByEmail.id) {
+            console.log('Outdated email used for login'); // Debug
+            return res.status(401).json({ success: false, message: 'This email is outdated. Use the latest email to login.' });
+          }
 
-  // Step 4: Assign the latest tenant to the login variable
-  tenant = latestTenant;
+          // Step 4: Assign the latest tenant to the login variable
+          tenant = latestTenant;
 
-  console.log('Tenant found by latest email:', tenant); // Debug
-}
+          console.log('Tenant found by latest email:', tenant); // Debug
+        }
 
   
       // Check if tenant exists

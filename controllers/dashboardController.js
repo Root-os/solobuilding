@@ -7,6 +7,7 @@ const Floor = require("../models/floor");
 const TenantRentCollection = require("../models/tenantRentCollection");
 const TenantInventory = require("../models/tenantInventory");
 const TenantVehicle = require("../models/tenantVehicle");
+const TenantItem = require("../models/tenanItem");
 const Parking= require("../models/parking");
 const Expense= require("../models/expense");
 const Inventory= require("../models/item");
@@ -96,12 +97,6 @@ exports.getDashboardStats = async (req, res) => {
       moveInInventories,
       moveOutInventories,
 
-      // Parking
-      // totalParking,
-      // onParking,
-      // readyToOut,
-      // completedParking,
-
       // Expenses
       totalExpenses,
 
@@ -153,6 +148,12 @@ exports.getDashboardStats = async (req, res) => {
       paidRentCollections,
       pendingRentCollections,
       overdueRentCollections,
+
+        // Parking
+      // totalParking,
+      // onParking,
+      // readyToOut,
+      // completedParking,
     ] = await Promise.all([
       // Notifications
       Notification.count({ where: dateWhere }),
@@ -195,11 +196,6 @@ exports.getDashboardStats = async (req, res) => {
       TenantInventory.count({ where: { type: "move-in" } }),
       TenantInventory.count({ where: { type: "move-out" } }),
 
-      // Parking
-      Parking.count({ where: dateWhere }),
-      Parking.count({ where: { status: "onparking", ...dateWhere } }),
-      Parking.count({ where: { status: "ready to out", ...dateWhere } }),
-      Parking.count({ where: { status: "completed", ...dateWhere } }),
 
       // Expenses
       Expense.count({ where: dateWhere }),
@@ -260,6 +256,12 @@ exports.getDashboardStats = async (req, res) => {
       TenantRentCollection.count({ where: { status: "Paid", ...dateWhere } }),
       TenantRentCollection.count({ where: { status: "Pending", ...dateWhere } }),
       TenantRentCollection.count({ where: { status: "Overdue", ...dateWhere } }),
+
+            // Parking
+      // Parking.count({ where: dateWhere }),
+      // Parking.count({ where: { status: "onparking", ...dateWhere } }),
+      // Parking.count({ where: { status: "ready to out", ...dateWhere } }),
+      // Parking.count({ where: { status: "completed", ...dateWhere } }),
     ]);
 
     // =========================
@@ -274,7 +276,6 @@ exports.getDashboardStats = async (req, res) => {
       tenants: { totalTenants, activeTenants, inactiveTenants },
       tenantVehicles: { totalVehicles },
       tenantInventories: { totalInventory, moveInInventories, moveOutInventories },
-      // parking: { totalParking, onParking, readyToOut, completedParking },
       expenses: { totalExpenses },
       items: { totalItems, purchasedItems, existingItems, alertItems },
       withdrawals: { totalWithdrawals, pendingWithdrawals, approvedWithdrawals, rejectedWithdrawals, processedWithdrawals },
@@ -285,6 +286,7 @@ exports.getDashboardStats = async (req, res) => {
       tenantPayments: { totalTenantPayments, dueTenantPayments, paidTenantPayments, overdueTenantPayments },
       billPayments: { totalBillPayments, pendingBillPayments, paidBillPayments, overdueBillPayments },
       rentCollections: { totalRentCollections, paidRentCollections, pendingRentCollections, overdueRentCollections },
+        // parking: { totalParking, onParking, readyToOut, completedParking },
     });
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
@@ -299,6 +301,21 @@ exports.getTenantDashboardStats = async (req, res) => {
 
     if (!tenantPhone) {
       return res.status(400).json({ error: 'Tenant phone number is missing' });
+    }
+
+    // Optional date filter
+    const dateWhere = {};
+    if (req.query.startDate && req.query.endDate) {
+      dateWhere.createdAt = {
+        [Op.between]: [
+          new Date(req.query.startDate),
+          new Date(req.query.endDate),
+        ],
+      };
+    } else if (req.query.startDate) {
+      dateWhere.createdAt = { [Op.gte]: new Date(req.query.startDate) };
+    } else if (req.query.endDate) {
+      dateWhere.createdAt = { [Op.lte]: new Date(req.query.endDate) };
     }
 
     // 1️⃣ Get all tenant rows for this phone number
@@ -326,13 +343,45 @@ exports.getTenantDashboardStats = async (req, res) => {
 
     // 2️⃣ Lite list of units occupied
     const unitsOccupied = tenants.map(t => ({
-      tenantId: t.id,              
+      tenantId: t.id,
       unitId: t.Unit?.id || null,
       unitNumber: t.Unit?.unitNumber || null,
       floorNumber: t.Unit?.Floor?.floorNumber || null,
     }));
 
-    // 3️⃣ Dashboard counts
+    // 3️⃣ Tenant Inventory summary by type (move-in / move-out)
+    const [moveInItems, moveOutItems] = await Promise.all([
+      TenantItem.findAll({
+        attributes: [
+          [Sequelize.fn('COUNT', Sequelize.col('TenantItem.id')), 'totalItems'],
+          [Sequelize.fn('SUM', Sequelize.col('quantity')), 'totalQuantity'],
+        ],
+        include: [
+          {
+            model: TenantInventory,
+            attributes: [],
+            where: { tenantId: tenantIds, type: 'move-in' },
+          },
+        ],
+        raw: true,
+      }),
+      TenantItem.findAll({
+        attributes: [
+          [Sequelize.fn('COUNT', Sequelize.col('TenantItem.id')), 'totalItems'],
+          [Sequelize.fn('SUM', Sequelize.col('quantity')), 'totalQuantity'],
+        ],
+        include: [
+          {
+            model: TenantInventory,
+            attributes: [],
+            where: { tenantId: tenantIds, type: 'move-out' },
+          },
+        ],
+        raw: true,
+      }),
+    ]);
+
+    // 4️⃣ Dashboard counts (other tables)
     const [
       totalNotifications,
       unreadNotifications,
@@ -345,19 +394,10 @@ exports.getTenantDashboardStats = async (req, res) => {
       inProgressComplaints,
       resolvedComplaints,
 
-      totalInventory,
-      moveInInventories,
-      moveOutInventories,
-
       totalLetters,
       sentLetters,
       receivedLetters,
       rejectedLetters,
-
-      totalVehicles,
-
-      // totalParking,
-      // onParking,
 
       totalTenantPayments,
       pendingTenantPayments,
@@ -368,71 +408,37 @@ exports.getTenantDashboardStats = async (req, res) => {
       pendingTenantRentCollection,
       paidTenantRentCollection,
       overdueTenantRentCollection,
-
     ] = await Promise.all([
-      // Notifications
-      Notification.count({
-        where: {
-          receiver_id: tenantIds,
-          receiver_type: 'tenant',
-        },
-      }),
-      Notification.count({
-        where: {
-          receiver_id: tenantIds,
-          receiver_type: 'tenant',
-          isRead: false,
-        },
-      }),
+      Notification.count({ where: { receiver_id: tenantIds, receiver_type: 'tenant', ...dateWhere } }),
+      Notification.count({ where: { receiver_id: tenantIds, receiver_type: 'tenant', isRead: false, ...dateWhere } }),
 
-      // Payment Requests
-      PaymentRequest.count({ where: { tenantId: tenantIds } }),
-      PaymentRequest.count({ where: { tenantId: tenantIds, status: 'pending' } }),
-      PaymentRequest.count({ where: { tenantId: tenantIds, status: 'approved' } }),
+      PaymentRequest.count({ where: { tenantId: tenantIds, ...dateWhere } }),
+      PaymentRequest.count({ where: { tenantId: tenantIds, status: 'pending', ...dateWhere } }),
+      PaymentRequest.count({ where: { tenantId: tenantIds, status: 'approved', ...dateWhere } }),
 
-      // Complaints
-      Complaint.count({ where: { tenantId: tenantIds } }),
-      Complaint.count({ where: { tenantId: tenantIds, status: 'in_progress' } }),
-      Complaint.count({ where: { tenantId: tenantIds, status: 'resolved' } }),
+      Complaint.count({ where: { tenantId: tenantIds, ...dateWhere } }),
+      Complaint.count({ where: { tenantId: tenantIds, status: 'in_progress', ...dateWhere } }),
+      Complaint.count({ where: { tenantId: tenantIds, status: 'resolved', ...dateWhere } }),
 
-      // Inventories
-      TenantInventory.count({ where: { tenantId: tenantIds } }),
-      TenantInventory.count({ where: { tenantId: tenantIds, type: 'move-in' } }),
-      TenantInventory.count({ where: { tenantId: tenantIds, type: 'move-out' } }),
+      Letter.count({ where: { tenantId: tenantIds, ...dateWhere } }),
+      Letter.count({ where: { tenantId: tenantIds, status: 'Sent', ...dateWhere } }),
+      Letter.count({ where: { tenantId: tenantIds, status: 'Recived', ...dateWhere } }),
+      Letter.count({ where: { tenantId: tenantIds, status: 'Rejected', ...dateWhere } }),
 
-      // Letters
-      Letter.count({ where: { tenantId: tenantIds } }),
-      Letter.count({ where: { tenantId: tenantIds, status: 'Sent' } }),
-      Letter.count({ where: { tenantId: tenantIds, status: 'Recived' } }),
-      Letter.count({ where: { tenantId: tenantIds, status: 'Rejected' } }),
+      TenantPayment.count({ where: { tenantId: tenantIds, ...dateWhere } }),
+      TenantPayment.count({ where: { tenantId: tenantIds, status: 'due', ...dateWhere } }),
+      TenantPayment.count({ where: { tenantId: tenantIds, status: 'paid', ...dateWhere } }),
+      TenantPayment.count({ where: { tenantId: tenantIds, status: 'overdue', ...dateWhere } }),
 
+      TenantRentCollection.count({ where: { tenantId: { [Op.in]: tenantIds }, ...dateWhere } }),
+      TenantRentCollection.count({ where: { tenantId: { [Op.in]: tenantIds }, status: 'Pending', ...dateWhere } }),
+      TenantRentCollection.count({ where: { tenantId: { [Op.in]: tenantIds }, status: 'Paid', ...dateWhere } }),
+      TenantRentCollection.count({ where: { tenantId: { [Op.in]: tenantIds }, status: 'Overdue', ...dateWhere } }),
+    ]);
 
-      // Vehicles
-      // TenantVehicle.count({ where: { tenantId: tenantIds } }),
-
-      // Parking
-      // Parking.count({ where: { tenantId: tenantIds } }),
-      // Parking.count({ where: { tenantId: tenantIds, status: 'onparking' } }),
-
-      // Tenant Payments
-      TenantPayment.count({ where: { tenantId: tenantIds } }),
-      TenantPayment.count({ where: { tenantId: tenantIds, status: 'due' } }),
-      TenantPayment.count({ where: { tenantId: tenantIds, status: 'paid' } }),
-      TenantPayment.count({ where: { tenantId: tenantIds, status: 'overdue' } }),
- 
-
-      //Tenant rent collection
-      TenantRentCollection.count({ where: { tenantId: tenantIds } }),  
-      TenantRentCollection.count({ where: { tenantId: tenantIds, status: 'Pending' } }),
-      TenantRentCollection.count({ where: { tenantId: tenantIds, status: 'Paid' } }),
-      TenantRentCollection.count({ where: { tenantId: tenantIds, status: 'Overdue' } }),
-      ]);
-
-
-
-    // 4️⃣ Final response
+    // 5️⃣ Final response
     res.json({
-      unitsOccupied, // ✅ lite list
+      unitsOccupied,
 
       notifications: {
         totalNotifications,
@@ -459,19 +465,9 @@ exports.getTenantDashboardStats = async (req, res) => {
       },
 
       tenantInventories: {
-        totalInventory,
-        moveInInventories,
-        moveOutInventories,
+        moveIn: moveInItems[0] || { totalItems: 0, totalQuantity: 0 },
+        moveOut: moveOutItems[0] || { totalItems: 0, totalQuantity: 0 },
       },
-
-      // tenantVehicles: {
-      //   totalVehicles,
-      // },
-
-      // parking: {
-      //   totalParking,
-      //   onParking,
-      // },
 
       tenantPayments: {
         totalTenantPayments,
@@ -487,12 +483,12 @@ exports.getTenantDashboardStats = async (req, res) => {
         overdueTenantRentCollection,
       },
     });
-
   } catch (error) {
     console.error('Error fetching tenant dashboard stats:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 exports.getEmployeeDashboardStats = async (req, res) => {
   try {
@@ -528,8 +524,8 @@ exports.getEmployeeDashboardStats = async (req, res) => {
       pendingSalaries,
       paidSalaries
     ] = await Promise.all([
-      Notification.count({ where: { receiver_id: userId, receiver_type: "employee" } }),
-      Notification.count({ where: { receiver_id: userId, isRead: false, receiver_type: "employee" } }),
+      Notification.count({ where: { receiver_id: userId, receiver_type: "staff" } }),
+      Notification.count({ where: { receiver_id: userId, isRead: false, receiver_type: "staff" } }),
 
       Stockout.count({ where: { requestedBy: userId } }),
       Stockout.count({ where: { requestedBy: userId, status: "pending" } }),

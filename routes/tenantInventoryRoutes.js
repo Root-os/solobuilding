@@ -14,7 +14,7 @@ const {
 const { adminOrEmployeeAuth, tenantAuth } = require("../middleware/auth");
 
 // Routes
-router.get("/", adminOrEmployeeAuth, getAllInventories);
+router.get("/", getAllInventories);
 router.get("/tenant", tenantAuth, getTenantInventories);
 router.get("/tenant/:tenantId", getInventoryByTenantId);
 router.get("/:id", adminOrEmployeeAuth, getInventoryById);

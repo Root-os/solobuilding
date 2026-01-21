@@ -41,7 +41,7 @@ const Payment = sequelize.define('Payment', {
   },
   description: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
   },
   item: {
     type: DataTypes.STRING,

@@ -1,7 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const tenantController = require('../controllers/tenantController');
-
+const {
+    adminAuth,
+    tenantAuth,
+    employeeAuth, // Add a middleware for employee authentication
+  } = require("../middleware/auth");
 // Create a new tenant
 router.post('/', tenantController.createTenant);
 
@@ -9,6 +13,7 @@ router.post('/', tenantController.createTenant);
 router.get('/', tenantController.getAllTenants);
 
 // Get tenant by ID
+router.get('/profile',tenantAuth, tenantController.getTenantProfile);
 router.get('/floor-units', tenantController.getTenantUnits);
 router.get('/:id', tenantController.getTenantById);
 

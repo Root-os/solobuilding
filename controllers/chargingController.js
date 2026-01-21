@@ -152,10 +152,6 @@ exports.getAllChargingSessions = async (req, res) => {
             where: filter,
         });
 
-        if (chargingSessions.length === 0) {
-            return res.status(404).json({ message: 'No charging sessions found matching the criteria.' });
-        }
-
         res.status(200).json(chargingSessions);
     } catch (error) {
         console.error(error);
