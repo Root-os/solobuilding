@@ -246,7 +246,7 @@ exports.updateUser = async (req, res) => {
 exports.updateEmployee = async (req, res) => {
   try {
     const { id } = req.params;  // Get the employee ID from the URL parameter
-    const { fname, lname, phone, roleId, salary, position, hireDate, shift, employmentType, emergencyContact, address, bankAccount, password } = req.body;
+    const { fname, lname, phone, email, roleId, salary, position, hireDate, shift, employmentType, emergencyContact, address, bankAccount, password } = req.body;
 
     // Find the employee by ID
     const user = await User.findOne({ where: { id } });
@@ -258,6 +258,7 @@ exports.updateEmployee = async (req, res) => {
     user.fname = fname || user.fname;
     user.lname = lname || user.lname;
     user.phone = phone || user.phone;
+    user.email = email || user.email;
     user.roleId = roleId || user.roleId;
 
      // Update password if provided

@@ -90,7 +90,6 @@ exports.sendBulkEmailToTenants = async (req, res) => {
   }
 };
 
-
 // Get received emails for a tenant
 exports.getReceivedEmails = async (req, res) => {
   try {
@@ -173,6 +172,7 @@ exports.deleteEmail = async (req, res) => {
     res.status(500).json({ message: "Error deleting email", error });
   }
 };
+
 exports.deleteEmailAdmin = async (req, res) => {
   try {
     const { emailId } = req.params;

@@ -85,7 +85,7 @@ exports.getFloorById = async (req, res) => {
 exports.updateFloor = async (req, res) => {
   try {
     const { id } = req.params;
-    const {  floorNumber, status } = req.body;
+    const { floorNumber, status } = req.body;
 
     const floor = await Floor.findByPk(id);
     if (!floor) {
@@ -93,11 +93,21 @@ exports.updateFloor = async (req, res) => {
     }
 
     await floor.update({ floorNumber, status });
-    res.status(200).json(floor);
+
+    return res.status(200).json(floor);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+
+    // UNIQUE constraint violation
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({
+        message: 'Floor number already exists. Please choose a different floor number.'
+      });
+    }
+
+    return res.status(500).json({ error: error.message });
   }
 };
+
 
 // Delete a floor
 exports.deleteFloor = async (req, res) => {

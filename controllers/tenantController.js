@@ -18,7 +18,6 @@ const { toEthiopian } = require("ethiopian-date");
 const { collectFirstRent } = require("../services/rentService");
 
 
-
 // Set up multer storage for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -738,7 +737,7 @@ exports.getTenantUnits = async (req, res) => {
         {
           model: Unit,
           as: "Unit",
-          attributes: ["id", "unitNumber", "status"],
+          attributes: ["id", "unitNumber", "status", "size", "availableEquipments", "problems"],
         },
         {
           model: Floor,
@@ -778,7 +777,7 @@ exports.getTenantUnits = async (req, res) => {
         amount: t.amount,
         leaseStartDate: t.leaseStartDate,
         leaseEndDate: t.leaseEndDate,
-        unit: t.Unit ? { id: t.Unit.id, unitNumber: t.Unit.unitNumber, status: t.Unit.status } : null,
+        unit: t.Unit ? { id: t.Unit.id, unitNumber: t.Unit.unitNumber, status: t.Unit.status, size: t.Unit.size, availableEquipment: t.Unit.availableEquipments, problem: t.Unit.problems } : null,
         floor: t.Floor ? { id: t.Floor.id, floorNumber: t.Floor.floorNumber } : null,
         vehicles: t.TenantVehicles || [],
       });
@@ -792,5 +791,46 @@ exports.getTenantUnits = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+exports.getTenantProfile = async (req, res) => {
+  try {
+    const phoneNumber = req.user.phone; 
+
+    if (!phoneNumber) {
+      return res.status(400).json({ message: 'Phone number missing in token' });
+    }
+
+    const tenant = await Tenant.findOne({
+      where: { phoneNumber },
+      attributes: [
+        'fullName',
+        'phoneNumber',
+        'email',
+        'tin',
+        'nationalId',
+        'document',
+      ],
+    });
+
+    if (!tenant) {
+      return res.status(404).json({ message: 'Tenant not found' });
+    }
+
+    res.status(200).json({
+      fullName: tenant.fullName,
+      phoneNumber: tenant.phoneNumber,
+      email: tenant.email,
+      tin: tenant.tin,
+      nationalId: tenant.nationalId,
+      document: tenant.document
+        ? `${process.env.BASE_URL}${tenant.document}`
+        : null,
+    });
+  } catch (error) {
+    console.error('Error fetching tenant profile:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 
 

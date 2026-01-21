@@ -99,36 +99,30 @@ exports.updateRequest = async (req, res) => {
       return res.status(403).json({ error: "Only tenants can update requests." });
     }
 
-    // Find existing pending request (must belong to tenant)
+    // 1️⃣ Find the request and include the tenant's phone
     const existingRequest = await TenantOutRequest.findOne({
-      where: {
-        id: requestId,
-        tenantId: req.user.id,
-        status: "Pending",
+      where: { id: requestId, status: "Pending" },
+      include: {
+        model: Tenant,
+        attributes: ["id", "phoneNumber"],
       },
     });
 
-    if (!existingRequest) {
-      return res
-        .status(404)
-        .json({ error: "Pending request not found or access denied." });
+    // 2️⃣ Authorization by phone
+    if (!existingRequest || existingRequest.Tenant.phoneNumber !== req.user.phone) {
+      return res.status(403).json({ error: "Access denied." });
     }
 
     const updates = {};
 
-    /**
-     * 1️⃣ Quantity update (ONLY updates TenantOutRequest.quantity)
-     */
+    // 3️⃣ Quantity update
     if (req.body.quantity !== undefined) {
       const newQuantity = parseInt(req.body.quantity, 10);
 
       if (!Number.isInteger(newQuantity) || newQuantity <= 0) {
-        return res
-          .status(400)
-          .json({ error: "Quantity must be a valid positive integer." });
+        return res.status(400).json({ error: "Quantity must be a valid positive integer." });
       }
 
-      // Validate against inventory ONLY if request is linked to tenantItem
       if (existingRequest.tenantItemId) {
         const tenantItem = await TenantItem.findOne({
           where: { id: existingRequest.tenantItemId },
@@ -152,18 +146,12 @@ exports.updateRequest = async (req, res) => {
       updates.quantity = newQuantity;
     }
 
-    /**
-     * 2️⃣ Allow changing item source
-     * - tenantItemId OR name
-     * - but NEVER both
-     */
+    // 4️⃣ Change item source
     if (req.body.tenantItemId !== undefined) {
       const newTenantItemId = parseInt(req.body.tenantItemId, 10);
 
       if (!Number.isInteger(newTenantItemId)) {
-        return res
-          .status(400)
-          .json({ error: "tenantItemId must be a valid integer." });
+        return res.status(400).json({ error: "tenantItemId must be a valid integer." });
       }
 
       const tenantItem = await TenantItem.findOne({
@@ -178,12 +166,7 @@ exports.updateRequest = async (req, res) => {
         return res.status(404).json({ error: "Tenant item not found." });
       }
 
-      // Validate quantity against new item
-      const qtyToCheck =
-        updates.quantity !== undefined
-          ? updates.quantity
-          : existingRequest.quantity;
-
+      const qtyToCheck = updates.quantity !== undefined ? updates.quantity : existingRequest.quantity;
       if (qtyToCheck > tenantItem.quantity) {
         return res.status(400).json({
           error: `Requested quantity (${qtyToCheck}) exceeds available quantity (${tenantItem.quantity}).`,
@@ -191,34 +174,27 @@ exports.updateRequest = async (req, res) => {
       }
 
       updates.tenantItemId = newTenantItemId;
-      updates.name = null; // ensure mutual exclusivity
+      updates.name = null; // Ensure mutual exclusivity
     }
 
     if (req.body.name !== undefined) {
       const trimmedName = req.body.name?.trim();
-
       if (!trimmedName) {
-        return res
-          .status(400)
-          .json({ error: "Item name cannot be empty." });
+        return res.status(400).json({ error: "Item name cannot be empty." });
       }
-
       updates.name = trimmedName;
-      updates.tenantItemId = null; // ensure mutual exclusivity
+      updates.tenantItemId = null; // Ensure mutual exclusivity
     }
 
-    // Apply updates
+    // 5️⃣ Apply updates
     await existingRequest.update(updates);
 
-    // Build response item
+    // 6️⃣ Build response item
     let item = null;
-
     if (existingRequest.tenantItemId) {
-      const tenantItem = await TenantItem.findByPk(
-        existingRequest.tenantItemId,
-        { attributes: ["id", "itemName"] }
-      );
-
+      const tenantItem = await TenantItem.findByPk(existingRequest.tenantItemId, {
+        attributes: ["id", "itemName"],
+      });
       if (tenantItem) {
         item = { id: tenantItem.id, itemName: tenantItem.itemName };
       }
@@ -236,61 +212,95 @@ exports.updateRequest = async (req, res) => {
   }
 };
 
+
 //  tenant sees only their own
 exports.getAllRequests = async (req, res) => {
   try {
-    const where = req.user.role === "tenant" ? { tenantId: req.user.id } : {};
-    const requests = await TenantOutRequest.findAll({
-      where,
-      attributes: { exclude: ['updatedAt', 'tenantName'] },
+    const userPhone = req.user.phone; 
+    if (!userPhone) {
+      return res.status(400).json({ error: "Phone number missing in token" });
+    }
+
+    // 1️⃣ Get all tenants with this phone number
+    const tenants = await Tenant.findAll({
+      where: { phoneNumber: userPhone },
+      attributes: ["id", "fullName", "email", "unitId", "floorId"],
+      include: [
+        { model: Unit, attributes: ["unitNumber"] },
+        { model: Floor, attributes: ["floorNumber"] },
+      ],
     });
 
-    const formattedRequests = await Promise.all(
-      requests.map(async (request) => {
-        // Include Unit and Floor
-        const tenant = await Tenant.findByPk(request.tenantId, {
-          attributes: ["fullName"],
-          include: [
-            { model: Unit, attributes: ["unitNumber"] },
-            { model: Floor, attributes: ["floorNumber"] },
-          ],
-        });
+    const tenantIds = tenants.map((t) => t.id);
+    if (tenantIds.length === 0) return res.json([]);
 
-        let tenantItem = null;
-        if (request.tenantItemId) {
-          tenantItem = await TenantItem.findOne({
-            where: { id: request.tenantItemId },
-            include: {
-              model: TenantInventory,
-              where: { tenantId: request.tenantId },
-              attributes: ["tenantId", "type"],
-            },
-            attributes: ["id", "itemName"],
+    // 2️⃣ Fetch all requests for these tenantIds
+    const requests = await TenantOutRequest.findAll({
+      where: { tenantId: tenantIds },
+      order: [["createdAt", "DESC"]],
+    });
+
+    // 3️⃣ Format requests with proper item object
+    const formattedRequests = await Promise.all(
+      requests.map(async (r) => {
+        const tenant = tenants.find((t) => t.id === r.tenantId);
+
+        let item = null;
+
+        if (r.tenantItemId) {
+          // fetch TenantItem details
+          const tenantItem = await TenantItem.findByPk(r.tenantItemId, {
+            attributes: ["id", "itemName", "quantity"],
           });
+
+          if (tenantItem) {
+            item = {
+              id: tenantItem.id,
+              itemName: tenantItem.itemName,
+              quantity: tenantItem.quantity,
+            };
+          }
+        } else if (r.name) {
+          // use the custom name from the request
+          item = {
+            itemName: r.name,
+            quantity: r.quantity,
+          };
         }
 
-        const item = tenantItem
-          ? { id: tenantItem.id, itemName: tenantItem.itemName, quantity: tenantItem.quantity }
-          : request.name
-          ? { itemName: request.name }
-          : null;
-
         return {
-          ...request.toJSON(),
-          tenantName: tenant?.fullName || "Unknown Tenant",
+          id: r.id,
+          tenantId: r.tenantId,
           unitNumber: tenant?.Unit?.unitNumber || null,
           floorNumber: tenant?.Floor?.floorNumber || null,
+          name: r.name,
+          quantity: r.quantity,
+          status: r.status,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt,
           item,
         };
       })
     );
 
-    res.json(formattedRequests);
+    // 4️⃣ Group under single person
+    const result = [
+      {
+        tenantName: tenants[0]?.fullName || "Unknown Tenant",
+        phoneNumber: userPhone,
+        email: tenants[0]?.email || null,
+        requests: formattedRequests,
+      },
+    ];
+
+    res.json(result);
   } catch (error) {
-    console.error("Fetch all error:", error);
+    console.error("Fetch tenant requests error:", error);
     res.status(500).json({ error: "Failed to fetch requests.", details: error.message });
   }
 };
+
+
 
 //Admin can see all
 exports.getAllRequestsForAdmin = async (req, res) => {
@@ -461,23 +471,30 @@ exports.deleteItem = async (req, res) => {
 
     const isTenant = req.user.role === "tenant";
     const isAdmin = req.user.role === "admin";
-    const isOwner = item.tenantId === req.user.id;
 
-    // Tenant: must be owner and status must be 'Pending'
+    // If tenant, check phone number ownership
     if (isTenant) {
+      // 1️⃣ Get all tenantIds for this phone number
+      const tenantRecords = await Tenant.findAll({
+        where: { phoneNumber: req.user.phone },
+        attributes: ["id"],
+      });
+      const tenantIds = tenantRecords.map(t => t.id);
+
+      // 2️⃣ Check if this item belongs to one of these tenantIds
+      const isOwner = tenantIds.includes(item.tenantId);
+
       if (!isOwner) {
-        return res
-          .status(403)
-          .json({ error: "Not authorized to delete this item." });
+        return res.status(403).json({ error: "Not authorized to delete this item." });
       }
+
+      // 3️⃣ Only allow pending requests
       if (item.status !== "Pending") {
-        return res
-          .status(400)
-          .json({ error: "Only pending requests can be deleted." });
+        return res.status(400).json({ error: "Only pending requests can be deleted." });
       }
     }
 
-    // Admin: allowed to delete any request, no status restriction
+    // Admin: can delete anything
     if (!isTenant && !isAdmin) {
       return res.status(403).json({ error: "Not authorized." });
     }

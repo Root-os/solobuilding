@@ -32,7 +32,7 @@ router.post("/group", adminOrEmployeeAuth, createNotificationForGroup);
 router.get("/my-notification",tenantAuth,getMyNotifications);
 
 // Mark notification as read
-router.put("/mark-as-read/:id",tenantAuth, markAsRead);
+router.put("/mark-as-read/:id",EmployeeOrTenantAuth, markAsRead);
 
 // Get all notifications (admin only)
 router.get("/all", adminOrEmployeeAuth,getAllNotifications);
