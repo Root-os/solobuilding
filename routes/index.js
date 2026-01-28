@@ -10,6 +10,7 @@ router.use("/tenant-vehicle", require("./tenantVehicleRoutes"));
 router.use("/bill-type", require("./billTypeRoute"));
 router.use("/tenant-payments", require("./tenantPaymentRoute"));
 router.use("/payment-requests", require("./paymentRequestRoute"));
+router.use("/payment-settings", require("./paymentSettingRoutes"));
 router.use("/rent-collection", require("./rentCollectionRoutes"));
 router.use("/bill-payments", require("./billPaymentsRoute"));
 router.use("/parking", require("./parkingRoute"));
@@ -36,6 +37,7 @@ router.use("/tenant-items", require("./tenantItemsRoute"));
 //purchases
 router.use("/purchases", require("./purchaseRoute"));
 router.use("/purchases-request", require("./purcRequestRoute"));
+router.use("/payment-response", require("./paymentResponseRoute"));
 router.use("/item-assignments", require("./itemAssignRoute"));
 router.use("/maintenance", require("./maintainanceRoute"));
 router.use("/tenant-inventory", require("./tenantInventoryRoutes"));
@@ -74,8 +76,5 @@ router.use("/booking", require("./bookingRoute"));
 
 //punishment
 router.use("/punishments", require("./punishmentRoutes"));
-
-
-
 
 module.exports = router;

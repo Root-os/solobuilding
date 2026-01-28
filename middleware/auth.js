@@ -2,35 +2,29 @@ const jwt = require('jsonwebtoken');
 const Role =require('../models/role')
 
 
-const verifyToken = (req, res,next) => {
+
+const verifyToken = (req, res) => {
   let token;
 
-  // Check for token in cookies
-  if (req.cookies && req.cookies.authToken) {
-    token = req.cookies.authToken;
-    console.log('Token from cookies:', token);
-  }
-  // Check for token in headers
-  else if (req.headers['authorization']) {
-    token = req.headers['authorization'].split(' ')[1];
-    console.log('Token from headers:', token);
-  }
+  if (req.cookies?.authToken) token = req.cookies.authToken;
+  else if (req.headers['authorization']) token = req.headers['authorization'].split(' ')[1];
 
   if (!token) {
-    console.log('No token found');
-    res.status(403).json({ success: false, message: 'No token found' });
-    return null;
+    return res.status(401).json({ success: false, message: 'No token provided' });
   }
 
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Decoded user:', user);
-    return req.user = user;
+    req.user = user;
+    return user;
   } catch (error) {
-    console.log('Invalid token:', error.message);
-    res.status(403).json({ success: false, message: 'Invalid token' });
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ success: false, message: 'Token expired' });
+    }
+    return res.status(401).json({ success: false, message: 'Invalid token' });
   }
 };
+
 
  const adminAuth = (req, res, next) => {
   console.log('Admin Auth Middleware: Checking token and role...');
@@ -96,7 +90,7 @@ const employeeAuth = async (req, res, next) => {
   }
 };
 
- const roleAuth = (role) => (req, res, next) => {
+const roleAuth = (role) => (req, res, next) => {
   const user = verifyToken(req, res);
   if (!user) return; // Stop if token verification fails
 
@@ -106,6 +100,7 @@ const employeeAuth = async (req, res, next) => {
 
   next();
 };
+
 const adminOrEmployeeAuth = async (req, res, next) => {
   const user = verifyToken(req, res);
   if (!user) return;
