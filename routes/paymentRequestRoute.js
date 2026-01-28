@@ -13,5 +13,9 @@ router.post('/upload-receipt/:id', roleAuth('tenant'),receiptUpload.single('rece
 router.delete('/:id', paymentRequestController.deletePaymentRequest);
 router.get('/tenant/my-requests', roleAuth('tenant'),paymentRequestController.getMyRequestFromAdmin);
 
+router.post("/:id/verify", paymentRequestController.verifyPaymentRequest);
+
+
+
 
 module.exports = router;

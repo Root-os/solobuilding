@@ -1,6 +1,5 @@
 const PaymentRequest = require('../models/paymentRequests');
 const PaymentSetting = require('../models/paymentSetting');
-const PaymentResponse = require('../models/verifiedPayments');
 const Tenant = require('../models/tenant');
 const Floor = require("../models/floor");
 const Unit = require("../models/unit");
@@ -11,10 +10,8 @@ const sendNotificationHelper= require('../helpers/sendAlert');
 const User = require('../models/user');
 const Role = require('../models/role');
 const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
-const axios = require('axios');
-const { normalizeTransactionNumber } = require("../helpers/normalizeCbeId");
-
-
+const { verifyCBE } = require('../services/paymentRequestVerifier');
+const { getCBE_TransactionDetail } = require('../utils/cbepdfParser');
 
 // Create a payment request
 exports.createPaymentRequest = async (req, res) => {
@@ -314,158 +311,75 @@ exports.uploadReceipt = async (req, res) => {
 
 // ================================================================================================
 
-// Helpers
-const digitsOnly = (s) => String(s || "").replace(/\D/g, "");
-const lastN = (s, n) => s.slice(-n);
-const toAmount = (v) => parseFloat(String(v).replace(/[^\d.]/g, ""));
-
-
-exports.verifyPaymentRequest = async (req, res) => {
+exports.verifyCBEPaymentRequest = async (req, res) => {
   try {
-    const { paymentMethod, transactionNumber } = req.body;
-    const { amount } = req.query;
+    const { transactionNumber } = req.body;
     const paymentRequestId = req.params.id;
 
-    // 1️⃣ Validate input
-    if (!paymentMethod || !transactionNumber || !amount) {
+    if (!transactionNumber) {
       return res.status(400).json({
-        success: false,
-        message: "paymentMethod, transactionNumber, and amount are required",
-      });
-    }
-     
-    // 2️⃣ Load payment request
-    const request = await PaymentRequest.findByPk(paymentRequestId);
-    if (!request) {
-      return res.status(404).json({ success: false, message: "Payment request not found" });
-    }
-    if (request.status !== "pending") {
-      return res.status(400).json({ success: false, message: "Payment request already processed" });
-    }
-
-    // 3️⃣ Load payment setting
-    const setting = await PaymentSetting.findOne({
-      where: { paymentMethod: paymentMethod.toUpperCase() },
-    });
-    if (!setting) {
-      return res.status(400).json({ success: false, message: `${paymentMethod} payment setting not configured` });
-    }
-
-    const verificationEndpoint = `${process.env.PAYMENT_VERIFICATION_URL}/api/verify`;
-
-    // 4️⃣ Call external verification endpoint
-    let verificationResponse;
-    try {
-      const response = await axios.post(verificationEndpoint, {
-        paymentMethod,
-        transactionNumber, // send raw input text
-      });
-      verificationResponse = response.data;
-    } catch (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Failed to verify payment: " + (err.response?.data?.message || err.message),
+        message: "Transaction number is required",
       });
     }
 
-    // 5️⃣ Check verification result
-    if (!verificationResponse.success || !verificationResponse.verified) {
-      return res.status(400).json({
-        success: false,
-        message: "Payment verification failed",
-        data: verificationResponse,
-      });
-    }
-
-    const verifiedTransactionNumber = verificationResponse.transactionNumber; 
-    const fetchedAmount = Number(verificationResponse.amount);
-
-    // 6️⃣ Check for duplicate transaction
-    const existingResponse = await PaymentResponse.findOne({
-      where: {
-        transactionNumber: verifiedTransactionNumber,
-        paymentMethod: paymentMethod.toUpperCase(),
-      },
-    });
-    if (existingResponse) {
-      return res.status(400).json({
-        success: false,
-        message: "This transaction has already been processed",
-      });
-    }
-
-    // 7️⃣ Validate receiver account (last 4 digits)
-    if (verificationResponse.receiverAccount) {
-      const expectedLast4 = setting.receiverAccountNumber.slice(-4);
-      const actualLast4 = verificationResponse.receiverAccount.slice(-4);
-      if (expectedLast4 !== actualLast4) {
-        return res.status(400).json({
-          success: false,
-          message: `Receiver account mismatch. Expected last4: ${expectedLast4}, got: ${actualLast4}`,
-        });
-      }
-    }
-
-    // 8️⃣ Validate receiver name
-    if (verificationResponse.receiver) {
-      const expectedName = setting.receiverName.trim().toLowerCase();
-      const actualName = verificationResponse.receiver.trim().toLowerCase();
-      if (expectedName !== actualName) {
-        return res.status(400).json({
-          success: false,
-          message: `Receiver name mismatch. Expected: ${expectedName}, got: ${actualName}`,
-        });
-      }
-    }
-
-    // 9️⃣ Validate amount
-    const expectedAmount = Number(req.query.amount);
-    if (!Number.isFinite(expectedAmount) || !Number.isFinite(fetchedAmount) || Math.abs(fetchedAmount - expectedAmount) > 0.01) {
-      return res.status(400).json({
-        success: false,
-        message: `Amount mismatch. Expected: ${expectedAmount}, got: ${fetchedAmount}`,
-      });
-    }
-
-    // 🔟 Approve payment request
-    await request.update({
-      status: "approved",
-      approvedAt: new Date(),
-    });
-
-    // 1️⃣1️⃣ Store response in PaymentResponse
-    const responseRecord = await PaymentResponse.create({
+    const result = await verifyCBE(
       paymentRequestId,
-      paymentMethod: paymentMethod.toUpperCase(),
-      transactionNumber: verifiedTransactionNumber, 
-      amount: fetchedAmount,
-      receiverName: verificationResponse.receiver || null,
-      receiverAccount: verificationResponse.receiverAccount || null,
-      status: "approved",
-      metadata: verificationResponse.raw || verificationResponse,
-    });
+      transactionNumber
+    );
 
-    // 1️⃣2️⃣ Return success
     return res.json({
       success: true,
       message: "Payment request approved",
-      data: {
-        paymentRequestId,
-        status: "approved",
-        transactionNumber: verifiedTransactionNumber,
-        paymentMethod: paymentMethod.toUpperCase(),
-        responseId: responseRecord.id,
-        verification: verificationResponse,
-      },
+      data: result,
     });
-
   } catch (err) {
-    console.error("verifyPaymentRequest error:", err);
-    return res.status(500).json({
+    return res.status(400).json({
       success: false,
-      message: "Failed to process payment request",
-      error: err.message,
+      message: err.message,
     });
   }
 };
 
+const digitsOnly = (s) => String(s || "").replace(/\D/g, "");
+const lastN = (s, n) => s.slice(-n);
+const toAmount = (v) => parseFloat(String(v).replace(/[^\d.]/g, ""));
+
+exports.verifyCBETest = async (req, res) => {
+  try {
+    const { transactionNumber } = req.body;
+    if (!transactionNumber) {
+      return res.status(400).json({ message: "transactionNumber is required" });
+    }
+
+    // Load CBE PaymentSetting
+    const setting = await PaymentSetting.findOne({ where: { paymentMethod: "CBE" } });
+    if (!setting) return res.status(400).json({ message: "CBE payment setting not found" });
+
+    // Fetch and parse the CBE transaction
+    const parsed = await getCBE_TransactionDetail(transactionNumber);
+    if (parsed.error) return res.status(400).json({ message: parsed.error });
+
+    // Check receiver account
+    const expectedLast4 = lastN(digitsOnly(setting.receiverAccountNumber), 4);
+    const actualLast4 = lastN(digitsOnly(parsed.receiverAccount), 4);
+    const accountOk = expectedLast4 === actualLast4;
+
+    // Check receiver name
+    const expectedName = setting.receiverName.trim().toLowerCase();
+    const actualName = parsed.receiver.trim().toLowerCase();
+    const nameOk = expectedName === actualName;
+
+    // You can skip amount check for now, or use a dummy amount
+    const fetchedAmount = toAmount(parsed.transferredAmount);
+
+    return res.json({
+      success: accountOk && nameOk,
+      accountOk,
+      nameOk,
+      fetchedAmount,
+      parsed,
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};

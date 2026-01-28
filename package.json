@@ -37,13 +37,14 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^6.10.0",
     "nodemon": "^3.1.7",
+    "pdf-parse": "^1.1.1",
     "pdfkit": "^0.16.0",
     "pino": "^9.7.0",
     "sequelize": "^6.37.5",
     "speakeasy": "^2.0.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "winston": "^3.17.0",
+    "winston": "^3.19.0",
     "xss-clean": "^0.1.4"
   }
 }

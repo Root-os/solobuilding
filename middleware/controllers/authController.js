@@ -5,13 +5,13 @@ const { Role, Permission } = require('../models');
 const { sendEmail } = require("../middleware/sendEmail");
 const EmployeeDetail =require('../models/employeeDetail')
 const Joi = require('joi');
-const dotenv = require("dotenv");
-dotenv.config();
+ require("dotenv").config();
 
 /**
  * Helper function to generate JWT token
  */
 const generateToken = (user, roleName, permissions) => {
+  console.log("expiresIn:", process.env.JWT_EXPIRES_IN || "3h");
   return jwt.sign(
     { id: user.id, fname: user.fname, lname: user.lname, role: roleName, permissions },
     process.env.JWT_SECRET,
