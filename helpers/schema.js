@@ -310,6 +310,7 @@ const tenatSchema = Joi.object({
   carPlate: Joi.string().min(3).max(20).optional(),
   carName: Joi.string().min(3).max(20).optional(),
   color: Joi.string().optional(),
+  isExisting: Joi.boolean().required()
 });
 
 const tenantPaymentSchema = Joi.object({
@@ -345,20 +346,20 @@ const tenantVehicleSchema = Joi.object({
   status: Joi.string().valid("active", "inactive").optional(),
 });
 const unitSchema = Joi.object({
-  unitNumber: Joi.string().required(),
-  floorId: Joi.number().integer().min(0).required(),
-  status: Joi.string()
+    unitNumber: Joi.string().required(),
+    floorId: Joi.number().integer().min(0).required(),
+    status: Joi.string()
     .valid("available", "occupied", "under_maintenance")
     .optional(),
-  size: Joi.number().min(0).required(),
-  availableEquipments: Joi.array().items(Joi.string()).optional(),
-  problems: Joi.array().items(Joi.string()).optional(),
-  rentedDate: Joi.date().optional(),
-  vacatedDate: Joi.date().optional(),
-  images: Joi.array().items(Joi.string()).optional(),
-  pricePerSquare: Joi.number().min(0).required(),
-  rentAmount: Joi.number().required(),
-  taxedRentAmount: Joi.number().required(),
+    availableEquipments: Joi.array().items(Joi.string()).optional(),
+    problems: Joi.array().items(Joi.string()).optional(),
+    rentedDate: Joi.date().optional(),
+    vacatedDate: Joi.date().optional(),
+    images: Joi.array().items(Joi.string()).optional(),
+    size: Joi.number().allow(null),
+    pricePerSquare: Joi.number().allow(null),
+    rentAmount: Joi.number().required(),
+    taxedRentAmount: Joi.number().required(),
 });
 
 const withdrawalRequestSchema = Joi.object({

@@ -4,7 +4,7 @@ const  Tenant  = require('../models/tenant');
 // Create a new vehicle for a tenant
 exports.createVehicle = async (req, res) => {
   try {
-    const { tenantId, carPlate, carName, color } = req.body;
+    const { tenantId, carPlate, carName } = req.body;
 
     // Validate required fields
     if (!tenantId) {
@@ -16,15 +16,15 @@ if (!carPlate) {
     if(!carName) {
       return res.status(400).json({ success: false, message: 'Car name is required' });
     }
-    if (!color) {
-      return res.status(400).json({ success: false, message: 'Color of the car is required' });
-    }
+    // if (!color) {
+    //   return res.status(400).json({ success: false, message: 'Color of the car is required' });
+    // }
     // Create the vehicle
     const vehicle = await TenantVehicle.create({
       tenantId,
       carPlate,
       carName,
-      color,
+      // color,
     });
 
     res.status(201).json({ success: true, message: 'Vehicle created successfully', vehicle });

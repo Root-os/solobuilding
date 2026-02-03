@@ -15,11 +15,11 @@ const Unit = sequelize.define('Unit', {
   },
   size: {
     type: DataTypes.FLOAT,
-    allowNull: false,
+    allowNull: true,
   },
   pricePerSquare:{
     type: DataTypes.DECIMAL(12, 4),
-    allowNull:false
+    allowNull:true
   },
   rentAmount: {
     type: DataTypes.DECIMAL(12, 4),

@@ -44,6 +44,7 @@ const Punishment = require("./punishment");
 const TenantOutRequest = require("./itemOutRequest");
 const PaymentSetting = require("./paymentSetting");
 const PaymentResponse = require("./verifiedPayments");
+const punishmentSetting = require('./punshimentSetting');
 const sequelize = require('../config/database');
 
 module.exports = {
@@ -93,5 +94,6 @@ module.exports = {
   Punishment,
   TenantOutRequest,
   PaymentSetting,
-  PaymentResponse,  
+  PaymentResponse, 
+  punishmentSetting, 
 };

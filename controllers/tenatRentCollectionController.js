@@ -13,6 +13,7 @@ const sendNotificationHelper = require("../helpers/sendAlert");
 const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
 const Setting = require("../models/setting");
 const Punishment = require("../models/punishment");
+const PunishmentSetting = require("../models/punshimentSetting");
 
 //schedule a task to run every day at midnight (0 0 * * *)
 cron.schedule("0 8 * * *", async () => {
@@ -121,14 +122,38 @@ cron.schedule("0 8 * * *", async () => {
       today.getTime() + maxNotifyDay * 24 * 60 * 60 * 1000
     );
 
-    // Get punishment percentage from settings (default to 20%)
-    const settings = await Setting.findOne();
-    const punishmentPercentage = settings
-      ? parseFloat(settings.punishmentPercentage)
-      : 0.5;
-    const applyPunishment = settings ? settings.applyPunishment : false;
+    // --------------------------
+    // Punishment setting (new JSON-based table)
+    // --------------------------
+    const punishmentSetting = await PunishmentSetting.findOne();
 
-    console.log("Punishment enabled:", applyPunishment);
+    const isPunishmentEnabled = punishmentSetting?.isEnabled ?? false;
+
+    // Handle stringified JSON 
+    const rules = punishmentSetting?.rules
+      ? (typeof punishmentSetting.rules === "string"
+          ? JSON.parse(punishmentSetting.rules)
+          : punishmentSetting.rules)
+      : { rules: [] };
+
+    console.log("Punishment enabled:", isPunishmentEnabled);
+
+    // Inline function to calculate punishment per tenant
+    function calculatePunishmentAmount(amount, overdueDays) {
+      if (!isPunishmentEnabled || !Array.isArray(rules.rules)) return 0;
+
+      for (const rule of rules.rules) {
+        if (
+          overdueDays >= rule.from_day &&
+          (!rule.to_day || overdueDays <= rule.to_day)
+        ) {
+          return amount * (rule.percent / 100);
+        }
+      }
+
+      return 0;
+    }
+
 
     // Find tenants whose lease ends between today and futureDate OR already expired
     const tenants = await Tenant.findAll({
@@ -259,89 +284,77 @@ cron.schedule("0 8 * * *", async () => {
         }
       }
 
-      // --------------------------
-      // 3) Punishment notifications for overdue tenants
-      // --------------------------
+     // --------------------------
+// 3) Punishment notifications for overdue tenants
+// --------------------------
 
-      if (applyPunishment && diffDays < 0) {
-        const overdueDays = Math.abs(diffDays);
+if (diffDays < 0) {
+  const overdueDays = Math.abs(diffDays);
 
-        let punishmentAmount = 0;
+  const punishmentAmountRaw = calculatePunishmentAmount(
+    tenant.amount,
+    overdueDays
+  );
 
-        if (punishmentPercentage > 0) {
-          punishmentAmount = tenant.amount * (punishmentPercentage / 100);
-        }
+  const punishmentAmount = parseFloat(punishmentAmountRaw.toFixed(2));
 
-        // if (overdueDays >= 11 && overdueDays <= 15) {
-        //   punishmentAmount = tenant.amount * 0.05;
-        // } else if (overdueDays >= 16 && overdueDays <= 30) {
-        //   punishmentAmount = tenant.amount * 0.1;
-        // } else if (overdueDays > 30) {
-        //   punishmentAmount = tenant.amount * 0.15;
-        // }
-        
-        punishmentAmount = parseFloat(punishmentAmount.toFixed(2));
+  if (punishmentAmount > 0) {
+    const tenantMsg = `Dear ${tenant.fullName}, your lease expired ${overdueDays} day(s) ago. Today's punishment amount is ${punishmentAmount} ETB.`;
+    const adminMsg = `Tenant ${tenant.fullName} is ${overdueDays} day(s) overdue. Today's punishment amount: ${punishmentAmount} ETB.`;
 
-        if (punishmentAmount > 0) {
-          const tenantMsg = `Dear ${tenant.fullName}, your lease expired ${overdueDays} day(s) ago. Today's punishment amount is ${punishmentAmount} ETB.`;
-          const adminMsg = `Tenant ${tenant.fullName} is ${overdueDays} day(s) overdue. Today's punishment amount: ${punishmentAmount} ETB.`;
+    let punishment = await Punishment.findOne({
+      where: { tenantId: tenant.id, status: "unpaid" },
+    });
 
-          let punishment = await Punishment.findOne({
-            where: { tenantId: tenant.id, status: "unpaid" },
-          });
+    if (punishment) {
+      punishment.amount = punishmentAmount;
+      punishment.description = `Overdue by ${overdueDays} day(s)`;
+      await punishment.save();
+      console.log(`Updated punishment for tenant ${tenant.fullName}`);
+    } else {
+      await Punishment.create({
+        tenantId: tenant.id,
+        amount: punishmentAmount,
+        description: `Overdue by ${overdueDays} day(s)`,
+        status: "unpaid",
+      });
+      console.log(`Created punishment for tenant ${tenant.fullName}`);
+    }
 
-          if (punishment) {
-            punishment.amount = punishmentAmount;
-            punishment.description = `Overdue by ${overdueDays} day(s)`;
-            await punishment.save();
-            console.log(`Updated punishment for tenant ${tenant.fullName}`);
-          } else {
-            await Punishment.create({
-              tenantId: tenant.id,
-              amount: punishmentAmount,
-              description: `Overdue by ${overdueDays} day(s)`,
-              status: "unpaid",
-            });
-            console.log(`Created punishment for tenant ${tenant.fullName}`);
-          }
-
-          if (tenant.phoneNumber) {
-            try {
-              await sendSingleSMS({
-                phone: tenant.phoneNumber,
-                msg: tenantMsg,
-              });
-              console.log(`Punishment SMS sent to tenant: ${tenant.fullName}`);
-            } catch (err) {
-              console.error(
-                `Failed to send punishment SMS to tenant ${tenant.fullName}:`,
-                err.message
-              );
-            }
-          }
-
-          for (const admin of admins) {
-            if (admin.phone) {
-              try {
-                await sendSingleSMS({
-                  phone: admin.phone,
-                  msg: adminMsg,
-                });
-                console.log(`Punishment SMS sent to admin: ${admin.id}`);
-              } catch (err) {
-                console.error(
-                  `Failed to send punishment SMS to admin ${admin.id}:`,
-                  err.message
-                );
-              }
-            }
-          }
-        }
-      } else if (!applyPunishment && diffDays < 0) {
-        console.log(
-          `Punishment disabled — skipping overdue tenant ${tenant.fullName}`
+    if (tenant.phoneNumber) {
+      try {
+        await sendSingleSMS({
+          phone: tenant.phoneNumber,
+          msg: tenantMsg,
+        });
+      } catch (err) {
+        console.error(
+          `Failed to send punishment SMS to tenant ${tenant.fullName}:`,
+          err.message
         );
       }
+    }
+
+    for (const admin of admins) {
+      if (admin.phone) {
+        try {
+          await sendSingleSMS({
+            phone: admin.phone,
+            msg: adminMsg,
+          });
+        } catch (err) {
+          console.error(
+            `Failed to send punishment SMS to admin ${admin.id}:`,
+            err.message
+          );
+        }
+      }
+    }
+  } else {
+    console.log(`No punishment rule matched for ${tenant.fullName}`);
+  }
+}
+
 
     }
     console.log("Lease expiry & punishment notifications complete.");
