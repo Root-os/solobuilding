@@ -190,7 +190,7 @@ const role = await Role.findByPk(roleId);
 
 exports.updateUser = async (req, res) => {
   try {
-    const { fname, lname, roleId, phone } = req.body;
+    const { fname, lname, roleId, phone, email } = req.body;
     const { id } = req.user;
 
     const user = await User.findOne({ where: { id } });
@@ -217,6 +217,20 @@ exports.updateUser = async (req, res) => {
       user.phone = phone;
     }
 
+if (email !== undefined && email !== user.email) {  // only update if changed
+  const existingUser = await User.findOne({ where: { email } });
+  if (existingUser && existingUser.id !== user.id) {
+    return res.status(400).json({
+      success: false,
+      message: "Email is already in use by another account",
+    });
+  }
+  console.log("Before save:", user.email);
+user.email = email;
+console.log("After set:", user.email);
+}
+
+
     if (roleId !== undefined) {
       const role = await Role.findByPk(roleId);
       if (!role) {
@@ -228,6 +242,7 @@ exports.updateUser = async (req, res) => {
     }
 
     await user.save();
+    console.log("Saved:", user.email);
 
     res.status(200).json({
       success: true,

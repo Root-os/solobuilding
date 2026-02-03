@@ -39,7 +39,7 @@ const Setting = sequelize.define("Setting", {
         type: DataTypes.STRING,
         allowNull: true,
     },
-    postOfficeAddress: {  // New field for PO Box address
+    postOfficeAddress: {  
         type: DataTypes.STRING,
         allowNull: true,
     },

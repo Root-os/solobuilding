@@ -76,5 +76,7 @@ router.use("/booking", require("./bookingRoute"));
 
 //punishment
 router.use("/punishments", require("./punishmentRoutes"));
+router.use("/punishment-settings", require("./punishmentSettingRoutes"));
+router.use("/gallery", require("./galleryRoute"));
 
 module.exports = router;

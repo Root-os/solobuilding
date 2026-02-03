@@ -68,15 +68,25 @@ exports.createTenant = async (req, res) => {
          additionalNotes = null,
         carPlate = null,
         carName = null,
-        color = null,
+        // color = null,
       } = req.body;
 
       if (Array.isArray(phoneNumber)) phoneNumber = phoneNumber[0];
       phoneNumber = phoneNumber?.trim();
       if (!phoneNumber) return res.status(400).json({ error: "Phone number is required" });
 
-      const existingTenant = await Tenant.findOne({ where: { phoneNumber } });
-      const isExisting = Boolean(existingTenant);
+    const isExistingFlag = req.body.isExisting === "true"; // "true" or "false" from frontend
+
+    const existingTenant = await Tenant.findOne({ where: { phoneNumber } });
+    const isExisting = Boolean(existingTenant);
+
+    // Only handle the existing tenant logic
+    if (isExisting && !isExistingFlag) {
+      // Frontend does not want to link, but phone already exists
+      return res.status(400).json({
+        error: "Phone number already exists."
+      });
+    }
 
       let hashedPassword;
       let generatedPassword = null;
@@ -138,8 +148,8 @@ exports.createTenant = async (req, res) => {
           }
         }
 
-      if (carPlate || carName || color) {
-        await TenantVehicle.create({ tenantId: tenant.id, carPlate, carName, color });
+      if (carPlate || carName ) {
+        await TenantVehicle.create({ tenantId: tenant.id, carPlate, carName });
       }
 
       await Unit.update({ status: "occupied", rentedDate: leaseStartDate }, { where: { id: unitId } });
@@ -231,6 +241,7 @@ exports.createTenant = async (req, res) => {
 exports.getAllTenants = async (req, res) => {
   try {
     const tenants = await Tenant.findAll({
+      exclude: ["password"],
       include: [
         {
           model: Unit,
@@ -242,12 +253,12 @@ exports.getAllTenants = async (req, res) => {
         },
         {
           model: TenantVehicle,
-          attributes: ["carPlate", "carName", "color"],
+          attributes: ["carPlate", "carName", ],
         },
       ],
     });
 
-    const baseUploadPath = path.join(__dirname, "../uploads"); // Path to 'uploads' directory
+    const baseUploadPath = path.join(__dirname, "../uploads"); 
 
     // Map through tenants to add the full document path and date calculations
     const tenantsWithDetails = tenants.map((tenant) => {
@@ -268,7 +279,7 @@ exports.getAllTenants = async (req, res) => {
         ...tenant.toJSON(),
         documentFullPath,
         monthsPaid,
-        remainingDays: remainingDays > 0 ? remainingDays : 0, // Return 0 if the lease has already expired or inserted null
+        remainingDays: remainingDays > 0 ? remainingDays : 0, 
       };
     });
 
@@ -779,7 +790,7 @@ exports.getTenantUnits = async (req, res) => {
         {
           model: TenantVehicle,
           as: "TenantVehicles",
-          attributes: ["carPlate", "carName", "color"],
+          attributes: ["carPlate", "carName"],
         },
       ],
     });

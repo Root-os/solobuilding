@@ -1,5 +1,6 @@
 const Unit = require("../models/unit");
 const Floor = require("../models/floor");
+const Tenant = require("../models/tenant");
 const { unitSchema } = require("../helpers/schema");
 const { BASE_URL } = require("../config/config");
 
@@ -297,6 +298,20 @@ exports.updateUnit = async (req, res) => {
     }
 
     await unit.update(updateData);
+
+    if (updateData.taxedRentAmount !== undefined) {
+    await Tenant.update(
+      {
+        amount: updateData.taxedRentAmount, 
+      },
+      {
+        where: {
+          unitId: unit.id,
+          status: 'active',
+            },
+          }
+        );
+      }
 
     // Return unit with images as full URLs
     const updatedUnit = await Unit.findByPk(unit.id, {

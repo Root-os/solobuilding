@@ -12,7 +12,7 @@ const TenantVehicle = sequelize.define("TenantVehicle", {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      color: { type: DataTypes.STRING, allowNull: true }
+      // color: { type: DataTypes.STRING, allowNull: true }
   },
   {
     tableName: 'tenant_vehicles',
