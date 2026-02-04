@@ -47,18 +47,10 @@ const Setting = sequelize.define("Setting", {
         type: DataTypes.STRING,
         allowNull: true, 
     },
-    punishmentPercentage: {
-        type: DataTypes.FLOAT,
-        allowNull: false
-    },
     isGregorian: {            
         type: DataTypes.BOOLEAN,
         defaultValue: true,
     },
-    applyPunishment: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
-    }
 }, {
     tableName: "settings",
     timestamps: true,

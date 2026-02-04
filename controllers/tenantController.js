@@ -241,7 +241,7 @@ exports.createTenant = async (req, res) => {
 exports.getAllTenants = async (req, res) => {
   try {
     const tenants = await Tenant.findAll({
-      exclude: ["password"],
+      attributes: { exclude: ["password", "userId", "floorId", "unitId", "createdAt", "updatedAt"] },
       include: [
         {
           model: Unit,
