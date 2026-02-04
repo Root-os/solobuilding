@@ -111,7 +111,7 @@ exports.getDashboardStats = async (req, res) => {
       pendingWithdrawals,
       approvedWithdrawals,
       rejectedWithdrawals,
-      processedWithdrawals,
+      
 
       // Emails
       totalEmails,
@@ -217,7 +217,7 @@ exports.getDashboardStats = async (req, res) => {
       WithdrawalRequest.count({ where: { status: "pending", ...dateWhere } }),
       WithdrawalRequest.count({ where: { status: "approved", ...dateWhere } }),
       WithdrawalRequest.count({ where: { status: "rejected", ...dateWhere } }),
-      WithdrawalRequest.count({ where: { status: "in_progress", ...dateWhere } }),
+    
 
       // Emails
       Email.count({ where: dateWhere }),
@@ -278,7 +278,7 @@ exports.getDashboardStats = async (req, res) => {
       tenantInventories: { totalInventory, moveInInventories, moveOutInventories },
       expenses: { totalExpenses },
       items: { totalItems, purchasedItems, existingItems, alertItems },
-      withdrawals: { totalWithdrawals, pendingWithdrawals, approvedWithdrawals, rejectedWithdrawals, processedWithdrawals },
+      withdrawals: { totalWithdrawals, pendingWithdrawals, approvedWithdrawals, rejectedWithdrawals },
       emails: { totalEmails, sentEmails },
       employees: { totalEmployees },
       salaries: { totalSalaries, pendingSalaries, paidSalaries },
