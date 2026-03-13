@@ -39,6 +39,10 @@ const PaymentRequest = sequelize.define('PaymentRequest', {
   paymentTypeId: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    references: {
+      model: PaymentType,
+      key: 'id',
+    },
   },
   dueDate: {
     type: DataTypes.DATE,
@@ -48,7 +52,7 @@ const PaymentRequest = sequelize.define('PaymentRequest', {
         if (new Date(value) <= new Date()) {
           throw new Error('Due date must be in the future.');
         }
-      }, // Ensure due date is in the future
+      }, 
     },
   },
   repeatedFor: {
@@ -56,7 +60,7 @@ const PaymentRequest = sequelize.define('PaymentRequest', {
     allowNull: true,
   },
   receipt: {
-    type: DataTypes.STRING, // Store file path for payment proof
+    type: DataTypes.STRING, 
     allowNull: true,
   },
   status: {
@@ -64,6 +68,15 @@ const PaymentRequest = sequelize.define('PaymentRequest', {
     allowNull: false,
     defaultValue: 'pending',
   },
+  accessCode: {
+  type: DataTypes.STRING(8),
+  allowNull: false,
+  unique: true,
+},
+linkUsed: {
+  type: DataTypes.BOOLEAN,
+  defaultValue: false,
+},
 }, {
   timestamps: true,
   tableName: 'payment_requests',

@@ -14,6 +14,26 @@ const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
 const Setting = require("../models/setting");
 const Punishment = require("../models/punishment");
 const PunishmentSetting = require("../models/punshimentSetting");
+const generateAccessCode = require('../helpers/accessCodePaymentReq');
+
+async function getActiveRentPaymentLink(tenantId) {
+  const rentType = await PaymentType.findOne({ where: { name: "Rent" } });
+  if (!rentType) return null;
+
+  const request = await PaymentRequest.findOne({
+    where: {
+      tenantId: tenantId,         
+      paymentTypeId: rentType.id, 
+      status: "pending",          
+    },
+    order: [["createdAt", "DESC"]],
+  });
+
+  if (!request?.accessCode) return null;
+
+  return `${process.env.REQUEST_LINK_URL}/${request.accessCode}`;
+}
+
 
 //schedule a task to run every day at midnight (0 0 * * *)
 cron.schedule("0 8 * * *", async () => {
@@ -154,7 +174,6 @@ cron.schedule("0 8 * * *", async () => {
       return 0;
     }
 
-
     // Find tenants whose lease ends between today and futureDate OR already expired
     const tenants = await Tenant.findAll({
       where: {
@@ -190,9 +209,9 @@ cron.schedule("0 8 * * *", async () => {
       const leaseEndDateOnly = toDateOnly(new Date(tenant.leaseEndDate));
       const todayDateOnly = toDateOnly(new Date());
 
-      const diffDays = Math.floor(
+     const diffDays = Math.ceil(
         (leaseEndDateOnly - todayDateOnly) / (1000 * 60 * 60 * 24)
-      );
+      ) + 1;
 
       console.log(`diffDays for ${tenant.fullName}: ${diffDays}`);
 
@@ -200,7 +219,24 @@ cron.schedule("0 8 * * *", async () => {
       // 1) Lease expiry notifications
       // --------------------------
       if (NOTIFY_DAYS.includes(diffDays)) {
-        const tenantMsg = `Dear ${tenant.fullName}, your lease ends in ${diffDays} day(s). your rent amount is ${tenant.amount}. pay before it ends or Contact management for renewal or move-out process.`;
+        const paymentLink = await getActiveRentPaymentLink(tenant.id);
+
+        const floor = await Floor.findByPk(tenant.floorId);
+        const unit = await Unit.findByPk(tenant.unitId);
+
+
+        let tenantMsg = `Dear ${tenant.fullName},
+        Your lease ends in ${diffDays} day(s).
+        Rent amount: ${tenant.amount} ETB.
+        Unit: Floor ${floor?.floorNumber}, Unit ${unit?.unitNumber}.`;
+
+        if (paymentLink) {
+          tenantMsg += `
+
+        Pay & verify your rent here:
+        ${paymentLink}`;
+        }
+
         const adminMsg = `Lease for tenant ${tenant.fullName} ends in ${diffDays} day(s).`;
 
         if (tenant.phoneNumber) {
@@ -235,41 +271,55 @@ cron.schedule("0 8 * * *", async () => {
       // --------------------------
       if (diffDays === 10) {
         try {
-          const paymentType = await PaymentType.findOne({
-            where: { name: "Rent" },
-          });
-          if (!paymentType) {
-            console.error("Payment type 'Rent' not found.");
-            continue;
-          }
+        const [paymentType, created] = await PaymentType.findOrCreate({
+          where: { name: "Rent" },
+          defaults: {
+            name: "Rent",
+            description: "Rent payment type",
+          },
+        });
 
-          const monthly = "monthly"; // Assuming monthly payment type
+        if (created) {
+          console.log("Created new payment type: Rent");
+        }
+
+          const monthly = "monthly"; 
           const leaseEnd = new Date(tenant.leaseEndDate);
           const level = "medium";
+          const accessCode = generateAccessCode(6);
 
-          await PaymentRequest.create({
-            tenantId: tenant.id,
-            message: "Final rent payment before lease expiry.",
-            paymentTypeId: paymentType.id,
-            level: level,
-            amount: tenant.amount,
-            dueDate: leaseEnd,
-            repeatedFor: monthly,
-          });
+ const paymentRequest = await PaymentRequest.create({
+  tenantId: tenant.id,
+  message: "Final rent payment before lease expiry.",
+  paymentTypeId: paymentType.id,
+  level,
+  amount: tenant.amount,
+  dueDate: leaseEnd,
+  repeatedFor: monthly,
+  accessCode,
+});
+
+const paymentLink = `${process.env.REQUEST_LINK_URL}/${paymentRequest.accessCode}`;
+
 
           const floor = await Floor.findByPk(tenant.floorId);
           const unit = await Unit.findByPk(tenant.unitId);
 
           const loginUrl = process.env.TENANT_PORTAL_URL;
-          const paymentMsg = `Hi ${tenant.fullName}, your ${
-            paymentType.name
-          } is due by ${leaseEnd.toDateString()} for your room ( ${
-            floor?.floorNumber
-          }, Unit ${unit?.unitNumber}). Check your dashboard for details.`;
+const smsMessage = `Hi ${tenant.fullName},
+
+A new ${paymentType.name} is due by ${leaseEnd.toDateString()}
+for your unit (Floor ${floor?.floorNumber}, Unit ${unit?.unitNumber}).
+
+You can view and verify your pending payment here:
+${paymentLink}
+
+Thank you!`;
+
 
           await sendSingleSMS({
             phone: tenant.phoneNumber,
-            msg: paymentMsg + `\nLogin here: ${loginUrl}`,
+            msg: smsMessage + `\nLogin here: ${loginUrl}`,
             callback: process.env.GEEZSMS_WEBHOOK_URL,
           });
 
@@ -285,77 +335,92 @@ cron.schedule("0 8 * * *", async () => {
       }
 
      // --------------------------
-// 3) Punishment notifications for overdue tenants
-// --------------------------
+     // 3) Punishment notifications for overdue tenants
+    // --------------------------
 
-if (diffDays < 0) {
-  const overdueDays = Math.abs(diffDays);
-
-  const punishmentAmountRaw = calculatePunishmentAmount(
-    tenant.amount,
-    overdueDays
+    if (leaseEndDateOnly < todayDateOnly) {
+       const overdueDays = Math.ceil(
+    (todayDateOnly - leaseEndDateOnly) / (1000 * 60 * 60 * 24)
   );
 
-  const punishmentAmount = parseFloat(punishmentAmountRaw.toFixed(2));
+      const punishmentAmountRaw = calculatePunishmentAmount(
+        tenant.amount,
+        overdueDays
+      );
 
-  if (punishmentAmount > 0) {
-    const tenantMsg = `Dear ${tenant.fullName}, your lease expired ${overdueDays} day(s) ago. Today's punishment amount is ${punishmentAmount} ETB.`;
-    const adminMsg = `Tenant ${tenant.fullName} is ${overdueDays} day(s) overdue. Today's punishment amount: ${punishmentAmount} ETB.`;
+      const punishmentAmount = parseFloat(punishmentAmountRaw.toFixed(2));
 
-    let punishment = await Punishment.findOne({
-      where: { tenantId: tenant.id, status: "unpaid" },
-    });
+       if (punishmentAmount > 0) {
 
-    if (punishment) {
-      punishment.amount = punishmentAmount;
-      punishment.description = `Overdue by ${overdueDays} day(s)`;
-      await punishment.save();
-      console.log(`Updated punishment for tenant ${tenant.fullName}`);
-    } else {
-      await Punishment.create({
-        tenantId: tenant.id,
-        amount: punishmentAmount,
-        description: `Overdue by ${overdueDays} day(s)`,
-        status: "unpaid",
-      });
-      console.log(`Created punishment for tenant ${tenant.fullName}`);
-    }
+        const paymentLink = await getActiveRentPaymentLink(tenant.id);
 
-    if (tenant.phoneNumber) {
-      try {
-        await sendSingleSMS({
-          phone: tenant.phoneNumber,
-          msg: tenantMsg,
-        });
-      } catch (err) {
-        console.error(
-          `Failed to send punishment SMS to tenant ${tenant.fullName}:`,
-          err.message
-        );
-      }
-    }
+        let tenantMsg = `Dear ${tenant.fullName},
+        Your rent payment is overdue by ${overdueDays} day(s).
+        Rent amount: ${tenant.amount} ETB.
+        punishment amount is ${punishmentAmount} ETB.`;
 
-    for (const admin of admins) {
-      if (admin.phone) {
-        try {
-          await sendSingleSMS({
-            phone: admin.phone,
-            msg: adminMsg,
-          });
-        } catch (err) {
-          console.error(
-            `Failed to send punishment SMS to admin ${admin.id}:`,
-            err.message
-          );
+        if (paymentLink) {
+          tenantMsg += `
+        Pay & verify your rent here:
+        ${paymentLink}`;
         }
+        const adminMsg = `Tenant ${tenant.fullName} is ${overdueDays} day(s) overdue. 
+        Today's punishment amount: ${punishmentAmount} ETB.`;
+
+        let punishment = await Punishment.findOne({
+          where: { tenantId: tenant.id, status: "unpaid" },
+        });
+
+        if (punishment) {
+          punishment.amount = punishmentAmount;
+          punishment.description = `Overdue by ${overdueDays} day(s)`;
+          await punishment.save();
+          console.log(`Updated punishment for tenant ${tenant.fullName}`);
+        } else {
+          await Punishment.create({
+            tenantId: tenant.id,
+            amount: punishmentAmount,
+            description: `Overdue by ${overdueDays} day(s)`,
+            status: "unpaid",
+          });
+          console.log(`Created punishment for tenant ${tenant.fullName}`);
+        }
+
+        if (tenant.phoneNumber) {
+          try {
+            await sendSingleSMS({
+              phone: tenant.phoneNumber,
+              msg: tenantMsg,
+            });
+          } catch (err) {
+            console.error(
+              `Failed to send punishment SMS to tenant ${tenant.fullName}:`,
+              err.message
+            );
+          }
+        }
+
+        for (const admin of admins) {
+          if (admin.phone) {
+            try {
+              await sendSingleSMS({
+                phone: admin.phone,
+                msg: adminMsg,
+              });
+            } catch (err) {
+              console.error(
+                `Failed to send punishment SMS to admin ${admin.id}:`,
+                err.message
+              );
+            }
+          }
+        }
+
+        
+      } else {
+        console.log(`No punishment rule matched for ${tenant.fullName}`);
       }
     }
-  } else {
-    console.log(`No punishment rule matched for ${tenant.fullName}`);
-  }
-}
-
-
     }
     console.log("Lease expiry & punishment notifications complete.");
   } catch (error) {

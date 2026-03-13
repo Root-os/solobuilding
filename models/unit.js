@@ -60,8 +60,12 @@ const Unit = sequelize.define('Unit', {
     allowNull: false,
   },
   images: { type: DataTypes.JSON } ,
+  owner:{
+    type:DataTypes.STRING,
+    allowNull:true
+  }
 }, {
-  tableName: 'units', // Explicit table name
+  tableName: 'units', 
   timestamps: true,
   charset: 'utf8', 
   collate: 'utf8_general_ci',

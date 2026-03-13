@@ -114,7 +114,7 @@ exports.updateSetting = async (req, res) => {
       postOfficeAddress,
       chargingCost,
       parkingCost,
-      punishmentPercentage,
+      // punishmentPercentage,
     } = req.body;
 
     const setting = await Setting.findOne({ where: { id: req.params.id } });
@@ -142,8 +142,8 @@ exports.updateSetting = async (req, res) => {
     setting.postOfficeAddress = postOfficeAddress || setting.postOfficeAddress;
     setting.chargingCost = chargingCost || setting.chargingCost;
     setting.parkingCost = parkingCost || setting.parkingCost;
-    setting.punishmentPercentage =
-      punishmentPercentage || setting.punishmentPercentage;
+    // setting.punishmentPercentage =
+    //   punishmentPercentage || setting.punishmentPercentage;
 
     await setting.save();
 
@@ -161,7 +161,7 @@ exports.updateSetting = async (req, res) => {
         "qrImage",
         "chargingCost",
         "parkingCost",
-        "punishmentPercentage",
+        // "punishmentPercentage",
         "createdAt",
         "updatedAt",
       ],

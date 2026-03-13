@@ -25,10 +25,10 @@ const storage = multer.diskStorage({
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir);
     }
-    cb(null, uploadDir); // Save file to 'uploads/' directory
+    cb(null, uploadDir); 
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname)); // Add a timestamp to ensure unique filenames
+    cb(null, Date.now() + path.extname(file.originalname)); 
   },
 });
 
@@ -152,7 +152,7 @@ exports.createTenant = async (req, res) => {
         await TenantVehicle.create({ tenantId: tenant.id, carPlate, carName });
       }
 
-      await Unit.update({ status: "occupied", rentedDate: leaseStartDate }, { where: { id: unitId } });
+      await Unit.update({ status: "occupied", rentedDate: leaseStartDate, owner: fullName, }, { where: { id: unitId } });
 
       const setting = await Setting.findOne();
       let displayLeaseStartDate = leaseStartDate;
@@ -245,7 +245,7 @@ exports.getAllTenants = async (req, res) => {
       include: [
         {
           model: Unit,
-          attributes: ["unitNumber", "status"],
+          attributes: ["id", "unitNumber", "status"],
         },
         {
           model: Floor,
@@ -434,18 +434,18 @@ exports.updateTenant = async (req, res) => {
       // ----------------------
       // Update tenant
       // ----------------------
-const updatedData = {
-  leaseStartDate: req.body.leaseStartDate ?? tenant.leaseStartDate,
-  leaseEndDate: req.body.leaseEndDate ?? tenant.leaseEndDate,
-  contractEndDate: req.body.contractEndDate ?? tenant.contractEndDate,
-  additionalNotes: req.body.additionalNotes ?? tenant.additionalNotes,
-  amount: req.body.amount ?? tenant.amount,
-  advance: req.body.advance ?? tenant.advance,
-  document: filePath,
-  status: newStatus,
-  floorId: req.body.floorId ?? tenant.floorId,
-  unitId: newUnitId,
-};
+      const updatedData = {
+        leaseStartDate: req.body.leaseStartDate ?? tenant.leaseStartDate,
+        leaseEndDate: req.body.leaseEndDate ?? tenant.leaseEndDate,
+        contractEndDate: req.body.contractEndDate ?? tenant.contractEndDate,
+        additionalNotes: req.body.additionalNotes ?? tenant.additionalNotes,
+        amount: req.body.amount ?? tenant.amount,
+        advance: req.body.advance ?? tenant.advance,
+        document: filePath,
+        status: newStatus,
+        floorId: req.body.floorId ?? tenant.floorId,
+        unitId: newUnitId,
+      };
 
 
       await syncTenantPersonalInfo({
@@ -461,9 +461,7 @@ const updatedData = {
       );
 
       // update other fields ONLY for this tenant
-  await tenant.update(updatedData);
-
-
+      await tenant.update(updatedData);
       // ----------------------
       //  Unit state transitions
       // ----------------------
@@ -471,7 +469,7 @@ const updatedData = {
       // ACTIVE → INACTIVE
       if (previousStatus === "active" && newStatus === "inactive" && previousUnitId) {
         await Unit.update(
-          { status: "available", vacatedDate: new Date() },
+          { status: "available", vacatedDate: new Date(), owner: null },
           { where: { id: previousUnitId } }
         );
       }
@@ -482,6 +480,7 @@ const updatedData = {
           {
             status: "occupied",
             rentedDate: updatedData.leaseStartDate || new Date(),
+            owner: tenant.fullName
           },
           { where: { id: newUnitId } }
         );
@@ -495,7 +494,9 @@ const updatedData = {
       ) {
         if (previousUnitId) {
           await Unit.update(
-            { status: "available", vacatedDate: new Date() },
+            { status: "available", vacatedDate: new Date(),
+              owner: null
+             },
             { where: { id: previousUnitId } }
           );
         }
@@ -505,13 +506,13 @@ const updatedData = {
             {
               status: "occupied",
               rentedDate: updatedData.leaseStartDate || new Date(),
+              owner: tenant.fullName
             },
             { where: { id: newUnitId } }
           );
         }
       }
       
-
       // send sms after reset
       if (generatedPassword) {
         try {

@@ -13,25 +13,37 @@ const Role = require('../models/role');
 const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
 const axios = require('axios');
 const { normalizeTransactionNumber } = require("../helpers/normalizeCbeId");
+const generateAccessCode = require('../helpers/accessCodePaymentReq');
 
 
 
 // Create a payment request
 exports.createPaymentRequest = async (req, res) => {
   try {
-    const {error}=paymentRequestSchema.validate(req.body)
-    if(error){
-      return res.status(400).json({message:error.details[0].message})
+    // 1️⃣ Validate request body
+    const { error } = paymentRequestSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
     }
-    const { tenantId, message, paymentTypeId , level, amount, dueDate, repeatedFor } = req.body;
+
+    const { tenantId, message, paymentTypeId, level, amount, dueDate, repeatedFor } = req.body;
+
+    // 2️⃣ Check tenant exists
     const existingTenant = await Tenant.findByPk(tenantId);
     if (!existingTenant) {
       return res.status(404).json({ message: 'Tenant not found' });
     }
+
+    // 3️⃣ Check payment type exists
     const existingPaymentType = await PaymentType.findByPk(paymentTypeId);
     if (!existingPaymentType) {
       return res.status(404).json({ message: 'Payment Type not found' });
     }
+
+    // 4️⃣ Generate access code
+    const accessCode = generateAccessCode(6);
+
+    // 5️⃣ Create payment request
     const newPaymentRequest = await PaymentRequest.create({
       tenantId,
       message,
@@ -40,36 +52,105 @@ exports.createPaymentRequest = async (req, res) => {
       amount,
       dueDate,
       repeatedFor,
+      accessCode,
     });
-  await sendNotificationHelper({
-    adminId: tenantId,
-    title: 'New Payment Request',
-    body: `A new payment request has been submitted by apartment manager. Please check the payment requests page for more details.`,
-    type: 'New Payment Request',
-    receiver_type: 'tenant',
-  });
-  //send sms to tenant
-  const floor = await Floor.findByPk(existingTenant.floorId);
-  const unit = await Unit.findByPk(existingTenant.unitId);
 
-  // Compose enriched SMS
-  const loginUrl = process.env.TENANT_PORTAL_URL;
-  const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
-  const smsMessage = `Hi ${existingTenant.fullName}, 
-        a new ${existingPaymentType.name} is due by ${dueDate} for your unit (Floor ${floor?.floorNumber}, 
-        Unit ${unit?.unitNumber}). Kindly check your tenant dashboard for more info.`;
-   
+    const paymentLink = `${process.env.REQUEST_LINK_URL}/${accessCode}`;
 
-  await smsUtil.sendSingleSMS({
-    phone: existingTenant.phoneNumber,
-    msg: smsMessage + `\nLogin here: ${loginUrl}`,
-    callback: process.env.GEEZSMS_WEBHOOK_URL,
-  });
+    // 6️⃣ Send notification to tenant
+    await sendNotificationHelper({
+      adminId: tenantId,
+      title: 'New Payment Request',
+      body: 'A new payment request has been submitted by apartment manager. Please check the payment requests page for more details.',
+      type: 'New Payment Request',
+      receiver_type: 'tenant',
+    });
 
-    res.status(201).json({ message: 'Payment request created successfully', data: newPaymentRequest });
+    // 7️⃣ Fetch floor & unit info for SMS
+    const floor = await Floor.findByPk(existingTenant.floorId);
+    const unit = await Unit.findByPk(existingTenant.unitId);
+
+    const loginUrl = process.env.TENANT_PORTAL_URL;
+
+    const smsMessage = `Hi ${existingTenant.fullName},
+
+    A new ${existingPaymentType.name} is due by ${dueDate} for your unit (Floor ${floor?.floorNumber}, Unit ${unit?.unitNumber}).
+    You can view and verify your pending payment here: ${paymentLink}
+    Thank you!`;
+
+    // 8️⃣ Send SMS safely in the background
+    setImmediate(async () => {
+      try {
+        const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
+        await smsUtil.sendSingleSMS({
+          phone: existingTenant.phoneNumber,
+          msg: smsMessage + `\nLogin here: ${loginUrl}`,
+          callback: process.env.GEEZSMS_WEBHOOK_URL,
+        });
+      } catch (err) {
+        console.error('SMS failed for tenant', existingTenant.id, err.message);
+      }
+    });
+
+    // 9️⃣ Return response
+    res.status(201).json({
+      message: 'Payment request created successfully',
+      data: newPaymentRequest,
+    });
+
   } catch (error) {
-    console.error("Error creating payment request:", error);
-    res.status(500).json({ message: 'Error creating payment request', error: error.message });
+    console.error('Error creating payment request:', error);
+    res.status(500).json({
+      message: 'Error creating payment request',
+      error: error.message,
+    });
+  }
+};
+
+
+exports.getPaymentRequestsByAccessCode = async (req, res) => {
+  try {
+    const { accessCode } = req.params;
+
+    // 1️⃣ Find the request that corresponds to this accessCode
+    const currentRequest = await PaymentRequest.findOne({
+      where: { accessCode },
+      include: [{ model: Tenant }],
+    });
+
+    if (!currentRequest) {
+      return res.status(404).json({ success: false, message: 'Invalid link' });
+    }
+
+    // 2️⃣ Get phone number from the tenant
+    const phoneNumber = currentRequest.Tenant.phoneNumber;
+
+    // 3️⃣ Fetch all pending requests for this phone number
+    const pendingRequests = await PaymentRequest.findAll({
+      where: { status: 'pending' },
+      include: [
+        {
+          model: Tenant,
+          where: { phoneNumber },
+          include: [Unit, Floor]
+        },
+        PaymentType
+      ],
+      order: [['dueDate', 'ASC']],
+    });
+
+    // 4️⃣ Identify the current request in the list
+    const currentRequestId = currentRequest.id;
+
+    return res.json({
+      success: true,
+      currentRequestId,
+      data: pendingRequests,
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to fetch payment requests' });
   }
 };
 
@@ -208,12 +289,10 @@ exports.getMyRequestFromAdmin = async (req, res) => {
       return res.status(400).json({ message: 'User ID is required' });
     }
 
-        const phoneNumber = req.user.phone; 
-
+    const phoneNumber = req.user.phone; 
     const tenants = await Tenant.findAll({
       where: { phoneNumber },
       attributes: ['id'],
-      
     });
     // console.log('Fetching payment requests for tenant ID:', id);
 
@@ -231,12 +310,83 @@ exports.getMyRequestFromAdmin = async (req, res) => {
                },
                { model: PaymentType, attributes: ['name'],},
              ]
+        });
+        res.status(200).json({ message: 'Payment requests retrieved successfully', data: paymentRequests });
+
+      } catch (error) {
+        console.error('Error retrieving payment requests:', error);
+        res.status(500).json({ message: 'Error retrieving payment requests', error: error.message });
+      }
+};
+
+exports.getTenantPendingRequestsByPhone = async (req, res) => {
+  try {
+    const { phoneNumber } = req.query;
+
+    if (!phoneNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number is required',
+      });
+    }
+
+    // Find tenants with this phone number
+    const tenants = await Tenant.findAll({
+      where: { phoneNumber },
+      attributes: ['id', 'fullName'],
     });
-    res.status(200).json({ message: 'Payment requests retrieved successfully', data: paymentRequests });
+
+    if (!tenants.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'No tenant found with this phone number',
+      });
+    }
+
+    const tenantIds = tenants.map(t => t.id);
+
+    // Fetch ONLY pending payment requests
+    const paymentRequests = await PaymentRequest.findAll({
+      where: {
+        tenantId: tenantIds,
+        status: 'pending',
+      },
+      attributes: [
+        'id',
+        'amount',
+        'dueDate',
+        'status',
+        'createdAt',
+      ],
+      include: [
+        {
+          model: Tenant,
+          attributes: ['fullName'],
+          include: [
+            { model: Unit, attributes: ['unitNumber'] },
+            { model: Floor, attributes: ['floorNumber'] },
+          ],
+        },
+        {
+          model: PaymentType,
+          attributes: ['name'],
+        },
+      ],
+      order: [['dueDate', 'ASC']],
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Pending payment requests retrieved successfully',
+      data: paymentRequests,
+    });
 
   } catch (error) {
-    console.error('Error retrieving payment requests:', error);
-    res.status(500).json({ message: 'Error retrieving payment requests', error: error.message });
+    console.error('Public payment request fetch error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve payment requests',
+    });
   }
 };
 
