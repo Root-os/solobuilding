@@ -51,7 +51,7 @@ defineAssociation();
 
 sequelize
 
-  .sync({ force: false, alter: false })
+  .sync({ force: false, alter: true })
   .then(() => {
     console.log("Database & tables are up to date!");
   })

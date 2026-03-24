@@ -245,8 +245,12 @@ const paymentRequestSchema = Joi.object({
   amount: Joi.number().min(0.01).required(),
   dueDate: Joi.date().required(),
   repeatedFor: Joi.string().optional(),
-  paymentTypeId: Joi.number().integer().min(0).required(),
+  billTypeId: Joi.number().integer().min(0).required(),
   receipt: Joi.string().optional(),
+
+  startDate: Joi.date().optional(),
+  endDate: Joi.date().optional(),
+  paidDays: Joi.number().integer().min(1).optional(),
 });
 const paymentTypeSchema = Joi.object({
   name: Joi.string().min(3).max(50).required(),

@@ -54,7 +54,7 @@ const Unit = sequelize.define('Unit', {
   floorId: {
     type: DataTypes.INTEGER,
     references: {
-      model: 'floors', // Explicit table name
+      model: 'floors', 
       key: 'id',
     },
     allowNull: false,

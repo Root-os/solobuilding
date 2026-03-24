@@ -1,21 +1,23 @@
-const PaymentRequest = require('../models/paymentRequests');
-const PaymentSetting = require('../models/paymentSetting');
-const PaymentResponse = require('../models/verifiedPayments');
-const Tenant = require('../models/tenant');
+const PaymentRequest = require("../models/paymentRequests");
+const PaymentSetting = require("../models/paymentSetting");
+const PaymentResponse = require("../models/verifiedPayments");
+const Tenant = require("../models/tenant");
 const Floor = require("../models/floor");
 const Unit = require("../models/unit");
-const PaymentType=require('../models/paymentType');
-const { Op } = require('sequelize');
-const {paymentRequestSchema,paramsSchema,paymentRequestStatusSchema} = require('../helpers/schema')
-const sendNotificationHelper= require('../helpers/sendAlert');
-const User = require('../models/user');
-const Role = require('../models/role');
+const BillType = require("../models/billType");
+const { Op } = require("sequelize");
+const {
+  paymentRequestSchema,
+  paramsSchema,
+  paymentRequestStatusSchema,
+} = require("../helpers/schema");
+const sendNotificationHelper = require("../helpers/sendAlert");
+const User = require("../models/user");
+const Role = require("../models/role");
 const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
-const axios = require('axios');
+const axios = require("axios");
 const { normalizeTransactionNumber } = require("../helpers/normalizeCbeId");
-const generateAccessCode = require('../helpers/accessCodePaymentReq');
-
-
+const generateAccessCode = require("../helpers/accessCodePaymentReq");
 
 // Create a payment request
 exports.createPaymentRequest = async (req, res) => {
@@ -26,18 +28,29 @@ exports.createPaymentRequest = async (req, res) => {
       return res.status(400).json({ message: error.details[0].message });
     }
 
-    const { tenantId, message, paymentTypeId, level, amount, dueDate, repeatedFor } = req.body;
+    const {
+      tenantId,
+      message,
+      billTypeId,
+      level,
+      amount,
+      dueDate,
+      repeatedFor,
+      startDate,
+      endDate,
+      paidDays,
+    } = req.body;
 
     // 2️⃣ Check tenant exists
     const existingTenant = await Tenant.findByPk(tenantId);
     if (!existingTenant) {
-      return res.status(404).json({ message: 'Tenant not found' });
+      return res.status(404).json({ message: "Tenant not found" });
     }
 
     // 3️⃣ Check payment type exists
-    const existingPaymentType = await PaymentType.findByPk(paymentTypeId);
-    if (!existingPaymentType) {
-      return res.status(404).json({ message: 'Payment Type not found' });
+    const existingbillType = await BillType.findByPk(billTypeId);
+    if (!existingbillType) {
+      return res.status(404).json({ message: "Payment Type not found" });
     }
 
     // 4️⃣ Generate access code
@@ -47,12 +60,15 @@ exports.createPaymentRequest = async (req, res) => {
     const newPaymentRequest = await PaymentRequest.create({
       tenantId,
       message,
-      paymentTypeId,
+      billTypeId,
       level,
       amount,
       dueDate,
       repeatedFor,
       accessCode,
+      startDate,
+      endDate,
+      paidDays,
     });
 
     const paymentLink = `${process.env.REQUEST_LINK_URL}/${accessCode}`;
@@ -60,10 +76,10 @@ exports.createPaymentRequest = async (req, res) => {
     // 6️⃣ Send notification to tenant
     await sendNotificationHelper({
       adminId: tenantId,
-      title: 'New Payment Request',
-      body: 'A new payment request has been submitted by apartment manager. Please check the payment requests page for more details.',
-      type: 'New Payment Request',
-      receiver_type: 'tenant',
+      title: "New Payment Request",
+      body: "A new payment request has been submitted by apartment manager. Please check the payment requests page for more details.",
+      type: "New Payment Request",
+      receiver_type: "tenant",
     });
 
     // 7️⃣ Fetch floor & unit info for SMS
@@ -74,39 +90,39 @@ exports.createPaymentRequest = async (req, res) => {
 
     const smsMessage = `Hi ${existingTenant.fullName},
 
-    A new ${existingPaymentType.name} is due by ${dueDate} for your unit (Floor ${floor?.floorNumber}, Unit ${unit?.unitNumber}).
+    A new ${existingbillType.name} is due by ${dueDate} for your unit (Floor ${floor?.floorNumber}, Unit ${unit?.unitNumber}).
     You can view and verify your pending payment here: ${paymentLink}
     Thank you!`;
 
     // 8️⃣ Send SMS safely in the background
     setImmediate(async () => {
       try {
-        const smsUtil = createSingleSMSUtil({ token: process.env.GEEZSMS_TOKEN });
+        const smsUtil = createSingleSMSUtil({
+          token: process.env.GEEZSMS_TOKEN,
+        });
         await smsUtil.sendSingleSMS({
           phone: existingTenant.phoneNumber,
           msg: smsMessage + `\nLogin here: ${loginUrl}`,
           callback: process.env.GEEZSMS_WEBHOOK_URL,
         });
       } catch (err) {
-        console.error('SMS failed for tenant', existingTenant.id, err.message);
+        console.error("SMS failed for tenant", existingTenant.id, err.message);
       }
     });
 
     // 9️⃣ Return response
     res.status(201).json({
-      message: 'Payment request created successfully',
+      message: "Payment request created successfully",
       data: newPaymentRequest,
     });
-
   } catch (error) {
-    console.error('Error creating payment request:', error);
+    console.error("Error creating payment request:", error);
     res.status(500).json({
-      message: 'Error creating payment request',
+      message: "Error creating payment request",
       error: error.message,
     });
   }
 };
-
 
 exports.getPaymentRequestsByAccessCode = async (req, res) => {
   try {
@@ -119,7 +135,7 @@ exports.getPaymentRequestsByAccessCode = async (req, res) => {
     });
 
     if (!currentRequest) {
-      return res.status(404).json({ success: false, message: 'Invalid link' });
+      return res.status(404).json({ success: false, message: "Invalid link" });
     }
 
     // 2️⃣ Get phone number from the tenant
@@ -127,16 +143,16 @@ exports.getPaymentRequestsByAccessCode = async (req, res) => {
 
     // 3️⃣ Fetch all pending requests for this phone number
     const pendingRequests = await PaymentRequest.findAll({
-      where: { status: 'pending' },
+      where: { status: "pending" },
       include: [
         {
           model: Tenant,
           where: { phoneNumber },
-          include: [Unit, Floor]
+          include: [Unit, Floor],
         },
-        PaymentType
+        BillType,
       ],
-      order: [['dueDate', 'ASC']],
+      order: [["dueDate", "ASC"]],
     });
 
     // 4️⃣ Identify the current request in the list
@@ -147,10 +163,11 @@ exports.getPaymentRequestsByAccessCode = async (req, res) => {
       currentRequestId,
       data: pendingRequests,
     });
-
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: 'Failed to fetch payment requests' });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch payment requests" });
   }
 };
 
@@ -171,15 +188,15 @@ exports.getAllPaymentRequests = async (req, res) => {
       include: [
         {
           model: Tenant,
-          attributes: ['fullName'],
+          attributes: ["fullName"],
           include: [
-            { model: Unit, attributes: ['unitNumber'] },
-            { model: Floor, attributes: ['floorNumber'] }
+            { model: Unit, attributes: ["unitNumber"] },
+            { model: Floor, attributes: ["floorNumber"] },
           ],
         },
         {
-          model: PaymentType,
-          attributes: ['name'],
+          model: BillType,
+          attributes: ["typeName"],
         },
       ],
     });
@@ -187,7 +204,12 @@ exports.getAllPaymentRequests = async (req, res) => {
     res.status(200).json(paymentRequests);
   } catch (error) {
     console.error("Error fetching payment requests:", error);
-    res.status(500).json({ message: 'Error fetching payment requests', error: error.message });
+    res
+      .status(500)
+      .json({
+        message: "Error fetching payment requests",
+        error: error.message,
+      });
   }
 };
 
@@ -199,23 +221,28 @@ exports.getPaymentRequestById = async (req, res) => {
       include: [
         {
           model: Tenant,
-          attributes: ['fullName'],
+          attributes: ["fullName"],
         },
         {
-          model: PaymentType,
-          attributes: ['name'],
+          model: BillType,
+          attributes: ["typeName"],
         },
       ],
     });
 
     if (!paymentRequest) {
-      return res.status(404).json({ message: 'Payment request not found' });
+      return res.status(404).json({ message: "Payment request not found" });
     }
 
     res.status(200).json(paymentRequest);
   } catch (error) {
     console.error("Error fetching payment request:", error);
-    res.status(500).json({ message: 'Error fetching payment request', error: error.message });
+    res
+      .status(500)
+      .json({
+        message: "Error fetching payment request",
+        error: error.message,
+      });
   }
 };
 
@@ -227,15 +254,25 @@ exports.updatePaymentRequest = async (req, res) => {
 
     const paymentRequest = await PaymentRequest.findByPk(id);
     if (!paymentRequest) {
-      return res.status(404).json({ message: 'Payment request not found' });
+      return res.status(404).json({ message: "Payment request not found" });
     }
 
     await paymentRequest.update({ message, level, amount, dueDate, status });
 
-    res.status(200).json({ message: 'Payment request updated successfully', data: paymentRequest });
+    res
+      .status(200)
+      .json({
+        message: "Payment request updated successfully",
+        data: paymentRequest,
+      });
   } catch (error) {
     console.error("Error updating payment request:", error);
-    res.status(500).json({ message: 'Error updating payment request', error: error.message });
+    res
+      .status(500)
+      .json({
+        message: "Error updating payment request",
+        error: error.message,
+      });
   }
 };
 
@@ -246,14 +283,19 @@ exports.deletePaymentRequest = async (req, res) => {
 
     const paymentRequest = await PaymentRequest.findByPk(id);
     if (!paymentRequest) {
-      return res.status(404).json({ message: 'Payment request not found' });
+      return res.status(404).json({ message: "Payment request not found" });
     }
 
     await paymentRequest.destroy();
-    res.status(200).json({ message: 'Payment request deleted successfully' });
+    res.status(200).json({ message: "Payment request deleted successfully" });
   } catch (error) {
     console.error("Error deleting payment request:", error);
-    res.status(500).json({ message: 'Error deleting payment request', error: error.message });
+    res
+      .status(500)
+      .json({
+        message: "Error deleting payment request",
+        error: error.message,
+      });
   }
 };
 
@@ -263,22 +305,31 @@ exports.reviewPayment = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!['approved', 'rejected'].includes(status)) {
-      return res.status(400).json({ message: 'Invalid status. Use approved or rejected.' });
+    if (!["approved", "rejected"].includes(status)) {
+      return res
+        .status(400)
+        .json({ message: "Invalid status. Use approved or rejected." });
     }
 
     const paymentRequest = await PaymentRequest.findByPk(id);
     if (!paymentRequest) {
-      return res.status(404).json({ message: 'Payment request not found' });
+      return res.status(404).json({ message: "Payment request not found" });
     }
 
     paymentRequest.status = status;
     await paymentRequest.save();
 
-    res.status(200).json({ message: `Payment ${status} successfully`, data: paymentRequest });
+    res
+      .status(200)
+      .json({
+        message: `Payment ${status} successfully`,
+        data: paymentRequest,
+      });
   } catch (error) {
     console.error("Error reviewing payment:", error);
-    res.status(500).json({ message: 'Error reviewing payment', error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error reviewing payment", error: error.message });
   }
 };
 
@@ -286,37 +337,48 @@ exports.getMyRequestFromAdmin = async (req, res) => {
   try {
     // Validate user ID
     if (!req.user || !req.user.id) {
-      return res.status(400).json({ message: 'User ID is required' });
+      return res.status(400).json({ message: "User ID is required" });
     }
 
-    const phoneNumber = req.user.phone; 
+    const phoneNumber = req.user.phone;
     const tenants = await Tenant.findAll({
       where: { phoneNumber },
-      attributes: ['id'],
+      attributes: ["id"],
     });
     // console.log('Fetching payment requests for tenant ID:', id);
 
-    const tenantIds = tenants.map(t => t.id);
+    const tenantIds = tenants.map((t) => t.id);
 
     // Fetch payment requests that belong to the user
     const paymentRequests = await PaymentRequest.findAll({
-       where: { tenantId: tenantIds, },
-             include: [
-               { model: Tenant, attributes: ['fullName'],
-                 include: [
-                   { model: Unit, attributes: ['unitNumber'] },
-                   { model: Floor, attributes: ['floorNumber'] }
-                 ],
-               },
-               { model: PaymentType, attributes: ['name'],},
-             ]
-        });
-        res.status(200).json({ message: 'Payment requests retrieved successfully', data: paymentRequests });
-
-      } catch (error) {
-        console.error('Error retrieving payment requests:', error);
-        res.status(500).json({ message: 'Error retrieving payment requests', error: error.message });
-      }
+      where: { tenantId: tenantIds },
+      include: [
+        {
+          model: Tenant,
+          attributes: ["fullName"],
+          include: [
+            { model: Unit, attributes: ["unitNumber"] },
+            { model: Floor, attributes: ["floorNumber"] },
+          ],
+        },
+        { model: BillType, attributes: ["typeName"] },
+      ],
+    });
+    res
+      .status(200)
+      .json({
+        message: "Payment requests retrieved successfully",
+        data: paymentRequests,
+      });
+  } catch (error) {
+    console.error("Error retrieving payment requests:", error);
+    res
+      .status(500)
+      .json({
+        message: "Error retrieving payment requests",
+        error: error.message,
+      });
+  }
 };
 
 exports.getTenantPendingRequestsByPhone = async (req, res) => {
@@ -326,66 +388,59 @@ exports.getTenantPendingRequestsByPhone = async (req, res) => {
     if (!phoneNumber) {
       return res.status(400).json({
         success: false,
-        message: 'Phone number is required',
+        message: "Phone number is required",
       });
     }
 
     // Find tenants with this phone number
     const tenants = await Tenant.findAll({
       where: { phoneNumber },
-      attributes: ['id', 'fullName'],
+      attributes: ["id", "fullName"],
     });
 
     if (!tenants.length) {
       return res.status(404).json({
         success: false,
-        message: 'No tenant found with this phone number',
+        message: "No tenant found with this phone number",
       });
     }
 
-    const tenantIds = tenants.map(t => t.id);
+    const tenantIds = tenants.map((t) => t.id);
 
     // Fetch ONLY pending payment requests
     const paymentRequests = await PaymentRequest.findAll({
       where: {
         tenantId: tenantIds,
-        status: 'pending',
+        status: "pending",
       },
-      attributes: [
-        'id',
-        'amount',
-        'dueDate',
-        'status',
-        'createdAt',
-      ],
+      attributes: ["id", "amount", "dueDate", "status", "createdAt"],
       include: [
         {
           model: Tenant,
-          attributes: ['fullName'],
+          attributes: ["fullName"],
           include: [
-            { model: Unit, attributes: ['unitNumber'] },
-            { model: Floor, attributes: ['floorNumber'] },
+            { model: Unit, attributes: ["unitNumber"] },
+            { model: Floor, attributes: ["floorNumber"] },
           ],
         },
         {
           model: PaymentType,
-          attributes: ['name'],
+          attributes: ["name"],
         },
       ],
-      order: [['dueDate', 'ASC']],
+      order: [["dueDate", "ASC"]],
     });
 
     return res.status(200).json({
       success: true,
-      message: 'Pending payment requests retrieved successfully',
+      message: "Pending payment requests retrieved successfully",
       data: paymentRequests,
     });
-
   } catch (error) {
-    console.error('Public payment request fetch error:', error);
+    console.error("Public payment request fetch error:", error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to retrieve payment requests',
+      message: "Failed to retrieve payment requests",
     });
   }
 };
@@ -394,13 +449,13 @@ exports.getTenantPendingRequestsByPhone = async (req, res) => {
 exports.uploadReceipt = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+      return res.status(400).json({ message: "No file uploaded" });
     }
 
     const { id } = req.params;
     const paymentRequest = await PaymentRequest.findByPk(id);
     if (!paymentRequest) {
-      return res.status(404).json({ message: 'Payment request not found' });
+      return res.status(404).json({ message: "Payment request not found" });
     }
 
     const tenant = await Tenant.findByPk(paymentRequest.tenantId);
@@ -410,14 +465,14 @@ exports.uploadReceipt = async (req, res) => {
     const isFirstUpload = !paymentRequest.receipt;
 
     // Update receipt URL
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
     paymentRequest.receipt = `${baseUrl}/uploads/receipts/${req.file.filename}`;
     await paymentRequest.save();
 
     const admins = await User.findAll({
       include: {
         model: Role,
-        where: { name: 'admin' },
+        where: { name: "admin" },
       },
     });
 
@@ -436,12 +491,12 @@ exports.uploadReceipt = async (req, res) => {
         admins.map((admin) =>
           sendNotificationHelper({
             adminId: admin.id,
-            title: 'Payment Receipt Upload',
+            title: "Payment Receipt Upload",
             body: notificationBody,
-            type: 'Payment Receipt Upload',
-            receiver_type: 'staff',
-          })
-        )
+            type: "Payment Receipt Upload",
+            receiver_type: "staff",
+          }),
+        ),
       );
 
       await Promise.all(
@@ -450,15 +505,19 @@ exports.uploadReceipt = async (req, res) => {
             phone: admin.phone,
             msg: smsMessage,
             callback: process.env.GEEZSMS_WEBHOOK_URL,
-          })
-        )
+          }),
+        ),
       );
     }
 
-    res.status(200).json({ message: 'Receipt uploaded successfully', data: paymentRequest });
+    res
+      .status(200)
+      .json({ message: "Receipt uploaded successfully", data: paymentRequest });
   } catch (error) {
-    console.error('Error uploading receipt:', error);
-    res.status(500).json({ message: 'Error uploading receipt', error: error.message });
+    console.error("Error uploading receipt:", error);
+    res
+      .status(500)
+      .json({ message: "Error uploading receipt", error: error.message });
   }
 };
 
@@ -468,7 +527,6 @@ exports.uploadReceipt = async (req, res) => {
 const digitsOnly = (s) => String(s || "").replace(/\D/g, "");
 const lastN = (s, n) => s.slice(-n);
 const toAmount = (v) => parseFloat(String(v).replace(/[^\d.]/g, ""));
-
 
 exports.verifyPaymentRequest = async (req, res) => {
   try {
@@ -483,14 +541,21 @@ exports.verifyPaymentRequest = async (req, res) => {
         message: "paymentMethod, transactionNumber, and amount are required",
       });
     }
-     
+
     // 2️⃣ Load payment request
-    const request = await PaymentRequest.findByPk(paymentRequestId);
+    const request = await PaymentRequest.findByPk(paymentRequestId,
+      {
+        include: [{ model: BillType }],
+      });
     if (!request) {
-      return res.status(404).json({ success: false, message: "Payment request not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Payment request not found" });
     }
     if (request.status !== "pending") {
-      return res.status(400).json({ success: false, message: "Payment request already processed" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Payment request already processed" });
     }
 
     // 3️⃣ Load payment setting
@@ -498,7 +563,12 @@ exports.verifyPaymentRequest = async (req, res) => {
       where: { paymentMethod: paymentMethod.toUpperCase() },
     });
     if (!setting) {
-      return res.status(400).json({ success: false, message: `${paymentMethod} payment setting not configured` });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: `${paymentMethod} payment setting not configured`,
+        });
     }
 
     const verificationEndpoint = `${process.env.PAYMENT_VERIFICATION_URL}/api/verify`;
@@ -514,7 +584,9 @@ exports.verifyPaymentRequest = async (req, res) => {
     } catch (err) {
       return res.status(500).json({
         success: false,
-        message: "Failed to verify payment: " + (err.response?.data?.message || err.message),
+        message:
+          "Failed to verify payment: " +
+          (err.response?.data?.message || err.message),
       });
     }
 
@@ -527,7 +599,7 @@ exports.verifyPaymentRequest = async (req, res) => {
       });
     }
 
-    const verifiedTransactionNumber = verificationResponse.transactionNumber; 
+    const verifiedTransactionNumber = verificationResponse.transactionNumber;
     const fetchedAmount = Number(verificationResponse.amount);
 
     // 6️⃣ Check for duplicate transaction
@@ -570,7 +642,11 @@ exports.verifyPaymentRequest = async (req, res) => {
 
     // 9️⃣ Validate amount
     const expectedAmount = Number(req.query.amount);
-    if (!Number.isFinite(expectedAmount) || !Number.isFinite(fetchedAmount) || Math.abs(fetchedAmount - expectedAmount) > 0.01) {
+    if (
+      !Number.isFinite(expectedAmount) ||
+      !Number.isFinite(fetchedAmount) ||
+      Math.abs(fetchedAmount - expectedAmount) > 0.01
+    ) {
       return res.status(400).json({
         success: false,
         message: `Amount mismatch. Expected: ${expectedAmount}, got: ${fetchedAmount}`,
@@ -583,11 +659,34 @@ exports.verifyPaymentRequest = async (req, res) => {
       approvedAt: new Date(),
     });
 
+  // Check if rent already exists for this period
+const existingRent = await TenantRentCollection.findOne({
+  where: {
+    tenantId: request.tenantId,
+    paymentDate: request.startDate,
+    nextDueDate: request.endDate,
+  },
+});
+
+if (!existingRent) {
+  await TenantRentCollection.create({
+    tenantId: request.tenantId,
+    paymentDate: request.startDate,
+    nextDueDate: request.endDate,
+    paidDays: request.paidDays || "0",
+    paymentMethod: paymentMethod.toUpperCase(),
+    amountPaid: fetchedAmount.toString(),
+    status: "Paid",
+    isPaid: true,
+    punishment: 0,
+  });
+}
+
     // 1️⃣1️⃣ Store response in PaymentResponse
     const responseRecord = await PaymentResponse.create({
       paymentRequestId,
       paymentMethod: paymentMethod.toUpperCase(),
-      transactionNumber: verifiedTransactionNumber, 
+      transactionNumber: verifiedTransactionNumber,
       amount: fetchedAmount,
       receiverName: verificationResponse.receiver || null,
       receiverAccount: verificationResponse.receiverAccount || null,
@@ -608,7 +707,6 @@ exports.verifyPaymentRequest = async (req, res) => {
         verification: verificationResponse,
       },
     });
-
   } catch (err) {
     console.error("verifyPaymentRequest error:", err);
     return res.status(500).json({
@@ -618,4 +716,3 @@ exports.verifyPaymentRequest = async (req, res) => {
     });
   }
 };
-

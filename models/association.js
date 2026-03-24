@@ -102,7 +102,7 @@ const defineAssociations = () => {
     Tenant.hasMany(Parking, { foreignKey: "tenantId", onDelete: "CASCADE" });
 
     PaymentRequest.belongsTo(Tenant, { foreignKey: 'tenantId', onDelete: "CASCADE" });
-    PaymentRequest.belongsTo(PaymentType, { foreignKey: 'paymentTypeId', onDelete: "CASCADE" });
+    PaymentRequest.belongsTo(BillType, { foreignKey: 'billTypeId', onDelete: "CASCADE" });
 
     BillType.hasMany(TenantPayment, { foreignKey: 'paymentTypeId', onDelete: "CASCADE" });
     TenantPayment.belongsTo(BillType, { foreignKey: 'paymentTypeId', onDelete: "CASCADE" });

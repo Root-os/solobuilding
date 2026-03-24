@@ -32,7 +32,7 @@ const TenantRentCollection = sequelize.define(
       allowNull: false,
     },
     amountPaid: {
-      type: DataTypes.STRING,
+      type: DataTypes.FLOAT,
       allowNull: true,
     },
     nextDueDate: {
