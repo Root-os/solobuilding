@@ -23,7 +23,7 @@ const otpLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-router.post("/send-sms", adminOrEmployeeAuth, singleSMSController.sendSingleSMS);
+router.post("/send-sms",  singleSMSController.sendSingleSMS);
 
 router.post("/send-bulk-sms", adminOrEmployeeAuth, bulkSMSController.sendBulkSMS);
 router.post(

@@ -152,7 +152,7 @@ exports.createTenant = async (req, res) => {
         await TenantVehicle.create({ tenantId: tenant.id, carPlate, carName });
       }
 
-      await Unit.update({ status: "occupied", rentedDate: leaseStartDate, owner: fullName, }, { where: { id: unitId } });
+      await Unit.update({ status: "occupied", rentedDate: leaseStartDate }, { where: { id: unitId } });
 
       const setting = await Setting.findOne();
       let displayLeaseStartDate = leaseStartDate;
@@ -469,7 +469,7 @@ exports.updateTenant = async (req, res) => {
       // ACTIVE → INACTIVE
       if (previousStatus === "active" && newStatus === "inactive" && previousUnitId) {
         await Unit.update(
-          { status: "available", vacatedDate: new Date(), owner: null },
+          { status: "available", vacatedDate: new Date() },
           { where: { id: previousUnitId } }
         );
       }
@@ -479,8 +479,7 @@ exports.updateTenant = async (req, res) => {
         await Unit.update(
           {
             status: "occupied",
-            rentedDate: updatedData.leaseStartDate || new Date(),
-            owner: tenant.fullName
+            rentedDate: updatedData.leaseStartDate || new Date()
           },
           { where: { id: newUnitId } }
         );
@@ -494,8 +493,7 @@ exports.updateTenant = async (req, res) => {
       ) {
         if (previousUnitId) {
           await Unit.update(
-            { status: "available", vacatedDate: new Date(),
-              owner: null
+            { status: "available", vacatedDate: new Date()
              },
             { where: { id: previousUnitId } }
           );
@@ -505,8 +503,7 @@ exports.updateTenant = async (req, res) => {
           await Unit.update(
             {
               status: "occupied",
-              rentedDate: updatedData.leaseStartDate || new Date(),
-              owner: tenant.fullName
+              rentedDate: updatedData.leaseStartDate || new Date()
             },
             { where: { id: newUnitId } }
           );

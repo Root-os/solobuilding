@@ -5,6 +5,8 @@ const Tenant = require("../models/tenant");
 const Floor = require("../models/floor");
 const Unit = require("../models/unit");
 const BillType = require("../models/billType");
+const TenantRentCollection = require("../models/tenantRentCollection");
+const TenantPayment = require("../models/tenantPayments");
 const { Op } = require("sequelize");
 const {
   paymentRequestSchema,
@@ -204,12 +206,10 @@ exports.getAllPaymentRequests = async (req, res) => {
     res.status(200).json(paymentRequests);
   } catch (error) {
     console.error("Error fetching payment requests:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error fetching payment requests",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching payment requests",
+      error: error.message,
+    });
   }
 };
 
@@ -237,12 +237,10 @@ exports.getPaymentRequestById = async (req, res) => {
     res.status(200).json(paymentRequest);
   } catch (error) {
     console.error("Error fetching payment request:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error fetching payment request",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching payment request",
+      error: error.message,
+    });
   }
 };
 
@@ -259,20 +257,16 @@ exports.updatePaymentRequest = async (req, res) => {
 
     await paymentRequest.update({ message, level, amount, dueDate, status });
 
-    res
-      .status(200)
-      .json({
-        message: "Payment request updated successfully",
-        data: paymentRequest,
-      });
+    res.status(200).json({
+      message: "Payment request updated successfully",
+      data: paymentRequest,
+    });
   } catch (error) {
     console.error("Error updating payment request:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error updating payment request",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error updating payment request",
+      error: error.message,
+    });
   }
 };
 
@@ -290,12 +284,10 @@ exports.deletePaymentRequest = async (req, res) => {
     res.status(200).json({ message: "Payment request deleted successfully" });
   } catch (error) {
     console.error("Error deleting payment request:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error deleting payment request",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error deleting payment request",
+      error: error.message,
+    });
   }
 };
 
@@ -319,12 +311,10 @@ exports.reviewPayment = async (req, res) => {
     paymentRequest.status = status;
     await paymentRequest.save();
 
-    res
-      .status(200)
-      .json({
-        message: `Payment ${status} successfully`,
-        data: paymentRequest,
-      });
+    res.status(200).json({
+      message: `Payment ${status} successfully`,
+      data: paymentRequest,
+    });
   } catch (error) {
     console.error("Error reviewing payment:", error);
     res
@@ -364,20 +354,16 @@ exports.getMyRequestFromAdmin = async (req, res) => {
         { model: BillType, attributes: ["typeName"] },
       ],
     });
-    res
-      .status(200)
-      .json({
-        message: "Payment requests retrieved successfully",
-        data: paymentRequests,
-      });
+    res.status(200).json({
+      message: "Payment requests retrieved successfully",
+      data: paymentRequests,
+    });
   } catch (error) {
     console.error("Error retrieving payment requests:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error retrieving payment requests",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error retrieving payment requests",
+      error: error.message,
+    });
   }
 };
 
@@ -543,10 +529,9 @@ exports.verifyPaymentRequest = async (req, res) => {
     }
 
     // 2️⃣ Load payment request
-    const request = await PaymentRequest.findByPk(paymentRequestId,
-      {
-        include: [{ model: BillType }],
-      });
+    const request = await PaymentRequest.findByPk(paymentRequestId, {
+      include: [{ model: BillType }],
+    });
     if (!request) {
       return res
         .status(404)
@@ -563,12 +548,10 @@ exports.verifyPaymentRequest = async (req, res) => {
       where: { paymentMethod: paymentMethod.toUpperCase() },
     });
     if (!setting) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: `${paymentMethod} payment setting not configured`,
-        });
+      return res.status(400).json({
+        success: false,
+        message: `${paymentMethod} payment setting not configured`,
+      });
     }
 
     const verificationEndpoint = `${process.env.PAYMENT_VERIFICATION_URL}/api/verify`;
@@ -659,28 +642,53 @@ exports.verifyPaymentRequest = async (req, res) => {
       approvedAt: new Date(),
     });
 
-  // Check if rent already exists for this period
-const existingRent = await TenantRentCollection.findOne({
-  where: {
-    tenantId: request.tenantId,
-    paymentDate: request.startDate,
-    nextDueDate: request.endDate,
-  },
-});
+    const billTypeName = request.BillType?.typeName?.trim().toLowerCase() || "";
 
-if (!existingRent) {
-  await TenantRentCollection.create({
-    tenantId: request.tenantId,
-    paymentDate: request.startDate,
-    nextDueDate: request.endDate,
-    paidDays: request.paidDays || "0",
-    paymentMethod: paymentMethod.toUpperCase(),
-    amountPaid: fetchedAmount.toString(),
-    status: "Paid",
-    isPaid: true,
-    punishment: 0,
-  });
-}
+    // Check if rent already exists for this period
+    if (billTypeName === "rent") {
+      const existingRent = await TenantRentCollection.findOne({
+        where: {
+          tenantId: request.tenantId,
+          paymentDate: request.startDate,
+          nextDueDate: request.endDate,
+        },
+      });
+
+      if (!existingRent) {
+        await TenantRentCollection.create({
+          tenantId: request.tenantId,
+          paymentDate: request.startDate,
+          nextDueDate: request.endDate,
+          paidDays: request.paidDays || "0",
+          paymentMethod: paymentMethod.toUpperCase(),
+          amountPaid: fetchedAmount.toString(),
+          status: "Paid",
+          isPaid: true,
+          punishment: 0,
+        });
+      }
+    } else {
+      const existingPayment = await TenantPayment.findOne({
+        where: {
+          tenantId: request.tenantId,
+          startDate: request.startDate,
+          endDate: request.endDate,
+        },
+      });
+
+      if (!existingPayment) {
+        await TenantPayment.create({
+          tenantId: request.tenantId,
+          billTypeId: request.billTypeId,
+          amountPaid: fetchedAmount,
+          startDate: request.startDate,
+          endDate: request.endDate || null,
+          paymentMethod: paymentMethod.toUpperCase(),
+          status: "paid",
+          proofOfPayment: verifiedTransactionNumber,
+        });
+      }
+    }
 
     // 1️⃣1️⃣ Store response in PaymentResponse
     const responseRecord = await PaymentResponse.create({

@@ -15,7 +15,7 @@ const BillPayment = sequelize.define("BillPayment", {
             model: BillType,
             key: "id"
         },
-        onDelete: "CASCADE", // Ensures deletion cascades
+        onDelete: "CASCADE", 
         onUpdate: "CASCADE"
     },
     amount: {
