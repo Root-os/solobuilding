@@ -26,7 +26,7 @@ const Punishment = sequelize.define('Punishment', {
     allowNull: true,
   },
   status:{
-    type: DataTypes.ENUM('paid', 'unpaid'),
+    type: DataTypes.ENUM('paid', 'unpaid', 'cleared'),
     allowNull:false,
     defaultValue: 'unpaid'
   },

@@ -81,4 +81,6 @@ router.use("/punishment-settings", require("./punishmentSettingRoutes"));
 router.use("/gallery", require("./galleryRoute"));
 router.use("/import", require("./importExcelRoute"));
 
+router.use("/rent-receipt", require("./rentReceiptRoutes"));
+
 module.exports = router;

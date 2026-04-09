@@ -41,6 +41,7 @@ const {
   Booking,
   Punishment,
   TenantOutRequest,
+  RentReciept,
 } = require("./index");
 
 const defineAssociations = () => {
@@ -441,6 +442,17 @@ const defineAssociations = () => {
   TenantItem.hasMany(TenantOutRequest, {
     foreignKey: "tenantItemId",
     onDelete: "SET NULL",
+  });
+
+  TenantRentCollection.hasOne(RentReciept, {
+    foreignKey: "rentCollectionId",
+    as: "receipt",
+  });
+
+ 
+  RentReciept.belongsTo(TenantRentCollection, {
+    foreignKey: "rentCollectionId",
+    as: "rentCollection",
   });
 };
 
