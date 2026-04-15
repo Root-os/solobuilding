@@ -40,17 +40,17 @@ cron.schedule("0 8 * * *", async () => {
     const today = new Date();
     console.log(`Current Date: ${today.toISOString()}`);
 
-    // Calculate the dates 10 and 2 days from now
-    const tenDaysBefore = new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000);
+    // Calculate the dates 3 and 2 days from now
+    const threeDaysBefore = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
     const twoDaysBefore = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000);
-    console.log(`10 Days From Now: ${tenDaysBefore.toISOString()}`);
+    console.log(`3 Days From Now: ${threeDaysBefore.toISOString()}`);
     console.log(`2 Days From Now: ${twoDaysBefore.toISOString()}`);
 
-    // Find tenants whose nextDueDate is within 10 or 2 days
+    // Find tenants whose nextDueDate is within 3 or 2 days
     const rentCollections = await TenantRentCollection.findAll({
       where: {
         nextDueDate: {
-          [Op.in]: [tenDaysBefore, twoDaysBefore],
+          [Op.in]: [threeDaysBefore, twoDaysBefore],
         },
       },
       include: {
@@ -127,7 +127,7 @@ const { sendSingleSMS } = createSingleSMSUtil({
 });
 
 // Days to notify before lease ends
-const NOTIFY_DAYS = [10, 3, 2, 1, 0];
+const NOTIFY_DAYS = [3, 2, 1, 0];
 
 cron.schedule("0 8 * * *", async () => {
   console.log("Running lease expiry & punishment notifier...");
@@ -267,7 +267,7 @@ cron.schedule("0 8 * * *", async () => {
       // --------------------------
       // 2) Payment request logic
       // --------------------------
-      if (diffDays === 10) {
+      if (diffDays === 3) {
         try {
           const [paymentType, created] = await PaymentType.findOrCreate({
             where: { name: "Rent" },
@@ -305,13 +305,13 @@ cron.schedule("0 8 * * *", async () => {
           const loginUrl = process.env.TENANT_PORTAL_URL;
           const smsMessage = `Hi ${tenant.fullName},
 
-A new ${paymentType.name} is due by ${leaseEnd.toDateString()}
-for your unit (Floor ${floor?.floorNumber}, Unit ${unit?.unitNumber}).
+            A new ${paymentType.name} is due by ${leaseEnd.toDateString()}
+            for your unit (Floor ${floor?.floorNumber}, Unit ${unit?.unitNumber}).
 
-You can view and verify your pending payment here:
-${paymentLink}
+            You can view and verify your pending payment here:
+            ${paymentLink}
 
-Thank you!`;
+            Thank you!`;
 
           await sendSingleSMS({
             phone: tenant.phoneNumber,

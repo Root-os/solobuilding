@@ -29,5 +29,5 @@ router.get('/unit/:unitId', tenantController.getTenantsByUnitId);
 // Get tenants by floorId
 router.get('/floor/:floorId', tenantController.getTenantsByFloorId);
 router.post('/filter', tenantController.filterTenants);
-router.get('/10days/remaining', tenantController.getTenantsWithExpiringLease);
+router.get('/3days/remaining', tenantController.getTenantsWithExpiringLease);
 module.exports = router;

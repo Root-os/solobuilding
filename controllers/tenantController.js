@@ -240,7 +240,9 @@ exports.createTenant = async (req, res) => {
 // Get all tenants
 exports.getAllTenants = async (req, res) => {
   try {
+     const { status } = req.query;
     const tenants = await Tenant.findAll({
+      where: status ? { status } : {},
       attributes: { exclude: ["password", "userId", "floorId", "unitId", "createdAt", "updatedAt"] },
       include: [
         {
@@ -351,6 +353,7 @@ async function syncTenantPersonalInfo({
     transaction,
   });
 }
+
 // Update tenant details
 exports.updateTenant = async (req, res) => {
   try {
@@ -711,7 +714,7 @@ exports.getTenantsWithExpiringLease = async (req, res) => {
   try {
     const today = new Date();
     const tenDaysLater = new Date(today);
-    tenDaysLater.setDate(today.getDate() + 10);
+    tenDaysLater.setDate(today.getDate() + 3);
 
     const tenants = await Tenant.findAll({
       where: {
