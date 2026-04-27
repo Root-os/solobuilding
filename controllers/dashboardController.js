@@ -297,7 +297,7 @@ exports.getDashboardStats = async (req, res) => {
 
 exports.getTenantDashboardStats = async (req, res) => {
   try {
-    const tenantPhone = req.user.phone; // from JWT
+    const tenantPhone = req.user.phone; 
 
     if (!tenantPhone) {
       return res.status(400).json({ error: 'Tenant phone number is missing' });
@@ -347,6 +347,12 @@ exports.getTenantDashboardStats = async (req, res) => {
       unitId: t.Unit?.id || null,
       unitNumber: t.Unit?.unitNumber || null,
       floorNumber: t.Unit?.Floor?.floorNumber || null,
+
+      leaseStartDate: t.leaseStartDate,
+      leaseEndDate: t.leaseEndDate,
+      contractEndDate: t.contractEndDate,
+      amount: t.amount,
+      status: t.status
     }));
 
     // 3️⃣ Tenant Inventory summary by type (move-in / move-out)

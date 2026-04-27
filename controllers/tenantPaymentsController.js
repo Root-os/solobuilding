@@ -120,7 +120,7 @@ exports.createPayment = async (req, res) => {
   try {
     const {
       tenantId,
-      billPaymentTypeId, // alias for paymentTypeId
+      billTypeId, 
       startDate,
       endDate,
       status,
@@ -129,7 +129,7 @@ exports.createPayment = async (req, res) => {
     } = req.body;
 
     // Ensure all required fields are provided
-    if (!tenantId || !billPaymentTypeId || !startDate || !endDate || !amountPaid || !paymentMethod) {
+    if (!tenantId || !billTypeId || !startDate || !endDate || !amountPaid || !paymentMethod) {
       return res.status(400).json({ message: 'Please provide all required fields' });
     }
 
@@ -144,7 +144,7 @@ exports.createPayment = async (req, res) => {
     const existingPayment = await TenantPayment.findOne({
       where: {
         tenantId,
-        paymentTypeId: billPaymentTypeId,
+        billTypeId,
         startDate: startDate,
         endDate: endDate
       }
@@ -159,7 +159,7 @@ exports.createPayment = async (req, res) => {
     // Proceed with payment creation
     const payment = await TenantPayment.create({
       tenantId,
-      paymentTypeId: billPaymentTypeId,
+      billTypeId,
       startDate,
       endDate,
       status,
@@ -315,25 +315,25 @@ exports.getPaymentByTenantId = async (req, res) => {
 // Get last paid payment for tenant + bill type
 exports.getLastTenantPayment = async (req, res) => {
   try {
-    const { tenantId, billPaymentTypeId } = req.query;
+    const { tenantId, billTypeId } = req.query;
 
-    if (!tenantId || !billPaymentTypeId) {
+    if (!tenantId || !billTypeId) {
       return res.status(400).json({
-        message: "tenantId and billPaymentTypeId are required",
+        message: "tenantId and billTypeId are required",
       });
     }
 
     const lastPayment = await TenantPayment.findOne({
       where: {
         tenantId,
-        paymentTypeId: billPaymentTypeId,
-        status: "paid", // ⚠️ must be lowercase if your DB uses lowercase
+        billTypeId,
+        status: "paid", 
       },
       order: [["endDate", "DESC"]],
     });
 
     if (!lastPayment) {
-      return res.json(null); // frontend expects null if none exists
+      return res.json(null); 
     }
 
     return res.status(200).json({
@@ -353,12 +353,12 @@ exports.getLastTenantPayment = async (req, res) => {
 exports.updatePayment = async (req, res) => {
   try {
     const { id } = req.params;
-    const { tenantId, billPaymentTypeId, amount, startDate, endDate, status } = req.body;
+    const { tenantId, billTypeId, amountPaid, startDate, endDate, status } = req.body;
 
     const payment = await TenantPayment.findByPk(id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
 
-    await payment.update({ tenantId, paymentTypeId:billPaymentTypeId, amount, startDate, endDate, status });
+    await payment.update({ tenantId, billTypeId, amountPaid, startDate, endDate, status });
     res.status(200).json(payment);
   } catch (error) {
     res.status(500).json({ message: 'Error updating payment', error });
@@ -382,7 +382,7 @@ exports.deletePayment = async (req, res) => {
 
 exports.getTenantPaymentsReport = async (req, res) => {
   try {
-    const { startDate, endDate, billPaymentTypeId, tenantId, createdAt } = req.body;
+    const { startDate, endDate, billTypeId, tenantId, createdAt } = req.body;
 
     let whereCondition = {};
     let tenantWhere = {};
@@ -399,8 +399,8 @@ exports.getTenantPaymentsReport = async (req, res) => {
       whereCondition.endDate = { [Op.lte]: new Date(endDate) };
     }
 
-    if (billPaymentTypeId) {
-      whereCondition.paymentTypeId = billPaymentTypeId;
+    if (billTypeId) {
+      whereCondition.billTypeId = billTypeId;
     }
 
     if (createdAt) {

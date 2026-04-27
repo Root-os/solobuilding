@@ -645,7 +645,7 @@ exports.verifyPaymentRequest = async (req, res) => {
     const billTypeName = request.BillType?.typeName?.trim().toLowerCase() || "";
 
     // Check if rent already exists for this period
-    if (billTypeName === "rent") {
+    if (/\brent\b/i.test(billTypeName)) {
       const existingRent = await TenantRentCollection.findOne({
         where: {
           tenantId: request.tenantId,
