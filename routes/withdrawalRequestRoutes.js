@@ -14,9 +14,10 @@ const {
     updateWithdrawalRequest,
 } = require("../controllers/withdrawalRequestController");
 const { adminAuth,employeeAuth, tenantAuth, } = require("../middleware/auth");
+const { withdrawalUpload } = require("../middleware/upload");
 
 // Tenant submits withdrawal request
-router.post('/submit',tenantAuth, createWithdrawalRequest);
+router.post('/submit',tenantAuth,  withdrawalUpload.single('attachment'), createWithdrawalRequest);
 
 // Admin retrieves all withdrawal requests
 router.get('/all',adminAuth, getAllWithdrawalRequests);
@@ -33,7 +34,7 @@ router.put('/feedback',tenantAuth, provideTenantFeedback);
 // Admin finalizes withdrawal process
 router.put('/finalize',adminAuth, finalizeWithdrawalProcess);
 router.get('/tenant/my-requests',tenantAuth,getMyWithdrawalRequests);
-router.put('/update/:id', tenantAuth,updateWithdrawalRequest)
+router.put('/update/:id', tenantAuth, withdrawalUpload.single('attachment'), updateWithdrawalRequest);
 router.get('/employee/my-requests',employeeAuth,myAssignedRequests);
 router.delete('/delete/:id',adminAuth,deleteWithdrawalRequest);
 router.get('/details/:tenantId', getTenantDetails);

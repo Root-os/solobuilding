@@ -34,14 +34,14 @@ const createWithdrawalRequest = async (req, res) => {
       return res.status(404).json({ message: "Tenant not found." });
     }
 
-    const request = await WithdrawalRequest.create({ tenantId, terminationDate, reason });
+    const request = await WithdrawalRequest.create({ tenantId, terminationDate, reason, attachment: req.file ? req.file.path : null  });
 
     // Include Role model to filter admins
     const admins = await User.findAll({
       include: {
         model: Role,
-        where: { name: 'admin' }, // Filter by role name
-        attributes: [] // Exclude Role attributes from the result
+        where: { name: 'admin' }, 
+        attributes: [] 
       }
     });
     console.log(`Admins found: ${admins.length}`); // Debugging log
@@ -83,7 +83,7 @@ const getAllWithdrawalRequests = async (req, res) => {
   try {
     const requests = await WithdrawalRequest.findAll({
       include: [
-         {
+        {
           model: Tenant,
           attributes: ['id', 'fullName', 'email', 'phoneNumber'],
           include: [
@@ -99,21 +99,35 @@ const getAllWithdrawalRequests = async (req, res) => {
       ]
     });
 
-    // Check if there are no requests
     if (!requests || requests.length === 0) {
       return res.status(404).json({ message: "No withdrawal requests found." });
     }
 
-    // Send the response
-    res.status(200).json(requests);
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    const formattedRequests = requests.map(reqItem => {
+      const data = reqItem.toJSON();
+
+      if (data.attachment) {
+        data.attachment = `${baseUrl}/${data.attachment.replace(/\\/g, '/')}`;
+      }
+
+      return data;
+    });
+
+    res.status(200).json(formattedRequests);
+
   } catch (error) {
-    res.status(500).json({ message: "Error fetching withdrawal requests.", error: error.message });
+    res.status(500).json({
+      message: "Error fetching withdrawal requests.",
+      error: error.message
+    });
   }
 };
 
 const getMyWithdrawalRequests = async (req, res) => {
   try {
-    const phoneNumber = req.user.phone; 
+    const phoneNumber = req.user.phone;
 
     const tenants = await Tenant.findAll({
       where: { phoneNumber },
@@ -128,7 +142,7 @@ const getMyWithdrawalRequests = async (req, res) => {
 
     const requests = await WithdrawalRequest.findAll({
       where: {
-        tenantId: tenantIds, 
+        tenantId: tenantIds,
       },
       include: {
         model: Tenant,
@@ -138,10 +152,24 @@ const getMyWithdrawalRequests = async (req, res) => {
           attributes: ['id', 'unitNumber'],
         },
       },
-      order: [['createdAt', 'DESC']], 
+      order: [['createdAt', 'DESC']],
     });
 
-    res.status(200).json(requests);
+    // ✅ Build base URL
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    // ✅ Format attachment URLs
+    const formattedRequests = requests.map(reqItem => {
+      const data = reqItem.toJSON();
+
+      if (data.attachment) {
+        data.attachment = `${baseUrl}/${data.attachment.replace(/\\/g, '/')}`;
+      }
+
+      return data;
+    });
+
+    res.status(200).json(formattedRequests);
 
   } catch (error) {
     console.error(error);
@@ -296,21 +324,42 @@ const assignEmployeeToRequest = async (req, res) => {
   }
 };
 
-const myAssignedRequests=async(req,res)=>{
-    try {
-        const employeeId = req.user.id;
-const employee = await User.findByPk(employeeId,
-    { include: { model: User,attributes:['fullName','email','phoneNumber'], } }
-);
-if (!employee) {
-    return res.status(404).json({ message: "Employee not found." });
-}
-const requests = await WithdrawalRequest.findAll({ where: { assignedEmployeeId: employeeId } });
-res.status(200).json(requests);
-    } catch (error) {
-        res.status(500).json({ message: "Error fetching assigned requests.", error: error.message });
+const myAssignedRequests = async (req, res) => {
+  try {
+    const employeeId = req.user.id;
+
+    const employee = await User.findByPk(employeeId);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found." });
     }
-}
+
+    const requests = await WithdrawalRequest.findAll({
+      where: { assignedEmployeeId: employeeId }
+    });
+
+    // ✅ Build base URL
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    // ✅ Format attachment URLs
+    const formattedRequests = requests.map(reqItem => {
+      const data = reqItem.toJSON();
+
+      if (data.attachment) {
+        data.attachment = `${baseUrl}/${data.attachment.replace(/\\/g, '/')}`;
+      }
+
+      return data;
+    });
+
+    res.status(200).json(formattedRequests);
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching assigned requests.",
+      error: error.message
+    });
+  }
+};
 
 // Tenant provides feedback on request rejection
 const provideTenantFeedback = async (req, res) => {
@@ -529,34 +578,21 @@ const finalizeWithdrawalProcess = async (req, res) => {
 };
 
 //update request 
+const fs = require('fs');
+const path = require('path');
+
 const updateWithdrawalRequest = async (req, res) => {
   try {
     const { id } = req.params;
     const { tenantId, terminationDate, reason } = req.body;
 
-    // Ensure at least one field is provided
-    if (!tenantId && !terminationDate && !reason) {
+    if (!tenantId && !terminationDate && !reason && !req.file) {
       return res.status(400).json({
-        message: "At least one of tenantId, terminationDate, or reason must be provided.",
+        message: "Provide at least one field or attachment to update.",
       });
     }
 
-    // Find request
-    const request = await WithdrawalRequest.findOne({
-      where: { id },
-      include: [
-        {
-          model: Tenant,
-          attributes: ['id', 'fullName', 'phoneNumber'],
-          include: [
-            {
-              model: Unit,
-              attributes: ['id', 'unitNumber'], 
-            },
-          ],
-        },
-      ],
-    });
+    const request = await WithdrawalRequest.findOne({ where: { id } });
 
     if (!request) {
       return res.status(404).json({
@@ -564,19 +600,41 @@ const updateWithdrawalRequest = async (req, res) => {
       });
     }
 
-    // Build update payload dynamically
     const updateData = {};
+
     if (tenantId !== undefined) updateData.tenantId = tenantId;
     if (terminationDate !== undefined) updateData.terminationDate = terminationDate;
     if (reason !== undefined) updateData.reason = reason;
 
-    // Update only provided fields
+    // ✅ Handle attachment update
+    if (req.file) {
+      // delete old file if exists
+      if (request.attachment) {
+        const oldPath = path.join(__dirname, '..', request.attachment);
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
+      }
+
+      // save new file path
+      updateData.attachment = req.file.path.replace(/\\/g, '/');
+    }
+
     await request.update(updateData);
+
+    // ✅ Convert to full URL
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const data = request.toJSON();
+
+    if (data.attachment) {
+      data.attachment = `${baseUrl}/${data.attachment}`;
+    }
 
     return res.status(200).json({
       message: "Withdrawal request updated successfully.",
-      request,
+      request: data,
     });
+
   } catch (error) {
     return res.status(500).json({
       message: "Error updating withdrawal request.",
@@ -584,8 +642,6 @@ const updateWithdrawalRequest = async (req, res) => {
     });
   }
 };
-
-
 
 module.exports = {
     createWithdrawalRequest,

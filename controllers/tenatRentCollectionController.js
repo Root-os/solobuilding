@@ -15,6 +15,7 @@ const Setting = require("../models/setting");
 const Punishment = require("../models/punishment");
 const PunishmentSetting = require("../models/punshimentSetting");
 const generateAccessCode = require("../helpers/accessCodePaymentReq");
+const PaymentSetting = require("../models/paymentSetting");
 
 async function getActiveRentPaymentLink(tenantId) {
   const rentType = await PaymentType.findOne({ where: { name: "Rent" } });
@@ -428,15 +429,21 @@ exports.createRentPayment = async (req, res) => {
     if (error) {
       return res.status(400).json({ error: error.details[0].message });
     }
+
+    const attachment = req.file ? req.file.path : null;
+
     const {
       tenantId,
       paymentDate,
-      paymentMethod,
+      paymentTypeId,
       nextDueDate,
       status,
       punishment = 0,
       isPaid = "false",
       clearPunishment = false,
+      negotiatePunishment = false,
+      description = "",
+      negotiatedAmount = 0,
     } = req.body;
 
     // Find the tenant and update their status and leaseEndDate
@@ -498,13 +505,15 @@ exports.createRentPayment = async (req, res) => {
     const rentPayment = await TenantRentCollection.create({
       tenantId,
       paymentDate,
-      paymentMethod,
+      paymentTypeId,
       nextDueDate,
       paidDays,
       amountPaid,
       status,
       punishment: Number(punishment),
       isPaid,
+      description,
+      attachment,
     });
 
     if (status === "Paid") {
@@ -513,7 +522,34 @@ exports.createRentPayment = async (req, res) => {
       await tenant.save();
     }
 
-    if (status === "Paid" && isPaid === true && punishment > 0) {
+    if (
+      status === "Paid" &&
+      isPaid === true &&
+      punishment > 0 &&
+      negotiatePunishment === true
+    ) {
+      const punishmentRecord = await Punishment.findOne({
+        where: {
+          tenantId,
+          status: ["unpaid", "cleared"],
+        },
+        order: [["createdAt", "DESC"]],
+      });
+
+      if (punishmentRecord) {
+        punishmentRecord.status = "negotiated";
+        punishmentRecord.negotiatedAmount = Number(negotiatedAmount);
+
+        await punishmentRecord.save();
+      }
+    }
+
+    if (
+      status === "Paid" &&
+      isPaid === true &&
+      punishment > 0 &&
+      negotiatePunishment !== true
+    ) {
       const punishmentRecord = await Punishment.findOne({
         where: { tenantId, status: "unpaid" },
       });
@@ -570,16 +606,37 @@ exports.getAllRentPayments = async (req, res) => {
             },
           ],
         },
+        {
+          model: PaymentSetting,
+          attributes: ["id", "paymentMethod"],
+        },
       ],
       order: [["paymentDate", "DESC"]],
     });
 
-    res.status(200).json(rentPayments);
+    // Build base URL
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+    // Add full attachment URL
+    const updatedRentPayments = rentPayments.map((payment) => {
+      const paymentData = payment.toJSON();
+
+      return {
+        ...paymentData,
+        attachment: paymentData.attachment
+          ? `${baseUrl}/${paymentData.attachment}`
+          : null,
+      };
+    });
+
+    res.status(200).json(updatedRentPayments);
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({ message: "Error fetching rent payments", error: error.message });
+
+    res.status(500).json({
+      message: "Error fetching rent payments",
+      error: error.message,
+    });
   }
 };
 
@@ -599,12 +656,27 @@ exports.getRentPaymentById = async (req, res) => {
             { model: Floor, attributes: ["floorNumber"] },
           ],
         },
+        {
+          model: PaymentSetting,
+          attributes: ["id", "paymentMethod"],
+        },
       ],
     });
 
     if (!rentPayment) {
       return res.status(404).json({ message: "Rent payment not found" });
     }
+
+    // Build full URL
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+    // Convert sequelize object
+    const rentPaymentData = rentPayment.toJSON();
+
+    // Full attachment URL
+    rentPaymentData.attachment = rentPaymentData.attachment
+      ? `${baseUrl}/${rentPaymentData.attachment}`
+      : null;
 
     // 👇 reshape response
     res.status(200).json({
@@ -615,7 +687,7 @@ exports.getRentPaymentById = async (req, res) => {
         unitNumber: rentPayment.Tenant.Unit?.unitNumber,
         floorNumber: rentPayment.Tenant.Floor?.floorNumber,
       },
-      rentPayments: [rentPayment], // array for table
+      rentPayments: [rentPaymentData],
     });
   } catch (error) {
     res.status(500).json({ message: "Error fetching rent payment" });
@@ -649,11 +721,30 @@ exports.getRentPaymentHistoryByTenantId = async (req, res) => {
             { model: Floor, attributes: ["floorNumber"] },
           ],
         },
+        {
+          model: PaymentSetting,
+          attributes: ["id", "paymentMethod"],
+        },
       ],
       order: [["paymentDate", "DESC"]],
     });
 
-    res.status(200).json(rentPayments);
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+    // Add full attachment URL
+    const updatedRentPayments = rentPayments.map((payment) => {
+      const paymentData = payment.toJSON();
+
+      return {
+        ...paymentData,
+
+        attachment: paymentData.attachment
+          ? `${baseUrl}/${paymentData.attachment}`
+          : null,
+      };
+    });
+
+    res.status(200).json(updatedRentPayments);
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -670,10 +761,11 @@ exports.updateRentPayment = async (req, res) => {
       tenantId,
       paymentDate,
       nextDueDate,
-      paymentMethod,
+      paymentTypeId,
       status,
       punishment,
       isPaid,
+      description,
     } = req.body;
 
     const rentPayment = await TenantRentCollection.findByPk(req.params.id);
@@ -710,13 +802,15 @@ exports.updateRentPayment = async (req, res) => {
       tenantId: tenantId !== undefined ? tenantId : rentPayment.tenantId,
       paymentDate: paymentDate || rentPayment.paymentDate,
       nextDueDate: nextDueDate || rentPayment.nextDueDate,
-      paymentMethod: paymentMethod || rentPayment.paymentMethod,
+      paymentTypeId: paymentTypeId || rentPayment.paymentTypeId,
       status: status || rentPayment.status,
       punishment:
         punishment !== undefined ? punishment : rentPayment.punishment,
       isPaid: isPaid !== undefined ? isPaid : rentPayment.isPaid,
       paidDays: paidDaysString,
       amountPaid: parseFloat(amountToPay.toFixed(2)),
+      description:
+        description !== undefined ? description : rentPayment.description,
     });
 
     // Three-condition logic for punishment and leaseEndDate
@@ -812,6 +906,7 @@ exports.filterRentCollections = async (req, res) => {
       nextDueDateTo,
       status,
       tenantId,
+      paymentTypeId,
     } = req.body;
 
     let whereConditions = {};
@@ -832,6 +927,10 @@ exports.filterRentCollections = async (req, res) => {
       whereConditions.status = status;
     }
 
+    if (paymentTypeId) {
+      whereConditions.paymentTypeId = paymentTypeId;
+    }
+
     const rentCollections = await TenantRentCollection.findAll({
       where: whereConditions,
       include: [
@@ -848,6 +947,10 @@ exports.filterRentCollections = async (req, res) => {
               attributes: ["floorNumber"],
             },
           ],
+        },
+        {
+          model: PaymentSetting,
+          attributes: ["id", "paymentMethod"],
         },
       ],
     });

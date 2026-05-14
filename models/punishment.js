@@ -21,12 +21,16 @@ const Punishment = sequelize.define('Punishment', {
     type: DataTypes.FLOAT,
     allowNull: false,
   },
+  negotiatedAmount: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+  },
   description: {
     type: DataTypes.TEXT,
     allowNull: true,
   },
   status:{
-    type: DataTypes.ENUM('paid', 'unpaid', 'cleared'),
+    type: DataTypes.ENUM('paid', 'unpaid', 'cleared', 'negotiated'),
     allowNull:false,
     defaultValue: 'unpaid'
   },

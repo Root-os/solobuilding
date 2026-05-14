@@ -514,17 +514,42 @@ const digitsOnly = (s) => String(s || "").replace(/\D/g, "");
 const lastN = (s, n) => s.slice(-n);
 const toAmount = (v) => parseFloat(String(v).replace(/[^\d.]/g, ""));
 
+const METHOD_ALIASES = {
+  // CBE
+  cbe: "cbe",
+  "commercial bank of ethiopia": "cbe",
+  "nigid bank": "cbe",
+  "commertial bank": "cbe",
+
+  // CBEBirr
+  cbebirr: "cbebirr",
+  "cbe birr": "cbebirr",
+  "cbe mobile": "cbebirr",
+
+  // Abyssinia
+  abyssinia: "abyssinia",
+  "abssinia bank": "abyssinia",
+
+  // Dashen
+  dashen: "dashen",
+  "dashen bank": "dashen",
+
+  // TeleBirr
+  telebirr: "telebirr",
+  "tele birr": "telebirr",
+};
+
 exports.verifyPaymentRequest = async (req, res) => {
   try {
-    const { paymentMethod, transactionNumber } = req.body;
+    const { paymentMethodId, transactionNumber } = req.body;
     const { amount } = req.query;
     const paymentRequestId = req.params.id;
 
     // 1️⃣ Validate input
-    if (!paymentMethod || !transactionNumber || !amount) {
+    if (!paymentMethodId || !transactionNumber) {
       return res.status(400).json({
         success: false,
-        message: "paymentMethod, transactionNumber, and amount are required",
+        message: "paymentMethodId and transactionNumber are required",
       });
     }
 
@@ -532,48 +557,93 @@ exports.verifyPaymentRequest = async (req, res) => {
     const request = await PaymentRequest.findByPk(paymentRequestId, {
       include: [{ model: BillType }],
     });
+
     if (!request) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Payment request not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Payment request not found",
+      });
     }
+
     if (request.status !== "pending") {
-      return res
-        .status(400)
-        .json({ success: false, message: "Payment request already processed" });
+      return res.status(400).json({
+        success: false,
+        message: "Payment request already processed",
+      });
     }
 
     // 3️⃣ Load payment setting
-    const setting = await PaymentSetting.findOne({
-      where: { paymentMethod: paymentMethod.toUpperCase() },
-    });
+    const setting = await PaymentSetting.findByPk(paymentMethodId);
+
     if (!setting) {
       return res.status(400).json({
         success: false,
-        message: `${paymentMethod} payment setting not configured`,
+        message: "Invalid payment method",
       });
     }
 
-    const verificationEndpoint = `${process.env.PAYMENT_VERIFICATION_URL}/api/verify`;
+    const paymentMethodName = setting.paymentMethod;
 
-    // 4️⃣ Call external verification endpoint
-    let verificationResponse;
-    try {
-      const response = await axios.post(verificationEndpoint, {
-        paymentMethod,
-        transactionNumber, // send raw input text
-      });
-      verificationResponse = response.data;
-    } catch (err) {
-      return res.status(500).json({
+    const normalizedMethod =
+      METHOD_ALIASES[paymentMethodName?.trim().toLowerCase()];
+
+    const useExternalVerification = !!normalizedMethod;
+
+    // 4️⃣ Manual verification requires amount
+    if (!useExternalVerification && !amount) {
+      return res.status(400).json({
         success: false,
-        message:
-          "Failed to verify payment: " +
-          (err.response?.data?.message || err.message),
+        message: "amount is required for manual verification",
       });
     }
 
-    // 5️⃣ Check verification result
+    let verificationResponse;
+
+    // 5️⃣ EXTERNAL VERIFICATION FLOW
+    if (useExternalVerification) {
+      const verificationEndpoint = `${process.env.PAYMENT_VERIFICATION_URL}/api/verify`;
+
+      try {
+        const response = await axios.post(verificationEndpoint, {
+          paymentMethod: paymentMethodName,
+          transactionNumber,
+        });
+
+        verificationResponse = response.data;
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message:
+            "Failed to verify payment: " +
+            (err.response?.data?.message || err.message),
+        });
+      }
+
+      if (!verificationResponse.success || !verificationResponse.verified) {
+        return res.status(400).json({
+          success: false,
+          message: "Payment verification failed",
+          data: verificationResponse,
+        });
+      }
+    }
+
+    // 6️⃣ MANUAL VERIFICATION FLOW
+    else {
+      verificationResponse = {
+        success: true,
+        verified: true,
+        transactionNumber,
+        amount: Number(amount),
+        receiver: null,
+        receiverAccount: null,
+        raw: {
+          manualVerification: true,
+        },
+      };
+    }
+
+    // 7️⃣ Final verification safety check
     if (!verificationResponse.success || !verificationResponse.verified) {
       return res.status(400).json({
         success: false,
@@ -583,15 +653,24 @@ exports.verifyPaymentRequest = async (req, res) => {
     }
 
     const verifiedTransactionNumber = verificationResponse.transactionNumber;
+
     const fetchedAmount = Number(verificationResponse.amount);
 
-    // 6️⃣ Check for duplicate transaction
+const expectedAmount = Number(request.amount);
+
+const extraAmount =
+  fetchedAmount > expectedAmount
+    ? fetchedAmount - expectedAmount
+    : 0;
+
+    // 8️⃣ Duplicate check
     const existingResponse = await PaymentResponse.findOne({
       where: {
         transactionNumber: verifiedTransactionNumber,
-        paymentMethod: paymentMethod.toUpperCase(),
+        paymentTypeId: paymentMethodId,
       },
     });
+
     if (existingResponse) {
       return res.status(400).json({
         success: false,
@@ -599,41 +678,55 @@ exports.verifyPaymentRequest = async (req, res) => {
       });
     }
 
-    // 7️⃣ Validate receiver account (last 4 digits)
-    if (verificationResponse.receiverAccount) {
-      const expectedLast4 = setting.receiverAccountNumber.slice(-4);
-      const actualLast4 = verificationResponse.receiverAccount.slice(-4);
-      if (expectedLast4 !== actualLast4) {
+    // 9️⃣ STRICT VALIDATION ONLY FOR EXTERNAL METHODS
+    if (useExternalVerification) {
+      // Receiver account check
+      if (verificationResponse.receiverAccount) {
+        const expectedLast4 = setting.receiverAccountNumber.slice(-4);
+
+        const actualLast4 = verificationResponse.receiverAccount.slice(-4);
+
+        if (expectedLast4 !== actualLast4) {
+          return res.status(400).json({
+            success: false,
+            message:
+              `Receiver account mismatch. Expected last4: ` +
+              `${expectedLast4}, got: ${actualLast4}`,
+          });
+        }
+      }
+
+      // Receiver name check
+      if (verificationResponse.receiver) {
+        const expectedName = setting.receiverName.trim().toLowerCase();
+
+        const actualName = verificationResponse.receiver.trim().toLowerCase();
+
+        if (expectedName !== actualName) {
+          return res.status(400).json({
+            success: false,
+            message:
+              `Receiver name mismatch. Expected: ` +
+              `${expectedName}, got: ${actualName}`,
+          });
+        }
+      }
+
+      // Amount check (allow equal or greater payment)
+      const expectedAmount = Number(request.amount);
+
+      if (
+        !Number.isFinite(expectedAmount) ||
+        !Number.isFinite(fetchedAmount) ||
+        fetchedAmount < expectedAmount
+      ) {
         return res.status(400).json({
           success: false,
-          message: `Receiver account mismatch. Expected last4: ${expectedLast4}, got: ${actualLast4}`,
+          message:
+            `Insufficient payment amount. Expected at least: ` +
+            `${expectedAmount}, got: ${fetchedAmount}`,
         });
       }
-    }
-
-    // 8️⃣ Validate receiver name
-    if (verificationResponse.receiver) {
-      const expectedName = setting.receiverName.trim().toLowerCase();
-      const actualName = verificationResponse.receiver.trim().toLowerCase();
-      if (expectedName !== actualName) {
-        return res.status(400).json({
-          success: false,
-          message: `Receiver name mismatch. Expected: ${expectedName}, got: ${actualName}`,
-        });
-      }
-    }
-
-    // 9️⃣ Validate amount
-    const expectedAmount = Number(req.query.amount);
-    if (
-      !Number.isFinite(expectedAmount) ||
-      !Number.isFinite(fetchedAmount) ||
-      Math.abs(fetchedAmount - expectedAmount) > 0.01
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: `Amount mismatch. Expected: ${expectedAmount}, got: ${fetchedAmount}`,
-      });
     }
 
     // 🔟 Approve payment request
@@ -644,7 +737,7 @@ exports.verifyPaymentRequest = async (req, res) => {
 
     const billTypeName = request.BillType?.typeName?.trim().toLowerCase() || "";
 
-    // Check if rent already exists for this period
+    // Rent flow
     if (/\brent\b/i.test(billTypeName)) {
       const existingRent = await TenantRentCollection.findOne({
         where: {
@@ -660,14 +753,26 @@ exports.verifyPaymentRequest = async (req, res) => {
           paymentDate: request.startDate,
           nextDueDate: request.endDate,
           paidDays: request.paidDays || "0",
-          paymentMethod: paymentMethod.toUpperCase(),
-          amountPaid: fetchedAmount.toString(),
+          paymentTypeId: paymentMethodId,
+          amountPaid: expectedAmount.toString(),
+extraAmount: extraAmount,
           status: "Paid",
           isPaid: true,
           punishment: 0,
         });
+
+        await Tenant.update(
+          { leaseEndDate: request.endDate },
+          { where: { id: request.tenantId } },
+        );
+
+        const updatedTenant = await Tenant.findByPk(request.tenantId);
+        console.log("LEASE FINAL:", updatedTenant.leaseEndDate);
       }
-    } else {
+    }
+
+    // Other payments flow
+    else {
       const existingPayment = await TenantPayment.findOne({
         where: {
           tenantId: request.tenantId,
@@ -683,17 +788,17 @@ exports.verifyPaymentRequest = async (req, res) => {
           amountPaid: fetchedAmount,
           startDate: request.startDate,
           endDate: request.endDate || null,
-          paymentMethod: paymentMethod.toUpperCase(),
+          paymentTypeId: paymentMethodId,
           status: "paid",
           proofOfPayment: verifiedTransactionNumber,
         });
       }
     }
 
-    // 1️⃣1️⃣ Store response in PaymentResponse
+    // 1️⃣1️⃣ Store response
     const responseRecord = await PaymentResponse.create({
       paymentRequestId,
-      paymentMethod: paymentMethod.toUpperCase(),
+      paymentTypeId: paymentMethodId,
       transactionNumber: verifiedTransactionNumber,
       amount: fetchedAmount,
       receiverName: verificationResponse.receiver || null,
@@ -702,7 +807,7 @@ exports.verifyPaymentRequest = async (req, res) => {
       metadata: verificationResponse.raw || verificationResponse,
     });
 
-    // 1️⃣2️⃣ Return success
+    // 1️⃣2️⃣ Response
     return res.json({
       success: true,
       message: "Payment request approved",
@@ -710,7 +815,8 @@ exports.verifyPaymentRequest = async (req, res) => {
         paymentRequestId,
         status: "approved",
         transactionNumber: verifiedTransactionNumber,
-        paymentMethod: paymentMethod.toUpperCase(),
+        paymentTypeId: paymentMethodId,
+        paymentMethod: paymentMethodName,
         responseId: responseRecord.id,
         verification: verificationResponse,
       },

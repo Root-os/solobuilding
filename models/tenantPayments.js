@@ -2,6 +2,8 @@ const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 const Tenant = require("./tenant");
 const BillType = require("./billType");
+const PaymentSetting = require("./paymentSetting");
+
 
 const TenantPayment = sequelize.define(
   "TenantPayment",
@@ -42,9 +44,13 @@ const TenantPayment = sequelize.define(
       type: DataTypes.DATE,
       allowNull: true,
     },
-    paymentMethod: {
-      type: DataTypes.STRING,
+    paymentTypeId: {
+      type: DataTypes.INTEGER,
       allowNull: false,
+      references: {
+        model: PaymentSetting,
+        key: "id",
+      },
     },
     status: {
       type: DataTypes.ENUM("paid", "due", "overdue"),

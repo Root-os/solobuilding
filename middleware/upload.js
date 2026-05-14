@@ -79,6 +79,88 @@ const responseUpload = multer({
   fileFilter: imageFileFilter,
 });
 
+// Withdrawal upload directory
+const withdrawalUploadDir = './uploads/withdrawals';
+if (!fs.existsSync(withdrawalUploadDir)) {
+  fs.mkdirSync(withdrawalUploadDir, { recursive: true });
+}
+
+// Storage config
+const withdrawalStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, withdrawalUploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `withdrawal-${Date.now()}${path.extname(file.originalname)}`);
+  },
+});
+
+// Optional: basic filter (you can improve later)
+const withdrawalFileFilter = (req, file, cb) => {
+  const filetypes = /jpeg|jpg|png|gif|pdf|doc|docx/;
+  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = filetypes.test(file.mimetype);
+
+  if (extname && mimetype) {
+    cb(null, true);
+  } else {
+    cb('Only images, PDF, DOC, DOCX allowed');
+  }
+};
+
+// Multer instance
+const withdrawalUpload = multer({
+  storage: withdrawalStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: withdrawalFileFilter,
+});
+
+const rentAttachmentUploadDir = './uploads/rent-attachments';
+
+if (!fs.existsSync(rentAttachmentUploadDir)) {
+  fs.mkdirSync(rentAttachmentUploadDir, { recursive: true });
+}
+
+// Storage config
+const rentAttachmentStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, rentAttachmentUploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(
+      null,
+      `rent-attachment-${Date.now()}${path.extname(file.originalname)}`
+    );
+  },
+});
+
+// File filter
+const rentAttachmentFileFilter = (req, file, cb) => {
+  const filetypes = /jpeg|jpg|png|gif|pdf|doc|docx/;
+
+  const extname = filetypes.test(
+    path.extname(file.originalname).toLowerCase()
+  );
+
+  const mimetype =
+    /image\/jpeg|image\/jpg|image\/png|image\/gif|application\/pdf|application\/msword|application\/vnd.openxmlformats-officedocument.wordprocessingml.document/.test(
+      file.mimetype
+    );
+
+  if (extname && mimetype) {
+    cb(null, true);
+  } else {
+    cb('Only images, PDF, DOC, DOCX allowed');
+  }
+};
+
+// Multer instance
+const rentAttachmentUpload = multer({
+  storage: rentAttachmentStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: rentAttachmentFileFilter,
+});
 
 
-module.exports = {upload,receiptUpload,responseUpload};
+
+module.exports = {upload,receiptUpload,responseUpload, withdrawalUpload,rentAttachmentUpload,};

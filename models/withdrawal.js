@@ -17,7 +17,11 @@ const WithdrawalRequest = sequelize.define("WithdrawalRequest", {
         type: DataTypes.ENUM("not_processed", "partial", "full"), 
         defaultValue: "not_processed" 
     }, // Tracks security deposit refund
-    processedAt: { type: DataTypes.DATE, allowNull: true }, // When the process is completed
+    processedAt: { type: DataTypes.DATE, allowNull: true }, 
+    attachment: { 
+        type: DataTypes.STRING, 
+        allowNull: true 
+    },
 }, {
     tableName: 'withdrawal_requests',
     timestamps: true,

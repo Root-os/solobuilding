@@ -90,15 +90,20 @@ exports.createUnit = async (req, res) => {
 exports.getAllUnits = async (req, res) => {
   try {
     const units = await Unit.findAll({
-      include: {
-        model: Floor,
+      include: [
+      {  model: Floor,
         attributes: ["id", "floorNumber"],
       },
+    {
+      model: Tenant,
+      attributes: ["id", "amount", "currency"],
+      where: { status: "active" },
+      required: false,
+    },
+    ]
     });
-
     const unitsWithFullImageUrls = units.map((unit) => {
       let imageUrls = [];
-
       try {
         const imagePaths = Array.isArray(unit.images)
           ? unit.images
@@ -111,7 +116,6 @@ exports.getAllUnits = async (req, res) => {
           if (/^https?:\/\//i.test(cleanedImg)) {
             return cleanedImg;
           }
-
           // Otherwise, prepend BASE_URL
           return `${BASE_URL}/${cleanedImg}`;
         });
@@ -176,7 +180,6 @@ exports.getUnitById = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // Get all units by floorId
 exports.getUnitsByFloorId = async (req, res) => {
@@ -358,7 +361,6 @@ exports.updateUnit = async (req, res) => {
     });
   }
 };
-
 
 // Delete a unit
 exports.deleteUnit = async (req, res) => {

@@ -1,6 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 const Tenant = require("./tenant");
+const PaymentSetting = require("./paymentSetting");
 
 const TenantRentCollection = sequelize.define(
   "TenantRentCollection",
@@ -27,11 +28,19 @@ const TenantRentCollection = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    paymentMethod: {
-      type: DataTypes.STRING,
+    paymentTypeId: {
+      type: DataTypes.INTEGER,
       allowNull: false,
+      references: {
+        model: PaymentSetting,
+        key: "id",
+      },
     },
     amountPaid: {
+      type: DataTypes.FLOAT,
+      allowNull: true,
+    },
+    extraAmount: {
       type: DataTypes.FLOAT,
       allowNull: true,
     },
@@ -46,20 +55,28 @@ const TenantRentCollection = sequelize.define(
     },
     punishment: {
       type: DataTypes.FLOAT,
-      allowNull:false
+      allowNull: false,
     },
     isPaid: {
       type: DataTypes.BOOLEAN,
-      allowNull: false
+      allowNull: false,
     },
-    proofOfPayment: { type: DataTypes.STRING }, 
+    proofOfPayment: { type: DataTypes.STRING },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    attachment: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   },
   {
     timestamps: true,
     tableName: "tenant_rent_collections",
     charset: "utf8",
     collate: "utf8_general_ci",
-  }
+  },
 );
 
 module.exports = TenantRentCollection;

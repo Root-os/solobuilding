@@ -7,6 +7,8 @@ const moment = require('moment');
 const { Op } = require('sequelize');
 const User = require('../models/user');
 const Role = require('../models/role');
+const PaymentSetting = require("../models/paymentSetting");
+
 const sendNotificationHelper = require('../helpers/sendAlert');
 const cron = require('node-cron');
 const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
@@ -125,11 +127,11 @@ exports.createPayment = async (req, res) => {
       endDate,
       status,
       amountPaid,
-      paymentMethod
+      paymentTypeId
     } = req.body;
 
     // Ensure all required fields are provided
-    if (!tenantId || !billTypeId || !startDate || !endDate || !amountPaid || !paymentMethod) {
+    if (!tenantId || !billTypeId || !startDate || !endDate || !amountPaid || !paymentTypeId) {
       return res.status(400).json({ message: 'Please provide all required fields' });
     }
 
@@ -164,7 +166,7 @@ exports.createPayment = async (req, res) => {
       endDate,
       status,
       amountPaid,
-      paymentMethod
+      paymentTypeId
     });
 
     res.status(201).json(payment);
@@ -190,6 +192,10 @@ exports.getAllPayments = async (req, res) => {
           model: BillType,
           attributes: ['typeName'],
         },
+        {
+          model: PaymentSetting,
+          attributes: ['paymentMethod'],
+        }
       ],
     });
 
@@ -248,6 +254,10 @@ exports.getAllPaymentByDate = async (req, res) => {
           model: BillType,
           attributes: ['typeName'],
         },
+        {
+          model: PaymentSetting,
+          attributes: ['paymentMethod'],
+        },
       ],
     });
 
@@ -298,7 +308,8 @@ exports.getPaymentByTenantId = async (req, res) => {
             { model: Floor, attributes: ['floorNumber'] }
           ],
         },
-        { model: BillType, attributes: ['typeName'] }
+        { model: BillType, attributes: ['typeName'] },
+        { model: PaymentSetting, attributes: ['paymentMethod'] }
       ]
     });
 
@@ -382,7 +393,7 @@ exports.deletePayment = async (req, res) => {
 
 exports.getTenantPaymentsReport = async (req, res) => {
   try {
-    const { startDate, endDate, billTypeId, tenantId, createdAt } = req.body;
+    const { startDate, endDate, billTypeId, tenantId, createdAt, paymentTypeId } = req.body;
 
     let whereCondition = {};
     let tenantWhere = {};
@@ -413,6 +424,10 @@ exports.getTenantPaymentsReport = async (req, res) => {
       };
     }
 
+    if (paymentTypeId) {
+      whereCondition.paymentTypeId = paymentTypeId;
+    }
+
     // 🔑 Resolve phone number from tenantId
     if (tenantId) {
       const tenant = await Tenant.findByPk(tenantId, {
@@ -439,6 +454,7 @@ exports.getTenantPaymentsReport = async (req, res) => {
           ],
         },
         { model: BillType, attributes: ["id", "typeName"] },
+        { model: PaymentSetting, attributes: ["id", "paymentMethod"] },
       ],
       order: [["startDate", "DESC"]],
     });

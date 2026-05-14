@@ -65,9 +65,10 @@ exports.createTenant = async (req, res) => {
         floorId,
         amount,
         advance,
-         additionalNotes = null,
+        additionalNotes = null,
         carPlate = null,
         carName = null,
+        currency
         // color = null,
       } = req.body;
 
@@ -130,6 +131,7 @@ exports.createTenant = async (req, res) => {
         document: filePath,
         password: hashedPassword,
         isExisting,
+        currency,
       };
 
       const tenant = await Tenant.create(tenantData);
@@ -448,6 +450,7 @@ exports.updateTenant = async (req, res) => {
         status: newStatus,
         floorId: req.body.floorId ?? tenant.floorId,
         unitId: newUnitId,
+        currency: req.body.currency ?? tenant.currency,
       };
 
 
@@ -776,12 +779,29 @@ const processTenantDetails = (tenants) => {
 
 exports.getTenantUnits = async (req, res) => {
   try {
+    const { phoneNumber } = req.query;
+
+    const whereClause = {};
+
+    // Filter only if phoneNumber is provided
+    if (phoneNumber) {
+      whereClause.phoneNumber = phoneNumber;
+    }
+
     const tenants = await Tenant.findAll({
+      where: whereClause,
       include: [
         {
           model: Unit,
           as: "Unit",
-          attributes: ["id", "unitNumber", "status", "size", "availableEquipments", "problems"],
+          attributes: [
+            "id",
+            "unitNumber",
+            "status",
+            "size",
+            "availableEquipments",
+            "problems",
+          ],
         },
         {
           model: Floor,
@@ -797,7 +817,9 @@ exports.getTenantUnits = async (req, res) => {
     });
 
     if (!tenants.length) {
-      return res.status(404).json({ message: "No tenants found" });
+      return res.status(404).json({
+        message: "No tenants found",
+      });
     }
 
     // Group tenants by phoneNumber
@@ -812,8 +834,6 @@ exports.getTenantUnits = async (req, res) => {
         };
       }
 
-      const documentFullPath = t.document ? `${BASE_URL}${t.document}` : null;
-
       profilesMap[t.phoneNumber].tenant.push({
         tenantId: t.id,
         fullName: t.fullName,
@@ -821,8 +841,25 @@ exports.getTenantUnits = async (req, res) => {
         amount: t.amount,
         leaseStartDate: t.leaseStartDate,
         leaseEndDate: t.leaseEndDate,
-        unit: t.Unit ? { id: t.Unit.id, unitNumber: t.Unit.unitNumber, status: t.Unit.status, size: t.Unit.size, availableEquipment: t.Unit.availableEquipments, problem: t.Unit.problems } : null,
-        floor: t.Floor ? { id: t.Floor.id, floorNumber: t.Floor.floorNumber } : null,
+
+        unit: t.Unit
+          ? {
+              id: t.Unit.id,
+              unitNumber: t.Unit.unitNumber,
+              status: t.Unit.status,
+              size: t.Unit.size,
+              availableEquipment: t.Unit.availableEquipments,
+              problem: t.Unit.problems,
+            }
+          : null,
+
+        floor: t.Floor
+          ? {
+              id: t.Floor.id,
+              floorNumber: t.Floor.floorNumber,
+            }
+          : null,
+
         vehicles: t.TenantVehicles || [],
       });
     });
@@ -832,7 +869,9 @@ exports.getTenantUnits = async (req, res) => {
     res.status(200).json(response);
   } catch (error) {
     console.error("Error fetching tenant units:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({
+      error: "Internal server error",
+    });
   }
 };
 

@@ -13,13 +13,13 @@ const Tenant = sequelize.define('Tenant', {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  phoneNumber: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    validate: {
-      is: /^[0-9]{10}$/,
-    },
+phoneNumber: {
+  type: DataTypes.STRING,
+  allowNull: false,
+  validate: {
+    is: /^[\d+\-\s()]+$/,
   },
+},
   email: {
     type: DataTypes.STRING,
     allowNull: true,
@@ -71,6 +71,10 @@ const Tenant = sequelize.define('Tenant', {
     type: DataTypes.ENUM('active', 'inactive', 'terminated'),
     defaultValue: 'active',
   },
+  currency: {
+    type: DataTypes.ENUM('USD', 'EUR', 'ETB'),
+    defaultValue: 'ETB'
+  },
   floorId: {
     type: DataTypes.INTEGER,
     references: {
@@ -82,7 +86,7 @@ const Tenant = sequelize.define('Tenant', {
   unitId: {
     type: DataTypes.INTEGER,
     references: {
-      model: 'units', // Explicit table name
+      model: 'units', 
       key: 'id',
     },
     allowNull: false,
@@ -92,7 +96,7 @@ const Tenant = sequelize.define('Tenant', {
     defaultValue: false,
   },
 }, {
-  tableName: 'tenants', // Explicit table name
+  tableName: 'tenants', 
   timestamps: true,
   charset: 'utf8', 
   collate: 'utf8_general_ci',

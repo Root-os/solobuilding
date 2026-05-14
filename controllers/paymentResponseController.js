@@ -1,4 +1,5 @@
 const PaymentResponse = require('../models/verifiedPayments');
+const PaymentSetting = require('../models/paymentSetting');
 
 
 
@@ -6,6 +7,12 @@ exports.getAllPaymentResponses = async (req, res) => {
   try {
     const responses = await PaymentResponse.findAll({
       order: [['createdAt', 'DESC']],
+      include:[
+        {
+          model: PaymentSetting,
+          attributes: ['paymentMethod']
+        }
+      ]
     });
 
     return res.status(200).json({
@@ -28,6 +35,12 @@ exports.getPaymentResponsesByRequestId = async (req, res) => {
     const responses = await PaymentResponse.findAll({
       where: { paymentRequestId },
       order: [['createdAt', 'DESC']],
+      include:[
+        {
+          model: PaymentSetting,
+          attributes: ['paymentMethod']
+        }
+      ]
     });
 
     if (!responses.length) {

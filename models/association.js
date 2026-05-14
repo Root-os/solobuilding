@@ -42,6 +42,8 @@ const {
   Punishment,
   TenantOutRequest,
   RentReciept,
+  PaymentSetting,
+  PaymentResponse,
 } = require("./index");
 
 const defineAssociations = () => {
@@ -449,11 +451,49 @@ const defineAssociations = () => {
     as: "receipt",
   });
 
- 
   RentReciept.belongsTo(TenantRentCollection, {
     foreignKey: "rentCollectionId",
     as: "rentCollection",
   });
+
+    TenantPayment.hasOne(RentReciept, {
+    foreignKey: "tenantPaymentId",
+    as: "receipt",
+  });
+
+  RentReciept.belongsTo(TenantPayment, {
+    foreignKey: "tenantPaymentId",
+    as: "tenantPayment",
+  });
 };
+
+PaymentSetting.hasMany(TenantRentCollection, {
+  foreignKey: "paymentTypeId",
+});
+
+TenantRentCollection.belongsTo(PaymentSetting, {
+  foreignKey: "paymentTypeId",
+});
+
+PaymentSetting.hasMany(TenantPayment, {
+  foreignKey: "paymentTypeId",
+});
+
+TenantPayment.belongsTo(PaymentSetting, {
+  foreignKey: "paymentTypeId",
+});
+
+// PaymentResponse -> PaymentSetting
+PaymentResponse.belongsTo(PaymentSetting, {
+  foreignKey: "paymentTypeId",
+});
+
+// PaymentSetting -> PaymentResponse
+PaymentSetting.hasMany(PaymentResponse, {
+  foreignKey: "paymentTypeId",
+});
+
+
+
 
 module.exports = defineAssociations;

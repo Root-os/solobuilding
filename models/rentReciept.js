@@ -1,6 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 const TenantRentCollection = require("./tenantRentCollection");
+const TenantPayment = require("./tenantPayments");
 
 const RentReciept = sequelize.define(
   "RentReciept",
@@ -14,6 +15,13 @@ const RentReciept = sequelize.define(
       type: DataTypes.INTEGER,
       references: {
         model: TenantRentCollection,
+        key: "id",
+      },
+    },
+    tenantPaymentId: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: TenantPayment,
         key: "id",
       },
     },

@@ -1,42 +1,81 @@
 const RentReciept = require("../models/rentReciept");
 const TenantRentCollection = require("../models/tenantRentCollection");
+const TenantPayment = require("../models/tenantPayments");
 
 
 // ✅ CREATE receipt
 exports.createReceipt = async (req, res) => {
   try {
-    const { rentCollectionId, fsNo, status, deliveryStatus } = req.body;
+    const { rentCollectionId, tenantPaymentId, fsNo, status, deliveryStatus } = req.body;
 
-    // check if collection exists
-    const collection = await TenantRentCollection.findByPk(rentCollectionId);
-    if (!collection) {
-      return res.status(404).json({ message: "Rent collection not found" });
+    // ❗ Ensure ONLY ONE is provided
+    if (!rentCollectionId && !tenantPaymentId) {
+      return res.status(400).json({
+        message: "Either rentCollectionId or tenantPaymentId is required",
+      });
     }
 
-    // prevent duplicate receipt (1:1)
-    const existing = await RentReciept.findOne({ where: { rentCollectionId } });
-    if (existing) {
-      return res.status(400).json({ message: "Receipt already exists for this collection" });
+    if (rentCollectionId && tenantPaymentId) {
+      return res.status(400).json({
+        message: "Provide only one: rentCollectionId OR tenantPaymentId, not both",
+      });
     }
 
-    // ✅ RULE 1: status = cutted → fsNo required
+    let whereCondition = {};
+
+    // ✅ Handle rent collection
+    if (rentCollectionId) {
+      const collection = await TenantRentCollection.findByPk(rentCollectionId);
+      if (!collection) {
+        return res.status(404).json({ message: "Rent collection not found" });
+      }
+
+      const existing = await RentReciept.findOne({ where: { rentCollectionId } });
+      if (existing) {
+        return res.status(400).json({
+          message: "Receipt already exists for this collection",
+        });
+      }
+
+      whereCondition.rentCollectionId = rentCollectionId;
+    }
+
+    // ✅ Handle tenant payment
+    if (tenantPaymentId) {
+      const payment = await TenantPayment.findByPk(tenantPaymentId);
+      if (!payment) {
+        return res.status(404).json({ message: "Tenant payment not found" });
+      }
+
+      const existing = await RentReciept.findOne({ where: { tenantPaymentId } });
+      if (existing) {
+        return res.status(400).json({
+          message: "Receipt already exists for this tenant payment",
+        });
+      }
+
+      whereCondition.tenantPaymentId = tenantPaymentId;
+    }
+
+    // ✅ RULE 1
     if (status === "cutted" && !fsNo) {
       return res.status(400).json({
         message: "fsNo is required when status is 'cutted'",
       });
     }
 
-    // ✅ RULE 2: delivery = delivered → must be cutted + fsNo exists
+    // ✅ RULE 2
     if (deliveryStatus === "delivered") {
       if (status !== "cutted" || !fsNo) {
         return res.status(400).json({
-          message: "Cannot mark as delivered unless status is 'cutted' and fsNo is provided",
+          message:
+            "Cannot mark as delivered unless status is 'cutted' and fsNo is provided",
         });
       }
     }
 
     const receipt = await RentReciept.create({
-      rentCollectionId,
+      ...whereCondition,
       fsNo,
       status: status || "pending",
       deliveryStatus: deliveryStatus || "pending",
@@ -53,10 +92,17 @@ exports.createReceipt = async (req, res) => {
 exports.getAllReceipts = async (req, res) => {
   try {
     const receipts = await RentReciept.findAll({
-      include: {
+      include:[ {
         model: TenantRentCollection,
         as: "rentCollection",
       },
+
+      {
+        model: TenantPayment,
+        as: "tenantPayment",
+      }
+    
+    ]
     });
 
     res.json(receipts);
@@ -86,6 +132,45 @@ exports.getReceiptById = async (req, res) => {
   }
 };
 
+exports.getReceiptByTenantPaymentId = async (req, res) => {
+  try {
+    const receipt = await RentReciept.findOne({
+      where: { tenantPaymentId: req.params.tenantPaymentId },
+      include: [
+        { model: TenantRentCollection, as: "rentCollection" },
+        { model: TenantPayment, as: "tenantPayment" },
+      ],
+    });
+
+    if (!receipt) {
+      return res.status(404).json({ message: "Receipt not found for this payment" });
+    }
+
+    res.json(receipt);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getReceiptByRentCollectionId = async (req, res) => {
+  try {
+    const receipt = await RentReciept.findOne({
+      where: { rentCollectionId: req.params.rentCollectionId },
+      include: [
+        { model: TenantRentCollection, as: "rentCollection" },
+        { model: TenantPayment, as: "tenantPayment" },
+      ],
+    });
+
+    if (!receipt) {
+      return res.status(404).json({ message: "Receipt not found for this collection" });
+    }
+
+    res.json(receipt);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 // ✅ UPDATE receipt
 exports.updateReceipt = async (req, res) => {

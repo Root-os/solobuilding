@@ -274,9 +274,7 @@ const settingSchema = Joi.object({
 const tenatSchema = Joi.object({
   fullName: Joi.string().min(3).max(70).required(),
   email: Joi.string().email().allow("").optional(),
-  phoneNumber: Joi.string()
-    .pattern(/^[0-9]+$/)
-    .required(),
+  phoneNumber: Joi.string().required(),
   nationalId: Joi.string().allow("", null).optional(),
   tin: Joi.string().allow("", null).optional(),
   leaseStartDate: Joi.date().required(),
@@ -309,6 +307,7 @@ const tenatSchema = Joi.object({
   status: Joi.string().valid("active", "inactive", "terminated").optional(),
   floorId: Joi.number().integer().min(0).required(),
   unitId: Joi.number().integer().min(0).required(),
+  currency: Joi.string().valid("USD", "ETB", "EUR").optional(),
 
   //optional car details
   carPlate: Joi.string().min(3).max(20).optional(),
@@ -330,15 +329,19 @@ const tenantPaymentSchema = Joi.object({
 
 const tenantRentCollectionSchema = Joi.object({
   tenantId: Joi.number().integer().min(0).required(),
+  paymentTypeId: Joi.number().integer().min(0).required(),
   paymentDate: Joi.date().required(),
   paidDays: Joi.string().optional(),
-  paymentMethod: Joi.string().required(),
   nextDueDate: Joi.date().required(),
   status: Joi.string().valid("Paid", "Pending", "Overdue").optional(),
   proofOfPayment: Joi.string().optional(),
   punishment: Joi.number().optional().default(0),
   isPaid: Joi.boolean().required(),
   clearPunishment: Joi.boolean().optional(),
+  negotiatePunishment: Joi.boolean().optional(),
+  description: Joi.string().max(1000) .allow("") .optional(),
+  negotiatedAmount: Joi.number().optional(),
+  
 });
 const tenantVehicleSchema = Joi.object({
   tenantId: Joi.number().integer().min(0).required(),
