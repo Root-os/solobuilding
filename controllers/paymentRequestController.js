@@ -20,6 +20,12 @@ const createSingleSMSUtil = require("../utils/sendSingleSMSUtil");
 const axios = require("axios");
 const { normalizeTransactionNumber } = require("../helpers/normalizeCbeId");
 const generateAccessCode = require("../helpers/accessCodePaymentReq");
+const sendWhatsAppMessage = require("../utils/sendWhatsUp");
+const {
+  formatWhatsAppPhone,
+  formatSMSPhone,
+} = require("../helpers/formatPhone");
+const sendTenantPaymentRequestEmail = require("../utils/sendEmailRequest");
 
 // Create a payment request
 exports.createPaymentRequest = async (req, res) => {
@@ -92,25 +98,115 @@ exports.createPaymentRequest = async (req, res) => {
 
     const smsMessage = `Hi ${existingTenant.fullName},
 
-    A new ${existingbillType.name} is due by ${dueDate} for your unit (Floor ${floor?.floorNumber}, Unit ${unit?.unitNumber}).
+    A new ${existingbillType.typeName} is due by ${dueDate} for your unit (Floor ${floor?.floorNumber}, Unit ${unit?.unitNumber}).
     You can view and verify your pending payment here: ${paymentLink}
     Thank you!`;
 
     // 8️⃣ Send SMS safely in the background
-    setImmediate(async () => {
-      try {
-        const smsUtil = createSingleSMSUtil({
-          token: process.env.GEEZSMS_TOKEN,
-        });
-        await smsUtil.sendSingleSMS({
-          phone: existingTenant.phoneNumber,
-          msg: smsMessage + `\nLogin here: ${loginUrl}`,
-          callback: process.env.GEEZSMS_WEBHOOK_URL,
-        });
-      } catch (err) {
-        console.error("SMS failed for tenant", existingTenant.id, err.message);
+  // 8️⃣ Send notifications safely in the background
+setImmediate(async () => {
+  try {
+    console.log("Tenant raw phone:", existingTenant.phoneNumber);
+
+    const smsPhone = formatSMSPhone(existingTenant.phoneNumber);
+    const whatsappPhone = formatWhatsAppPhone(existingTenant.phoneNumber);
+
+    console.log("SMS phone:", smsPhone);
+    console.log("WhatsApp phone:", whatsappPhone);
+
+    const finalMessage =
+      smsMessage + `\nLogin here: ${loginUrl}`;
+
+    console.log("Final message:", finalMessage);
+
+    // =========================
+    // SMS
+    // =========================
+    try {
+      const smsUtil = createSingleSMSUtil({
+        token: process.env.GEEZSMS_TOKEN,
+      });
+
+      await smsUtil.sendSingleSMS({
+        phone: smsPhone,
+        msg: finalMessage,
+        callback: process.env.GEEZSMS_WEBHOOK_URL,
+      });
+
+      console.log("✅ SMS sent successfully");
+    } catch (err) {
+      console.error(
+        "❌ SMS failed:",
+        existingTenant.id,
+        err.message
+      );
+    }
+
+    // =========================
+    // WhatsApp
+    // =========================
+    try {
+      await sendWhatsAppMessage({
+        phone: whatsappPhone,
+        message: finalMessage,
+      });
+
+      console.log("✅ WhatsApp sent successfully");
+    } catch (err) {
+      console.error(
+        "❌ WhatsApp failed:",
+        existingTenant.id,
+        err.message
+      );
+    }
+
+    // =========================
+    // Email
+    // =========================
+    try {
+      if (existingTenant.email) {
+        const emailResponse =
+          await sendTenantPaymentRequestEmail({
+            email: existingTenant.email,
+            fullName: existingTenant.fullName,
+            billType: existingbillType.typeName,
+            amount,
+            dueDate,
+            paymentLink,
+            floorNumber: floor?.floorNumber,
+            unitNumber: unit?.unitNumber,
+            loginUrl,
+            message,
+          });
+
+        if (!emailResponse.success) {
+          console.error(
+            "❌ Payment email failed:",
+            emailResponse.error
+          );
+        } else {
+          console.log("✅ Payment email sent successfully");
+        }
+      } else {
+        console.log(
+          "⚠️ Tenant has no email address"
+        );
       }
-    });
+    } catch (err) {
+      console.error(
+        "❌ Email failed:",
+        existingTenant.id,
+        err.message
+      );
+    }
+  } catch (err) {
+    console.error(
+      "❌ Notification background process failed:",
+      existingTenant.id,
+      err.message
+    );
+  }
+});
 
     // 9️⃣ Return response
     res.status(201).json({
@@ -656,12 +752,10 @@ exports.verifyPaymentRequest = async (req, res) => {
 
     const fetchedAmount = Number(verificationResponse.amount);
 
-const expectedAmount = Number(request.amount);
+    const expectedAmount = Number(request.amount);
 
-const extraAmount =
-  fetchedAmount > expectedAmount
-    ? fetchedAmount - expectedAmount
-    : 0;
+    const extraAmount =
+      fetchedAmount > expectedAmount ? fetchedAmount - expectedAmount : 0;
 
     // 8️⃣ Duplicate check
     const existingResponse = await PaymentResponse.findOne({
@@ -755,7 +849,7 @@ const extraAmount =
           paidDays: request.paidDays || "0",
           paymentTypeId: paymentMethodId,
           amountPaid: expectedAmount.toString(),
-extraAmount: extraAmount,
+          extraAmount: extraAmount,
           status: "Paid",
           isPaid: true,
           punishment: 0,

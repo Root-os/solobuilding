@@ -20,7 +20,7 @@ const { adminAuth, tenantAuth, } = require("../middleware/auth");
 router.post('/submit', upload.array('images', 5), tenantAuth,createComplaint);
 
 // Admin views all complaints
-router.get('/all', adminAuth, getAllComplaints);
+router.get('/all', getAllComplaints);
 
 // Admin assigns a complaint to a staff member
 router.put('/assign',adminAuth, assignComplaint);

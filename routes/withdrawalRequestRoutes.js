@@ -20,7 +20,7 @@ const { withdrawalUpload } = require("../middleware/upload");
 router.post('/submit',tenantAuth,  withdrawalUpload.single('attachment'), createWithdrawalRequest);
 
 // Admin retrieves all withdrawal requests
-router.get('/all',adminAuth, getAllWithdrawalRequests);
+router.get('/all', getAllWithdrawalRequests);
 
 // Admin reviews and updates withdrawal status
 router.put('/review',adminAuth, reviewWithdrawalRequest);
